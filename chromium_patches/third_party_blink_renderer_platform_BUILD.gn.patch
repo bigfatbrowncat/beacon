@@ -1,0 +1,13 @@
+diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
+index 1252f23c91e3..3ad37d36e837 100644
+--- a/third_party/blink/renderer/platform/BUILD.gn
++++ b/third_party/blink/renderer/platform/BUILD.gn
+@@ -246,6 +246,8 @@ jumbo_component("platform") {
+     "//third_party/blink/*",
+     "//url/mojom:url_mojom_origin_blink",
+     "//url/mojom:url_mojom_gurl_blink",
++
++    "//:HelloWorld"
+   ]
+   output_name = "blink_platform"
+ 

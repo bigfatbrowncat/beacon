@@ -1,0 +1,16 @@
+diff --git a/content/public/renderer/BUILD.gn b/content/public/renderer/BUILD.gn
+index 9e21deaf31f6..933bbbcf185f 100644
+--- a/content/public/renderer/BUILD.gn
++++ b/content/public/renderer/BUILD.gn
+@@ -27,7 +27,10 @@ if (is_component_build) {
+ }
+ target(link_target_type, "renderer_sources") {
+   # External code should depend on via ":renderer" above.
+-  visibility = [ "//content/*" ]
++  visibility = [
++    "//content/*",
++    "//:HelloWorld",
++  ]
+ 
+   sources = [
+     "browser_plugin_delegate.cc",
