@@ -58,7 +58,9 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   std::shared_ptr<blink::my_frame_test_helpers::TestWebViewClient> wvc;
   std::shared_ptr<blink::my_frame_test_helpers::TestWebWidgetClient> wwc;
 
+  
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
+  scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner;
 
   blink::WebViewImpl* webView;
 

@@ -34,6 +34,7 @@
 #include "third_party/blink/renderer/platform/graphics/paint/drawing_recorder.h"
 #include "third_party/blink/renderer/platform/graphics/paint/paint_record_builder.h"
 #include "third_party/blink/renderer/platform/heap/heap.h"
+#include "third_party/blink/renderer/platform/scheduler/main_thread/main_thread_scheduler_impl.h"
 #include "third_party/blink/renderer/platform/scheduler/public/dummy_schedulers.h"
 
 //#include
@@ -225,14 +226,13 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
 
   mojo::core::Init();
 
-  scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner =
-      scoped_refptr<base::SingleThreadTaskRunner>(
-          new blink::my_scheduler::FakeTaskRunner());
+  mainTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
+      new blink::my_scheduler::FakeTaskRunner());
   /*composeTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
       new blink::my_scheduler::FakeTaskRunner());*/
 
-  /*base::SequencedTaskRunnerHandle* strh =*/new base::
-      SequencedTaskRunnerHandle(mainTaskRunner);
+  /*base::SequencedTaskRunnerHandle* strh =*/
+  // new base::SequencedTaskRunnerHandle(mainTaskRunner);
   new base::ThreadTaskRunnerHandle(mainTaskRunner);
 
   new base::internal::ScopedSetSequenceLocalStorageMapForCurrentThread(
@@ -257,10 +257,10 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
   wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>();
   wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>();
   wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
-      new my_frame_test_helpers::StubLayerTreeViewDelegate() /*,
-       mainTestRunner,
-       composeTaskRunner, my_web_thread_sched*/
-  );
+      new my_frame_test_helpers::StubLayerTreeViewDelegate(), mainTaskRunner /*,
+                                                             composeTaskRunner*/
+      ,
+      my_web_thread_sched.get());
 
   webView = webViewHelper->Initialize(wfc.get(), wvc.get(), wwc.get());
 
@@ -279,6 +279,14 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
 HelloWorld::~HelloWorld() {
   fWindow->detach();
   delete fWindow;
+
+  // webView->Close();
+  webViewHelper->Reset();
+  webViewHelper = nullptr;
+  // dynamic_cast<blink::scheduler::MainThreadSchedulerImpl*>(
+  my_web_thread_sched  //)
+      ->Shutdown();
+  my_web_thread_sched = nullptr;
 }
 
 void HelloWorld::updateTitle() {
@@ -341,12 +349,12 @@ void HelloWorld::CollectLinkedDestinations(Node* node) {
 }
 
 void HelloWorld::OutputLinkedDestinations(GraphicsContext& context,
-                                            const IntRect& page_rect) {
-  //if (!linked_destinations_valid_) {
-    // Collect anchors in the top-level frame only because our PrintContext
-    // supports only one namespace for the anchors.
-    CollectLinkedDestinations(&GetDocument());
-    //linked_destinations_valid_ = true;
+                                          const IntRect& page_rect) {
+  // if (!linked_destinations_valid_) {
+  // Collect anchors in the top-level frame only because our PrintContext
+  // supports only one namespace for the anchors.
+  CollectLinkedDestinations(&GetDocument());
+  // linked_destinations_valid_ = true;
   //}
 
   for (const auto& entry : linked_destinations_) {
@@ -361,8 +369,6 @@ void HelloWorld::OutputLinkedDestinations(GraphicsContext& context,
 
 bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
                          FloatSize size) {
-
-
   // This code is based on ChromePrintContext::SpoolSinglePage()/SpoolPage().
   // It differs in that it:
   //   1. Uses a different set of flags for painting and the graphics context.
@@ -399,9 +405,10 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
       CullRect(RoundedIntRect(bounds)));
   {
     // Add anchors.
-    //ScopedPaintChunkProperties scoped_paint_chunk_properties(
+    // ScopedPaintChunkProperties scoped_paint_chunk_properties(
     //    builder.Context().GetPaintController(), property_tree_state, builder,
-    //    DisplayItem::kPrintedContentDestinationLocations);                  <-- MAY BE NECESSARY
+    //    DisplayItem::kPrintedContentDestinationLocations); <-- MAY BE
+    //    NECESSARY
     DrawingRecorder line_boundary_recorder(
         builder.Context(), builder,
         DisplayItem::kPrintedContentDestinationLocations);
@@ -410,12 +417,13 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
         false);
 
     linked_destinations_.clear();
-    OutputLinkedDestinations(builder.Context(), RoundedIntRect(bounds)); 
+    OutputLinkedDestinations(builder.Context(), RoundedIntRect(bounds));
   }
-  //canvas->drawPicture(builder.EndRecording(property_tree_state));         <-- MAY BE NECESSARY
+  // canvas->drawPicture(builder.EndRecording(property_tree_state));         <--
+  // MAY BE NECESSARY
 
-    sk_sp<PaintRecord> playlist = builder.EndRecording(property_tree_state);
-    playlist->Playback(canvas);
+  sk_sp<PaintRecord> playlist = builder.EndRecording(property_tree_state);
+  playlist->Playback(canvas);
 
   return true;
 }

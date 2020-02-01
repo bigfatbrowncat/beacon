@@ -40,14 +40,15 @@
 
 #include "base/macros.h"
 #include "base/memory/weak_ptr.h"
+#include "base/threading/sequence_local_storage_map.h"
 #include "cc/test/test_task_graph_runner.h"
 #include "cc/trees/layer_tree_host.h"
-
+#include "cc/trees/ukm_manager.h"
+#include "components/ukm/ukm_recorder_impl.h"
 #include "content/common/content_export.h"
-#include "content/renderer/compositor/layer_tree_view_delegate.h"
 #include "content/renderer/compositor/layer_tree_view.h"
+#include "content/renderer/compositor/layer_tree_view_delegate.h"
 #include "content/test/stub_layer_tree_view_delegate.h"
-
 #include "services/service_manager/public/cpp/interface_provider.h"
 #include "third_party/blink/public/common/frame/frame_owner_element_type.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
@@ -69,13 +70,6 @@
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
-
-#include "third_party/blink/public/platform/scheduler/test/web_fake_thread_scheduler.h"
-#include "base/threading/sequence_local_storage_map.h"
-
-#include "cc/trees/ukm_manager.h"
-#include "components/ukm/ukm_recorder_impl.h"
-
 
 #define EXPECT_FLOAT_POINT_EQ(expected, actual)    \
   do {                                             \
@@ -278,7 +272,7 @@ class StubLayerTreeViewDelegate : public content::LayerTreeViewDelegate {
 
 // A class that constructs and owns a LayerTreeView for blink
 // unit tests.
-//class LayerTreeViewFactory {
+// class LayerTreeViewFactory {
 //
 //  DISALLOW_NEW();
 //
@@ -286,7 +280,7 @@ class StubLayerTreeViewDelegate : public content::LayerTreeViewDelegate {
 //  LayerTreeViewFactory();
 //  ~LayerTreeViewFactory();
 //
-//     
+//
 //     // Use this to make a LayerTreeView with a stub delegate.
 //  content::LayerTreeView* Initialize();
 //  // Use this to specify a delegate instead of using a stub.
@@ -310,11 +304,9 @@ class TestWebWidgetClient : public WebWidgetClient {
  public:
   // If no delegate is given, a stub is used.
   explicit TestWebWidgetClient(
-      content::LayerTreeViewDelegate* delegate = nullptr/*,
-      std::shared_ptr<base::SingleThreadTaskRunner> mainTaskRunner,
-      std::shared_ptr<base::SingleThreadTaskRunner> composeTaskRunner,
-      std::shared_ptr<blink::scheduler::WebThreadScheduler>
-          my_web_thread_sched*/);
+      content::LayerTreeViewDelegate* delegate = nullptr,
+      scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner = nullptr,
+      blink::scheduler::WebThreadScheduler* my_web_thread_sched = nullptr);
 
   ~TestWebWidgetClient() override;
 
@@ -379,14 +371,13 @@ class TestWebWidgetClient : public WebWidgetClient {
  private:
   std::unique_ptr<content::LayerTreeView> layer_tree_view_ = nullptr;
   cc::AnimationHost* animation_host_ = nullptr;
-  //LayerTreeViewFactory layer_tree_view_factory_;
+  // LayerTreeViewFactory layer_tree_view_factory_;
   Vector<InjectedScrollGestureData> injected_scroll_gesture_data_;
   bool animation_scheduled_ = false;
   bool have_scroll_event_handlers_ = false;
   int visually_non_empty_layout_count_ = 0;
   int finished_parsing_layout_count_ = 0;
   int finished_loading_layout_count_ = 0;
-
 };
 
 class TestWebViewClient : public WebViewClient {
@@ -408,8 +399,9 @@ class TestWebViewClient : public WebViewClient {
                       const FeaturePolicy::FeatureState&,
                       const SessionStorageNamespaceId&) override;
 
+
  private:
-  //LayerTreeViewFactory layer_tree_view_factory_;
+  // LayerTreeViewFactory layer_tree_view_factory_;
   WTF::Vector<std::unique_ptr<WebViewHelper>> child_web_views_;
 };
 
@@ -623,7 +615,7 @@ class TestWebRemoteFrameClient : public WebRemoteFrameClient {
   WebRemoteFrame* frame_ = nullptr;
 };
 
-}  // namespace frame_test_helpers
+}  // namespace my_frame_test_helpers
 }  // namespace blink
 
 #endif  // THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_FRAME_TEST_HELPERS_H_

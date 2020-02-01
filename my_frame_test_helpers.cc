@@ -769,10 +769,9 @@ StubLayerTreeViewDelegate::GetBeginMainFrameMetrics() {
 //}
 
 TestWebWidgetClient::TestWebWidgetClient(
-    content::LayerTreeViewDelegate* delegate/*,
+    content::LayerTreeViewDelegate* delegate,
     scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner,
-    scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner,
-    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched*/) {
+    blink::scheduler::WebThreadScheduler* my_web_thread_sched) {
 
     //static v8::FunctionCallbackInfo<v8::Value> fci(nullptr, nullptr, 0);
 
@@ -780,9 +779,9 @@ TestWebWidgetClient::TestWebWidgetClient(
     
     //base::SequencedTaskRunnerHandle::Get()
     
-    scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner =
+    /*scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner =
         scoped_refptr<base::SingleThreadTaskRunner>(
-            new blink::my_scheduler::FakeTaskRunner());
+            new blink::my_scheduler::FakeTaskRunner());*/
     /*scoped_refptr<base::SingleThreadTaskRunner> composerTaskRunner =
         scoped_refptr<base::SingleThreadTaskRunner>(
             new blink::my_scheduler::FakeTaskRunner());*/
@@ -791,7 +790,7 @@ TestWebWidgetClient::TestWebWidgetClient(
         delegate, 
         mainTaskRunner, nullptr /*composeTaskRunner*/,
         new cc::SingleThreadTaskGraphRunner(),
-        /*my_web_thread_sched.get()*/ blink::scheduler::WebThreadScheduler::MainThreadScheduler());
+        my_web_thread_sched/*, blink::scheduler::WebThreadScheduler::MainThreadScheduler()*/);
         
       ///*compositor_thread=*/nullptr, /*&test_task_graph_runner_*/nullptr,
       ///*&fake_thread_scheduler_*/nullptr);
