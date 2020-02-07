@@ -771,6 +771,7 @@ StubLayerTreeViewDelegate::GetBeginMainFrameMetrics() {
 TestWebWidgetClient::TestWebWidgetClient(
     content::LayerTreeViewDelegate* delegate,
     scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner,
+    scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner,
     blink::scheduler::WebThreadScheduler* my_web_thread_sched) {
 
     //static v8::FunctionCallbackInfo<v8::Value> fci(nullptr, nullptr, 0);
@@ -788,7 +789,7 @@ TestWebWidgetClient::TestWebWidgetClient(
 
     layer_tree_view_ = std::make_unique<content::LayerTreeView>(
         delegate, 
-        mainTaskRunner, nullptr /*composeTaskRunner*/,
+        mainTaskRunner, composeTaskRunner,
         new cc::SingleThreadTaskGraphRunner(),
         my_web_thread_sched/*, blink::scheduler::WebThreadScheduler::MainThreadScheduler()*/);
         

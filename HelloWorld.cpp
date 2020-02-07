@@ -7,6 +7,9 @@
 
 #include "HelloWorld.h"
 
+#include <fstream>
+#include <sstream>
+
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkGraphics.h"
@@ -24,9 +27,13 @@
 #include "third_party/blink/renderer/core/scroll/scrollbar_theme.h"
 #include "third_party/blink/renderer/platform/language.h"
 //#include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
+
+#include "base/message_loop/message_pump.h"
 #include "base/run_loop.h"
+#include "base/time/default_tick_clock.h"
 #include "mojo/core/embedder/embedder.h"
 #include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
+#include "third_party/blink/public/platform/web_font_render_style.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
 #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
@@ -40,11 +47,13 @@
 //#include
 //"third_party/blink/renderer/platform/testing/paint_test_configurations.h"
 
-#include "base/command_line.h"
 #include "base/task/post_task.h"
 #include "base/task/single_thread_task_executor.h"
+#include "base/task/thread_pool/thread_pool_impl.h"
+#include "base/task/thread_pool/thread_pool_instance.h"
 #include "my_frame_test_helpers.h"
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
+#include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 
 using namespace sk_app;
@@ -178,6 +187,7 @@ class TestBoundDelegate final : public InjectableTestDelegate {
   }
 
   // True if the next invocation of Run() is expected to be from a
+  // True if the next invocation of Run() is expected to be from a
   // kNestableTasksAllowed RunLoop.
   bool nested_run_allowing_tasks_incoming_ = false;
 
@@ -191,7 +201,6 @@ class TestBoundDelegate final : public InjectableTestDelegate {
 
 Application* Application::Create(int argc, char** argv, void* platformData) {
   //     base::RunLoop run_loop;
-  base::RunLoop::RegisterDelegateForCurrentThread(new TestBoundDelegate());
   return new HelloWorld(argc, argv, platformData);
 }
 
@@ -204,12 +213,9 @@ class MyPlatform : public blink::Platform {
 };
 
 HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
-    : fBackendType(Window::kNativeGL_BackendType),
+    : fBackendType(Window::kRaster_BackendType),
       fRotationAngle(0),
-      platform(std::make_unique<MyPlatform>()) /*,
-      my_web_thread_sched(nullptr
-          blink::scheduler::CreateDummyWebThreadScheduler())*/
-{
+      platform(std::make_unique<MyPlatform>()) {
   // WTF::Partitions::Initialize();
   // WTF::Initialize(nullptr /*TODO: make here call on main thread*/);
   ////WTF::Threading::Initialize();
@@ -219,7 +225,18 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
 
   // base::SingleThreadTaskExecutor main_task_executor;
   // mojo::core::Init();
+
+  // if (argc == 2) {
+  //    htmlFilename = std::string(argv[1]);
+  //}
+
   base::CommandLine::Init(argc, argv);
+  base::CommandLine::StringVector parsedArgs =
+      base::CommandLine::ForCurrentProcess()->GetArgs();
+
+  if (parsedArgs.size() > 0) {
+    htmlFilename = parsedArgs[0];
+  }
 
   // blink::Platform::CreateMainThreadAndInitialize(platform.get());
   // blink::Platform::Initialize(platform.get(), my_web_thread_sched.get());
@@ -227,44 +244,54 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
   mojo::core::Init();
 
   mainTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
-      new blink::my_scheduler::FakeTaskRunner());
-  /*composeTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
-      new blink::my_scheduler::FakeTaskRunner());*/
+      new SimpleSingleThreadTaskRunner());
+  composeTaskRunner = nullptr;
+  /*scoped_refptr<base::SingleThreadTaskRunner>(
+      new SimpleSingleThreadTaskRunner());*/
 
   /*base::SequencedTaskRunnerHandle* strh =*/
   // new base::SequencedTaskRunnerHandle(mainTaskRunner);
-  new base::ThreadTaskRunnerHandle(mainTaskRunner);
+  // new base::ThreadTaskRunnerHandle(mainTaskRunner);
 
-  new base::internal::ScopedSetSequenceLocalStorageMapForCurrentThread(
-      new base::internal::SequenceLocalStorageMap());
+  //  new base::internal::ScopedSetSequenceLocalStorageMapForCurrentThread(
+  //      new base::internal::SequenceLocalStorageMap());
 
   my_web_thread_sched =
       blink::scheduler::WebThreadScheduler::CreateMainThreadScheduler(
-          nullptr, base::Optional<base::Time>());
+          base::MessagePump::Create(base::MessagePumpType::DEFAULT),
+          base::Optional<base::Time>());
 
   run_loop = std::make_shared<base::RunLoop>();
 
   binder_map = std::make_unique<mojo::BinderMap>();
   blink::Initialize(platform.get(), /*mojo::BinderMap**/ binder_map.get(),
                     /*scheduler::WebThreadScheduler * main_thread_scheduler*/
-                    // wwc->
                     my_web_thread_sched.get());
 
   blink::InitializePlatformLanguage();
+
+  /*
+  blink::WebFontRenderStyle::SetAutoHint(true);
+  blink::WebFontRenderStyle::SetAntiAlias(true);
+  blink::WebFontRenderStyle::SetSubpixelRendering(true);
+  blink::WebFontRenderStyle::SetSubpixelPositioning(true);
+  */
 
   webViewHelper =
       std::make_shared<blink::my_frame_test_helpers::WebViewHelper>();
   wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>();
   wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>();
   wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
-      new my_frame_test_helpers::StubLayerTreeViewDelegate(), mainTaskRunner /*,
-                                                             composeTaskRunner*/
-      ,
-      my_web_thread_sched.get());
+      new my_frame_test_helpers::StubLayerTreeViewDelegate(), mainTaskRunner,
+      composeTaskRunner, my_web_thread_sched.get());
 
   webView = webViewHelper->Initialize(wfc.get(), wvc.get(), wwc.get());
 
-  // base::CreateCOMSTATaskRunner()
+  // base::ThreadPoolInstance::Set(std::make_unique<::base::internal::ThreadPoolImpl>("MainThreadPool"));
+  base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
+
+  UpdateContents();
+
   SkGraphics::Init();
 
   fWindow = Window::CreateNativeWindow(platformData);
@@ -377,7 +404,7 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
   //   3. Does no scaling.
   //  if (!GetDocument() || !GetDocument()->GetLayoutView())
   //    return false;
-  GetDocument().View()->UpdateLifecyclePhasesForPrinting();
+  //GetDocument().View()->UpdateLifecyclePhasesForPrinting();
   //  if (!GetDocument() || !GetDocument()->GetLayoutView())
   //    return false;
   FloatRect bounds(0, 0, size.Width(), size.Height());
@@ -386,7 +413,7 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
 
   builder.Context().GetPaintController().SetDisplayItemConstructionIsDisabled(
       true);
-  builder.Context().BeginRecording(FloatRect(0.f, 0.f, 800.f, 600.f));
+  builder.Context().BeginRecording(FloatRect());
 
   builder.Context().SetIsPaintingPreview(true);
 
@@ -411,7 +438,8 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
     //    NECESSARY
     DrawingRecorder line_boundary_recorder(
         builder.Context(), builder,
-        DisplayItem::kPrintedContentDestinationLocations);
+        DisplayItem::kPrintedContentDestinationLocations
+        /*DisplayItem::kDocumentBackground*/);
 
     builder.Context().GetPaintController().SetDisplayItemConstructionIsDisabled(
         false);
@@ -428,10 +456,12 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
   return true;
 }
 
-void HelloWorld::PrintSinglePage(SkCanvas* canvas) {
-  int kPageWidth = 800;
-  int kPageHeight = 600;
+void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
+  int kPageWidth = width;
+  int kPageHeight = height;
   IntRect page_rect(0, 0, kPageWidth, kPageHeight);
+  IntSize page_size(kPageWidth, kPageHeight);
+  FloatSize page_float_size((float)kPageWidth, (float)kPageHeight);
 
   /*GetDocument().SetPrinting(Document::kBeforePrinting);
   Event* event = MakeGarbageCollected<BeforePrintEvent>();
@@ -444,24 +474,6 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas) {
   // GraphicsContext& context = builder.Context();
   // context.SetPrinting(true);
 
-  GetDocument().SetContent(
-      "<html>"
-      "<body style=\""
-
-      "display: block; "
-      "margin: 8px; "
-      "width: 300px; "
-      "height: 200px; "
-      "font-size: 30px; "
-      "font-family: Arial, Helvetica, sans-serif; "
-      "background-color: lightblue; "
-      "color: black "
-
-      "\">"
-      "Hello, losers! blah blah blah blah blah blah blah"
-      "</body>"
-      "</html>");
-
   // SetBodyInnerHTML("Hello, losers!blah blah blah blah blah blah blah");
 
   VisualViewport& visual_viewport = webViewHelper->GetWebView()
@@ -473,11 +485,11 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas) {
   webViewHelper->GetWebView()
       ->MainFrameImpl()
       ->GetFrameView()
-      ->SetInitialViewportSize(IntSize(800, 600));
+      ->SetInitialViewportSize(page_size);
   webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView()->SetLayoutSize(
-      IntSize(800, 600));
+      page_size);
 
-  visual_viewport.SetSize(IntSize(800, 600));
+  visual_viewport.SetSize(page_size);
 
   // GetPrintContext().OutputLinkedDestinations(context, page_rect);
   GetDocument().View()->UpdateLayout();
@@ -500,7 +512,7 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas) {
   //  playlist->Playback(canvas);
   //
 
-  Capture(canvas, FloatSize(800.f, 600.f));
+  Capture(canvas, page_float_size);
 }
 
 void HelloWorld::SetBodyInnerHTML(String body_content) {
@@ -510,18 +522,31 @@ void HelloWorld::SetBodyInnerHTML(String body_content) {
 void HelloWorld::onPaint(SkSurface* surface) {
   auto* canvas = surface->getCanvas();
 
-  // Clear background
-  canvas->clear(SK_ColorWHITE);
+  int width = fWindow->width();
+  int height = fWindow->height();
 
-  SkPaint paint;
-  paint.setColor(SK_ColorRED);
+  // Clear background
+  SkColor windowBgColor = SkColorSetARGB(255, 128, 128, 255);  // SK_ColorWHITE;
+#ifdef WIN32
+//  CDC* pDc = GetDC();
+//  COLORREF win32WindowBG = pDc->GetBkColor();
+//  BYTE r = GetRValue(windowBG);
+//  BYTE g = GetRValue(windowBG);
+//  BYTE b = GetRValue(windowBG);
+//  windowBgColor = (SkColor)win32WindowBG;
+#endif
+
+  canvas->clear(windowBgColor);
+
+  // SkPaint paint;
+  // paint.setColor(SK_ColorRED);
 
   // Draw a rectangle with red paint
   // SkRect rect = SkRect::MakeXYWH(10, 10, 128, 128);
   // canvas->drawRect(rect, paint);
 
   // Set up a linear gradient and draw a circle
-  {
+  /*{
     SkPoint linearPoints[] = {{0, 0}, {300, 300}};
     SkColor linearColors[] = {SK_ColorGREEN, SK_ColorBLACK};
     paint.setShader(SkGradientShader::MakeLinear(
@@ -532,20 +557,20 @@ void HelloWorld::onPaint(SkSurface* surface) {
 
     // Detach shader
     paint.setShader(nullptr);
-  }
+  }*/
 
   // Draw a message with a nice black paint
-  SkFont font;
+  /*SkFont font;
   font.setSubpixel(true);
   font.setSize(20);
-  paint.setColor(SK_ColorBLACK);
+  paint.setColor(SK_ColorBLACK);*/
 
   canvas->save();
-  static const char message[] = "Hello World";
+  // static const char message[] = "Hello World";
 
   // Translate and rotate
-  canvas->translate(300, 300);
   fRotationAngle += 0.2f;
+  /*canvas->translate(300, 300);
   if (fRotationAngle > 360) {
     fRotationAngle -= 360;
   }
@@ -555,19 +580,71 @@ void HelloWorld::onPaint(SkSurface* surface) {
   canvas->drawSimpleText(message, strlen(message), SkTextEncoding::kUTF8, 0, 0,
                          font, paint);
 
-  /*SetBodyInnerHTML(
+  SetBodyInnerHTML(
       AbsoluteBlockHtmlForLink(50, 60, 70, 80, "http://www.google.com") +
       AbsoluteBlockHtmlForLink(150, 160, 170, 180,
                                "http://www.google.com#fragment"));*/
-  PrintSinglePage(canvas);
+  PrintSinglePage(canvas, width, height);
 
   canvas->restore();
 }
 
+void HelloWorld::UpdateContents() {
+  std::ifstream htmlFile(htmlFilename);
+  if (!htmlFile.good()) {
+    GetDocument().SetContent(
+        "<html style=\"background-color: blue\">"
+        "<head>"
+        "<script>document.write(\"boo! \" + (3+2));</script>"
+        "</head>"
+        "<body style=\""
+        "display: block; "
+        "margin: 0px; "
+        "width: 100%; "
+        "height: 100%; "
+        "font-size: 10px; "
+        "font-family: Arial, Helvetica, sans-serif; "
+        "color: #cccccc "
+
+        "\">"
+        "Hello, losers! <div style=\"background-color: lightblue; "
+        "display: "
+        "block\">blah blah blah blah blah</div> blah blah"
+        "</body>"
+        "</html>");
+  } else {
+    std::stringstream ss;
+    ss << htmlFile.rdbuf();
+
+    std::string newHTMLContents = ss.str();
+
+    if (htmlContents != newHTMLContents) {
+      htmlContents = newHTMLContents;
+      GetDocument().SetContent(WTF::String::FromUTF8(htmlContents.c_str()));
+    }
+  }
+}
+
 void HelloWorld::onIdle() {
+  // Update contents if necessary
+
+  std::chrono::steady_clock::time_point curTime =
+      std::chrono::steady_clock::now();
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(
+          curTime - htmlContentsUpdateTime)
+          .count() > 500) {
+    htmlContentsUpdateTime = curTime;
+    UpdateContents();
+  }
+
+  // Platform::Current()->AdvanceClockSeconds(0.01);
+  run_loop->RunUntilIdle();
+
   // Just re-paint continously
   fWindow->inval();
 }
+
+void HelloWorld::onAttach(sk_app::Window* window) {}
 
 bool HelloWorld::onChar(SkUnichar c, skui::ModifierKey modifiers) {
   if (' ' == c) {

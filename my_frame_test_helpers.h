@@ -50,6 +50,7 @@
 #include "content/renderer/compositor/layer_tree_view_delegate.h"
 #include "content/test/stub_layer_tree_view_delegate.h"
 #include "services/service_manager/public/cpp/interface_provider.h"
+
 #include "third_party/blink/public/common/frame/frame_owner_element_type.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
 #include "third_party/blink/public/mojom/fetch/fetch_api_request.mojom-blink-forward.h"
@@ -306,6 +307,7 @@ class TestWebWidgetClient : public WebWidgetClient {
   explicit TestWebWidgetClient(
       content::LayerTreeViewDelegate* delegate = nullptr,
       scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner = nullptr,
+      scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner = nullptr,
       blink::scheduler::WebThreadScheduler* my_web_thread_sched = nullptr);
 
   ~TestWebWidgetClient() override;
