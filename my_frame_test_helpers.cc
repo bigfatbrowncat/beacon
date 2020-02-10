@@ -578,6 +578,7 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
   web_view_->GetSettings()->SetViewportEnabled(viewport_enabled_);
   web_view_->GetSettings()->SetJavaScriptEnabled(true);
   web_view_->GetSettings()->SetPluginsEnabled(true);
+
   // Enable (mocked) network loads of image URLs, as this simplifies
   // the completion of resource loads upon test shutdown & helps avoid
   // dormant loads trigger Resource leaks for image loads.
@@ -801,6 +802,7 @@ TestWebWidgetClient::TestWebWidgetClient(
     //  the
     //  // test makes progress.
     settings.single_thread_proxy_scheduler = true;
+    settings.using_synchronous_renderer_compositor = true;
     settings.use_layer_lists = true;
 
   layer_tree_view_->Initialize(settings,

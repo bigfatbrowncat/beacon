@@ -51,6 +51,7 @@
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_impl.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
+#include "cc/paint/skia_paint_canvas.h"
 #include "my_frame_test_helpers.h"
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
@@ -243,11 +244,13 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
 
   mojo::core::Init();
 
-  mainTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
-      new SimpleSingleThreadTaskRunner());
-  composeTaskRunner = nullptr;
-  /*scoped_refptr<base::SingleThreadTaskRunner>(
+  base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
+  //  base::PostTask(base::BindOnce())
+
+  /*mainTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
       new SimpleSingleThreadTaskRunner());*/
+  base::TaskTraits default_traits = {base::ThreadPool()};
+  composeTaskRunner = base::CreateSingleThreadTaskRunner(default_traits);
 
   /*base::SequencedTaskRunnerHandle* strh =*/
   // new base::SequencedTaskRunnerHandle(mainTaskRunner);
@@ -282,13 +285,15 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
   wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>();
   wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>();
   wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
-      new my_frame_test_helpers::StubLayerTreeViewDelegate(), mainTaskRunner,
-      composeTaskRunner, my_web_thread_sched.get());
+      new my_frame_test_helpers::StubLayerTreeViewDelegate(),
+      my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
+      composeTaskRunner,
+      // // composeTaskRunner,
+      my_web_thread_sched.get());
 
   webView = webViewHelper->Initialize(wfc.get(), wvc.get(), wwc.get());
 
   // base::ThreadPoolInstance::Set(std::make_unique<::base::internal::ThreadPoolImpl>("MainThreadPool"));
-  base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
 
   UpdateContents();
 
@@ -298,6 +303,7 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
   fWindow->setRequestedDisplayParams(DisplayParams());
 
   // register callbacks
+
   fWindow->pushLayer(this);
 
   fWindow->attach(fBackendType);
@@ -404,7 +410,7 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
   //   3. Does no scaling.
   //  if (!GetDocument() || !GetDocument()->GetLayoutView())
   //    return false;
-  //GetDocument().View()->UpdateLifecyclePhasesForPrinting();
+  // GetDocument().View()->UpdateLifecyclePhasesForPrinting();
   //  if (!GetDocument() || !GetDocument()->GetLayoutView())
   //    return false;
   FloatRect bounds(0, 0, size.Width(), size.Height());
@@ -456,6 +462,14 @@ bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
   return true;
 }
 
+template <typename Function>
+static void ForAllGraphicsLayers(GraphicsLayer& layer,
+                                 const Function& function) {
+  function(layer);
+  for (auto* child : layer.Children())
+    ForAllGraphicsLayers(*child, function);
+}
+
 void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   int kPageWidth = width;
   int kPageHeight = height;
@@ -476,7 +490,7 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
 
   // SetBodyInnerHTML("Hello, losers!blah blah blah blah blah blah blah");
 
-  VisualViewport& visual_viewport = webViewHelper->GetWebView()
+  /*VisualViewport& visual_viewport = webViewHelper->GetWebView()
                                         ->MainFrameImpl()
                                         ->GetFrame()
                                         ->GetPage()
@@ -487,13 +501,26 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
       ->GetFrameView()
       ->SetInitialViewportSize(page_size);
   webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView()->SetLayoutSize(
-      page_size);
+      page_size);*/
 
-  visual_viewport.SetSize(page_size);
+  webView->Resize(WebSize(page_size));
+
+  // visual_viewport.SetSize(page_size);
+
+  LocalFrameView* frame_view =
+      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+
+  /*GetDocument().GetLayoutView()->GetFrameView()->Resize(page_size); // ???
+  GetDocument().View()->Resize(page_size); // ???
+  frame_view->SetLayoutSize(page_size);
+  frame_view->Resize(page_size); // ???
+
+  GetDocument().GetLayoutView()->GetFrameView()->PropagateFrameRects();*/
 
   // GetPrintContext().OutputLinkedDestinations(context, page_rect);
-  GetDocument().View()->UpdateLayout();
-  GetDocument().View()->UpdateAllLifecyclePhasesExceptPaint();
+  // GetDocument().View()->UpdateLayout();
+  // GetDocument().View()->UpdateAllLifecyclePhasesExceptPaint();
+
   //    GetDocument().View()->PaintContentsOutsideOfLifecycle(
   //        context,
   //        kGlobalPaintNormalPhase |
@@ -512,7 +539,40 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   //  playlist->Playback(canvas);
   //
 
-  Capture(canvas, page_float_size);
+  /*webView->MainFrameWidget()->UpdateLifecycle(
+      blink::WebWidget::LifecycleUpdate::kAll,
+      blink::WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
+
+  // webView->BeginFrame();
+  /*
+  std::shared_ptr<cc::SkiaPaintCanvas> spc =
+      std::make_shared<cc::SkiaPaintCanvas>(canvas);
+  webView->PaintContent(spc.get(), gfx::Rect(width, height));
+  */
+
+  webView->MainFrameWidget()->UpdateAllLifecyclePhases(
+      WebWidget::LifecycleUpdateReason::kBeginMainFrame);
+  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(),
+                                         false /* record_main_frame_metrics */);
+
+  PropertyTreeState property_tree_state =
+      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
+
+  std::shared_ptr<cc::SkiaPaintCanvas> spc =
+      std::make_shared<cc::SkiaPaintCanvas>(canvas);
+
+  {
+      blink::DisableCompositingQueryAsserts disabler; 
+      root_graphics_layer =
+          GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+
+      ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
+        if (layer.PaintsContentOrHitTest()) {
+          layer.GetPaintController().GetPaintArtifact().Replay(
+              *spc, property_tree_state, IntPoint(0, 0));
+        }
+      });
+  }
 }
 
 void HelloWorld::SetBodyInnerHTML(String body_content) {
@@ -526,7 +586,8 @@ void HelloWorld::onPaint(SkSurface* surface) {
   int height = fWindow->height();
 
   // Clear background
-  SkColor windowBgColor = SkColorSetARGB(255, 128, 128, 255);  // SK_ColorWHITE;
+  // SkColor windowBgColor = SkColorSetARGB(255, 128, 128, 255);  //
+  // SK_ColorWHITE;
 #ifdef WIN32
 //  CDC* pDc = GetDC();
 //  COLORREF win32WindowBG = pDc->GetBkColor();
@@ -536,7 +597,7 @@ void HelloWorld::onPaint(SkSurface* surface) {
 //  windowBgColor = (SkColor)win32WindowBG;
 #endif
 
-  canvas->clear(windowBgColor);
+  // canvas->clear(windowBgColor);
 
   // SkPaint paint;
   // paint.setColor(SK_ColorRED);
@@ -592,37 +653,43 @@ void HelloWorld::onPaint(SkSurface* surface) {
 void HelloWorld::UpdateContents() {
   std::ifstream htmlFile(htmlFilename);
   if (!htmlFile.good()) {
-    GetDocument().SetContent(
-        "<html style=\"background-color: blue\">"
-        "<head>"
-        "<script>document.write(\"boo! \" + (3+2));</script>"
-        "</head>"
-        "<body style=\""
-        "display: block; "
-        "margin: 0px; "
-        "width: 100%; "
-        "height: 100%; "
-        "font-size: 10px; "
-        "font-family: Arial, Helvetica, sans-serif; "
-        "color: #cccccc "
+    if (!blankLoaded) {
+      GetDocument().SetContent(
+          "<html style=\"background-color: blue\">"
+          "<head>"
+          "<script>document.write(\"boo! \" + (3+2));</script>"
+          "</head>"
+          "<body style=\""
+          "display: block; "
+          "margin: 0px; "
+          "width: 100%; "
+          "height: 100%; "
+          "font-size: 10px; "
+          "font-family: Arial, Helvetica, sans-serif; "
+          "color: #cccccc "
 
-        "\">"
-        "Hello, losers! <div style=\"background-color: lightblue; "
-        "display: "
-        "block\">blah blah blah blah blah</div> blah blah"
-        "</body>"
-        "</html>");
+          "\">"
+          "Hello, losers! <div style=\"background-color: lightblue; "
+          "display: "
+          "block\">blah blah blah blah blah</div> blah blah"
+          "</body>"
+          "</html>");
+      blankLoaded = true;
+      root_graphics_layer = nullptr;
+    }
   } else {
+    blankLoaded = false;
     std::stringstream ss;
     ss << htmlFile.rdbuf();
-
     std::string newHTMLContents = ss.str();
-
-    if (htmlContents != newHTMLContents) {
+    if (htmlContents != newHTMLContents && newHTMLContents != "") {
       htmlContents = newHTMLContents;
       GetDocument().SetContent(WTF::String::FromUTF8(htmlContents.c_str()));
+      root_graphics_layer = nullptr;
     }
   }
+
+  GetDocument().ScheduleLayoutTreeUpdateIfNeeded();
 }
 
 void HelloWorld::onIdle() {
@@ -637,7 +704,6 @@ void HelloWorld::onIdle() {
     UpdateContents();
   }
 
-  // Platform::Current()->AdvanceClockSeconds(0.01);
   run_loop->RunUntilIdle();
 
   // Just re-paint continously

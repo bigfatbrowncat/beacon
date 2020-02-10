@@ -80,7 +80,9 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
       base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl>
       threadController;
 
-  blink::WebViewImpl* webView;
+  blink::WebViewImpl* webView = nullptr;
+  blink::GraphicsLayer* root_graphics_layer = nullptr;
+  bool blankLoaded = false;
 
   blink::HeapHashMap<String, blink::Member<blink::Element>>
       linked_destinations_;
