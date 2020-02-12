@@ -1,5 +1,5 @@
 diff --git a/tools/sk_app/win/Window_win.cpp b/tools/sk_app/win/Window_win.cpp
-index 43ed343a30..9c026baf87 100644
+index 43ed343a30..0f29ab70cc 100644
 --- a/tools/sk_app/win/Window_win.cpp
 +++ b/tools/sk_app/win/Window_win.cpp
 @@ -77,7 +77,7 @@ bool Window_win::init(HINSTANCE hInstance) {
@@ -21,3 +21,20 @@ index 43ed343a30..9c026baf87 100644
                           gWindowX, gWindowY, gWindowWidth, gWindowHeight,
                           nullptr, nullptr, fHInstance, nullptr);
      if (!fHWnd)
+@@ -233,6 +234,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+             // disable/enable rendering here, depending on wParam != WA_INACTIVE
+             break;
+ 
++        case WM_ENTERSIZEMOVE:
++            window->onBeginResizing();
++            eventHandled = true;
++            break;
++
++        case WM_EXITSIZEMOVE:
++            window->onEndResizing();
++            eventHandled = true;
++            break;
++
+         case WM_SIZE:
+             window->onResize(LOWORD(lParam), HIWORD(lParam));
+             eventHandled = true;

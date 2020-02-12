@@ -40,6 +40,9 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   void onAttach(sk_app::Window* window) override;
 
   void onBackendCreated() override;
+  void onResize(int width, int height) override;
+  void onBeginResizing() override;
+  void onEndResizing() override;
   void onPaint(SkSurface*) override;
   bool onChar(SkUnichar c, skui::ModifierKey modifiers) override;
 
@@ -47,6 +50,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   void PrintSinglePage(SkCanvas* canvas, int width, int height);
   void SetBodyInnerHTML(String body_content);
   void UpdateContents();
+  void UpdateBackend();
 
   void OutputLinkedDestinations(blink::GraphicsContext& context,
                                 const blink::IntRect& page_rect);
@@ -58,13 +62,14 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   sk_app::Window* fWindow;
   sk_app::Window::BackendType fBackendType;
+  bool resizing = false;
 
   base::CommandLine::StringType htmlFilename;
   std::string htmlContents;
   std::chrono::steady_clock::time_point htmlContentsUpdateTime =
       std::chrono::steady_clock::now();
-
-  SkScalar fRotationAngle;
+  std::chrono::steady_clock::time_point lastGLInitAttempt =
+      std::chrono::steady_clock::now();
 
   std::shared_ptr<blink::Platform> platform;
 

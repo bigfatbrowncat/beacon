@@ -1,0 +1,26 @@
+diff --git a/tools/sk_app/Window.cpp b/tools/sk_app/Window.cpp
+index 2ccad5580b..ae92a2bf2d 100644
+--- a/tools/sk_app/Window.cpp
++++ b/tools/sk_app/Window.cpp
+@@ -100,6 +100,21 @@ void Window::onResize(int w, int h) {
+     this->visitLayers([=](Layer* layer) { layer->onResize(w, h); });
+ }
+ 
++void Window::onBeginResizing() {
++    if (!fWindowContext) {
++        return;
++    }
++    this->visitLayers([=](Layer* layer) { layer->onBeginResizing(); });
++}
++
++void Window::onEndResizing() {
++    if (!fWindowContext) {
++        return;
++    }
++    this->visitLayers([=](Layer* layer) { layer->onEndResizing(); });
++}
++
++
+ int Window::width() const {
+     if (!fWindowContext) {
+         return 0;

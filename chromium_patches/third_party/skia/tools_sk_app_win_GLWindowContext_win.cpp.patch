@@ -1,0 +1,23 @@
+diff --git a/tools/sk_app/win/GLWindowContext_win.cpp b/tools/sk_app/win/GLWindowContext_win.cpp
+index 32c47b4f58..da60d2174b 100644
+--- a/tools/sk_app/win/GLWindowContext_win.cpp
++++ b/tools/sk_app/win/GLWindowContext_win.cpp
+@@ -118,11 +118,13 @@ sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
+             fSampleCount = 1;
+         }
+ 
+-        RECT rect;
+-        GetClientRect(fHWND, &rect);
+-        fWidth = rect.right - rect.left;
+-        fHeight = rect.bottom - rect.top;
+-        glViewport(0, 0, fWidth, fHeight);
++        // Instead of creating a viewport with our window size,
++        // we are creating the biggest possible one.
++        // Changing the viweport size takes time that makes
++        // window resizing slow
++        int vsWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
++        int vsHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
++        glViewport(0, 0, vsWidth, vsHeight);
+     }
+     return GrGLMakeNativeInterface();
+ }

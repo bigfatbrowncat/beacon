@@ -8,6 +8,7 @@
 #include "HelloWorld.h"
 
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 #include "include/core/SkCanvas.h"
@@ -201,7 +202,6 @@ class TestBoundDelegate final : public InjectableTestDelegate {
 };
 
 Application* Application::Create(int argc, char** argv, void* platformData) {
-  //     base::RunLoop run_loop;
   return new HelloWorld(argc, argv, platformData);
 }
 
@@ -215,22 +215,7 @@ class MyPlatform : public blink::Platform {
 
 HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
     : fBackendType(Window::kRaster_BackendType),
-      fRotationAngle(0),
       platform(std::make_unique<MyPlatform>()) {
-  // WTF::Partitions::Initialize();
-  // WTF::Initialize(nullptr /*TODO: make here call on main thread*/);
-  ////WTF::Threading::Initialize();
-  // blink::GCInfoTable::CreateGlobalTable();
-  // blink::ThreadState::AttachMainThread();
-  ////blink::ThreadState::AttachCurrentThread();
-
-  // base::SingleThreadTaskExecutor main_task_executor;
-  // mojo::core::Init();
-
-  // if (argc == 2) {
-  //    htmlFilename = std::string(argv[1]);
-  //}
-
   base::CommandLine::Init(argc, argv);
   base::CommandLine::StringVector parsedArgs =
       base::CommandLine::ForCurrentProcess()->GetArgs();
@@ -239,25 +224,15 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
     htmlFilename = parsedArgs[0];
   }
 
-  // blink::Platform::CreateMainThreadAndInitialize(platform.get());
-  // blink::Platform::Initialize(platform.get(), my_web_thread_sched.get());
-
   mojo::core::Init();
 
+  // Creating a thread pool
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
-  //  base::PostTask(base::BindOnce())
 
-  /*mainTaskRunner = scoped_refptr<base::SingleThreadTaskRunner>(
-      new SimpleSingleThreadTaskRunner());*/
+  // Creating a thread for composer (this thread will issue CSS animation tasks
+  // for instance)
   base::TaskTraits default_traits = {base::ThreadPool()};
   composeTaskRunner = base::CreateSingleThreadTaskRunner(default_traits);
-
-  /*base::SequencedTaskRunnerHandle* strh =*/
-  // new base::SequencedTaskRunnerHandle(mainTaskRunner);
-  // new base::ThreadTaskRunnerHandle(mainTaskRunner);
-
-  //  new base::internal::ScopedSetSequenceLocalStorageMapForCurrentThread(
-  //      new base::internal::SequenceLocalStorageMap());
 
   my_web_thread_sched =
       blink::scheduler::WebThreadScheduler::CreateMainThreadScheduler(
@@ -267,7 +242,7 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
   run_loop = std::make_shared<base::RunLoop>();
 
   binder_map = std::make_unique<mojo::BinderMap>();
-  blink::Initialize(platform.get(), /*mojo::BinderMap**/ binder_map.get(),
+  blink::Initialize(platform.get(), binder_map.get(),
                     /*scheduler::WebThreadScheduler * main_thread_scheduler*/
                     my_web_thread_sched.get());
 
@@ -293,8 +268,6 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
 
   webView = webViewHelper->Initialize(wfc.get(), wvc.get(), wwc.get());
 
-  // base::ThreadPoolInstance::Set(std::make_unique<::base::internal::ThreadPoolImpl>("MainThreadPool"));
-
   UpdateContents();
 
   SkGraphics::Init();
@@ -303,9 +276,7 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
   fWindow->setRequestedDisplayParams(DisplayParams());
 
   // register callbacks
-
   fWindow->pushLayer(this);
-
   fWindow->attach(fBackendType);
 }
 
@@ -313,23 +284,25 @@ HelloWorld::~HelloWorld() {
   fWindow->detach();
   delete fWindow;
 
-  // webView->Close();
+  // Resetting the WebViewHelper
   webViewHelper->Reset();
   webViewHelper = nullptr;
-  // dynamic_cast<blink::scheduler::MainThreadSchedulerImpl*>(
-  my_web_thread_sched  //)
-      ->Shutdown();
+
+  // Shutting down the thread scheduler
+  my_web_thread_sched->Shutdown();
   my_web_thread_sched = nullptr;
 }
 
 void HelloWorld::updateTitle() {
-  if (!fWindow || fWindow->sampleCount() <= 1) {
+  if (!fWindow /*|| fWindow->sampleCount() <= 1*/) {
     return;
   }
 
   SkString title("Hello World");
+  title.append(" [");
   title.append(Window::kRaster_BackendType == fBackendType ? "Raster"
                                                            : "OpenGL");
+  title.append("]");
   fWindow->setTitle(title.c_str());
 }
 
@@ -344,20 +317,6 @@ Document& HelloWorld::GetDocument() {
                ->MainFrameImpl()
                ->GetDocument());
 }
-
-// static String AbsoluteBlockHtmlForLink(int x,
-//                                       int y,
-//                                       int width,
-//                                       int height,
-//                                       const char* url,
-//                                       const char* children = nullptr) {
-//  WTF::TextStream ts;
-//  ts << WTF::String("<a>children_go_here</a>"); /*
-//  << x << "px; top: " << y
-//     << "px; width: " << width << "px; height: " << height << "px' href='"
-//     << url << "'>" << (children ? children : url) << "</a>";*/
-//  return ts.Release();
-//}
 
 void HelloWorld::CollectLinkedDestinations(Node* node) {
   for (Node* i = node->firstChild(); i; i = i->nextSibling())
@@ -477,83 +436,20 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   IntSize page_size(kPageWidth, kPageHeight);
   FloatSize page_float_size((float)kPageWidth, (float)kPageHeight);
 
-  /*GetDocument().SetPrinting(Document::kBeforePrinting);
-  Event* event = MakeGarbageCollected<BeforePrintEvent>();
-  GetPrintContext().GetFrame()->DomWindow()->DispatchEvent(*event);
-  GetPrintContext().BeginPrintMode(page_rect.Width(), page_rect.Height());
-  */
-
-  // UpdateAllLifecyclePhasesForTest();
-  // PaintRecordBuilder builder;
-  // GraphicsContext& context = builder.Context();
-  // context.SetPrinting(true);
-
-  // SetBodyInnerHTML("Hello, losers!blah blah blah blah blah blah blah");
-
-  /*VisualViewport& visual_viewport = webViewHelper->GetWebView()
-                                        ->MainFrameImpl()
-                                        ->GetFrame()
-                                        ->GetPage()
-                                        ->GetVisualViewport();
-
-  webViewHelper->GetWebView()
-      ->MainFrameImpl()
-      ->GetFrameView()
-      ->SetInitialViewportSize(page_size);
-  webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView()->SetLayoutSize(
-      page_size);*/
-
   webView->Resize(WebSize(page_size));
-
-  // visual_viewport.SetSize(page_size);
 
   LocalFrameView* frame_view =
       webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
 
-  /*GetDocument().GetLayoutView()->GetFrameView()->Resize(page_size); // ???
-  GetDocument().View()->Resize(page_size); // ???
-  frame_view->SetLayoutSize(page_size);
-  frame_view->Resize(page_size); // ???
-
-  GetDocument().GetLayoutView()->GetFrameView()->PropagateFrameRects();*/
-
-  // GetPrintContext().OutputLinkedDestinations(context, page_rect);
-  // GetDocument().View()->UpdateLayout();
-  // GetDocument().View()->UpdateAllLifecyclePhasesExceptPaint();
-
-  //    GetDocument().View()->PaintContentsOutsideOfLifecycle(
-  //        context,
-  //        kGlobalPaintNormalPhase |
-  //            /*kGlobalPaintPrinting | */ kGlobalPaintFlattenCompositingLayers
-  //            | kGlobalPaintAddUrlMetadata,
-  //        CullRect(page_rect));
-  ////  {
-  ////    DrawingRecorder recorder(
-  ////        context, *GetDocument().GetLayoutView(),
-  ////        DisplayItem::kDocumentBackground
-  ////        /*DisplayItem::kPrintedContentDestinationLocations*/);
-  ////  }
-  //
-  //
-  //  sk_sp<PaintRecord> playlist = builder.EndRecording();
-  //  playlist->Playback(canvas);
-  //
-
-  /*webView->MainFrameWidget()->UpdateLifecycle(
-      blink::WebWidget::LifecycleUpdate::kAll,
-      blink::WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
-
-  // webView->BeginFrame();
-  /*
-  std::shared_ptr<cc::SkiaPaintCanvas> spc =
-      std::make_shared<cc::SkiaPaintCanvas>(canvas);
-  webView->PaintContent(spc.get(), gfx::Rect(width, height));
-  */
-
   webView->MainFrameWidget()->UpdateAllLifecyclePhases(
       WebWidget::LifecycleUpdateReason::kBeginMainFrame);
-  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(),
-                                         false /* record_main_frame_metrics */);
+
+  /*if (!resizing)*/ {
+    // We don't update CSS animations during the window resizing because it
+    // is significantly reducing the resizing process
+    webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+  } /*else {
+  }*/
 
   PropertyTreeState property_tree_state =
       frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
@@ -562,16 +458,16 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
       std::make_shared<cc::SkiaPaintCanvas>(canvas);
 
   {
-      blink::DisableCompositingQueryAsserts disabler; 
-      root_graphics_layer =
-          GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+    blink::DisableCompositingQueryAsserts disabler;
+    root_graphics_layer =
+        GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
 
-      ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
-        if (layer.PaintsContentOrHitTest()) {
-          layer.GetPaintController().GetPaintArtifact().Replay(
-              *spc, property_tree_state, IntPoint(0, 0));
-        }
-      });
+    ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
+      if (layer.PaintsContentOrHitTest()) {
+        layer.GetPaintController().GetPaintArtifact().Replay(
+            *spc, property_tree_state, IntPoint(0, 0));
+      }
+    });
   }
 }
 
@@ -579,72 +475,60 @@ void HelloWorld::SetBodyInnerHTML(String body_content) {
   GetDocument().body()->setAttribute(html_names::kStyleAttr, "margin: 0");
   GetDocument().body()->SetInnerHTMLFromString(body_content);
 }
+
+void HelloWorld::UpdateBackend() {
+  // OpenGL context slows down the resizing process.
+  // So we are changing the backend to software raster during resizing
+  auto newBackendType =
+      /*resizing ? Window::kRaster_BackendType :*/ Window::kNativeGL_BackendType;
+
+  // If there is no GL context allocated then falling back to raster
+  if (fWindow->getGrContext() == nullptr) {
+    newBackendType = Window::kRaster_BackendType;
+  }
+
+  // If too much time passed after the last attempt to init GL
+  // and we aren't resizing, try again
+  std::chrono::steady_clock::time_point curTime =
+      std::chrono::steady_clock::now();
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(
+      curTime - lastGLInitAttempt).count() > 1000 /*&& !resizing*/) {
+    // Good luck to us!
+    newBackendType = Window::kNativeGL_BackendType;
+    lastGLInitAttempt = curTime;
+  }
+
+  if (fBackendType != newBackendType) {
+    fBackendType = newBackendType;
+    fWindow->detach();
+    fWindow->attach(fBackendType);
+    updateTitle();
+  }
+}
+
+void HelloWorld::onResize(int width, int height) {
+  UpdateBackend();
+  fWindow->inval();
+}
+
+void HelloWorld::onBeginResizing() {
+  resizing = true;
+  UpdateBackend();
+}
+
+void HelloWorld::onEndResizing() {
+  resizing = false;
+  UpdateBackend();
+}
+
 void HelloWorld::onPaint(SkSurface* surface) {
   auto* canvas = surface->getCanvas();
 
   int width = fWindow->width();
   int height = fWindow->height();
 
-  // Clear background
-  // SkColor windowBgColor = SkColorSetARGB(255, 128, 128, 255);  //
-  // SK_ColorWHITE;
-#ifdef WIN32
-//  CDC* pDc = GetDC();
-//  COLORREF win32WindowBG = pDc->GetBkColor();
-//  BYTE r = GetRValue(windowBG);
-//  BYTE g = GetRValue(windowBG);
-//  BYTE b = GetRValue(windowBG);
-//  windowBgColor = (SkColor)win32WindowBG;
-#endif
-
-  // canvas->clear(windowBgColor);
-
-  // SkPaint paint;
-  // paint.setColor(SK_ColorRED);
-
-  // Draw a rectangle with red paint
-  // SkRect rect = SkRect::MakeXYWH(10, 10, 128, 128);
-  // canvas->drawRect(rect, paint);
-
-  // Set up a linear gradient and draw a circle
-  /*{
-    SkPoint linearPoints[] = {{0, 0}, {300, 300}};
-    SkColor linearColors[] = {SK_ColorGREEN, SK_ColorBLACK};
-    paint.setShader(SkGradientShader::MakeLinear(
-        linearPoints, linearColors, nullptr, 2, SkTileMode::kMirror));
-    paint.setAntiAlias(true);
-
-    canvas->drawCircle(200, 200, 64, paint);
-
-    // Detach shader
-    paint.setShader(nullptr);
-  }*/
-
-  // Draw a message with a nice black paint
-  /*SkFont font;
-  font.setSubpixel(true);
-  font.setSize(20);
-  paint.setColor(SK_ColorBLACK);*/
-
   canvas->save();
-  // static const char message[] = "Hello World";
 
-  // Translate and rotate
-  fRotationAngle += 0.2f;
-  /*canvas->translate(300, 300);
-  if (fRotationAngle > 360) {
-    fRotationAngle -= 360;
-  }
-  canvas->rotate(fRotationAngle);
-
-  // Draw the text
-  canvas->drawSimpleText(message, strlen(message), SkTextEncoding::kUTF8, 0, 0,
-                         font, paint);
-
-  SetBodyInnerHTML(
-      AbsoluteBlockHtmlForLink(50, 60, 70, 80, "http://www.google.com") +
-      AbsoluteBlockHtmlForLink(150, 160, 170, 180,
-                               "http://www.google.com#fragment"));*/
   PrintSinglePage(canvas, width, height);
 
   canvas->restore();
@@ -688,13 +572,12 @@ void HelloWorld::UpdateContents() {
       root_graphics_layer = nullptr;
     }
   }
-
-  GetDocument().ScheduleLayoutTreeUpdateIfNeeded();
 }
 
 void HelloWorld::onIdle() {
-  // Update contents if necessary
+  UpdateBackend();
 
+  // Update contents if necessary
   std::chrono::steady_clock::time_point curTime =
       std::chrono::steady_clock::now();
   if (std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -703,7 +586,6 @@ void HelloWorld::onIdle() {
     htmlContentsUpdateTime = curTime;
     UpdateContents();
   }
-
   run_loop->RunUntilIdle();
 
   // Just re-paint continously
@@ -714,11 +596,6 @@ void HelloWorld::onAttach(sk_app::Window* window) {}
 
 bool HelloWorld::onChar(SkUnichar c, skui::ModifierKey modifiers) {
   if (' ' == c) {
-    fBackendType = Window::kRaster_BackendType == fBackendType
-                       ? Window::kNativeGL_BackendType
-                       : Window::kRaster_BackendType;
-    fWindow->detach();
-    fWindow->attach(fBackendType);
   }
   return true;
 }
