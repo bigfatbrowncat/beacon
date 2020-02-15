@@ -1,5 +1,5 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index b30933941690..5b6c9c7c5b01 100644
+index b30933941690..fab96328764f 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -650,11 +650,7 @@ group("gn_all") {
@@ -72,7 +72,7 @@ index b30933941690..5b6c9c7c5b01 100644
        "content/browser/resources:closure_compile",
        "mojo/public/tools/bindings/generators/js_templates/lite/test:closure_compile",
        "ui/webui/resources:closure_compile",
-@@ -1352,3 +1348,44 @@ if (closure_compile) {
+@@ -1352,3 +1348,56 @@ if (closure_compile) {
  assert_valid_out_dir("_unused") {
    actual_sources = [ "$root_build_dir/foo" ]
  }
@@ -83,7 +83,16 @@ index b30933941690..5b6c9c7c5b01 100644
 +        "my_example/HelloWorld.h",
 +        "my_example/my_frame_test_helpers.cc",
 +        "my_example/my_frame_test_helpers.h",
++
++        "content/renderer/compositor/layer_tree_view.cc",
++        "content/renderer/compositor/layer_tree_view.h",
++        "content/renderer/compositor/layer_tree_view_delegate.h",
++
++        "third_party/skia/third_party/icu/SkLoadICU.cpp",
 +      ]
++
++      cflags_cc = [ "/std:c++17"]
++
 +      libs = []
 +      include_dirs = [
 +        "//third_party/icu/source/common",
@@ -94,6 +103,8 @@ index b30933941690..5b6c9c7c5b01 100644
 +      if (is_component_build) {
 +        defines = [ "COMPONENT_BUILD" ]
 +      }
++      defines += [ "CONTENT_IMPLEMENTATION",
++                   "SK_USING_THIRD_PARTY_ICU" ]
 +
 +      deps = [
 +        "//skia:flags",
@@ -102,19 +113,20 @@ index b30933941690..5b6c9c7c5b01 100644
 +        "//skia:skia",
 +        "//skia:tool_utils",
 +        "//skia:pathkit",
++
 +        "//cc:cc",
 +        "//components/ukm:ukm",
-+        "//third_party/blink/public:blink",
-+        "//third_party/blink/renderer/core:core",
-+        "//third_party/blink/renderer/modules:modules",
-+        "//third_party/blink/renderer/bindings:generate_v8_bindings",
-+        "//content/public/renderer:renderer_sources",
-+        "//content/renderer:renderer",
 +
++        "//third_party/blink/public:blink",
 +        "//third_party/blink/public:image_resources",
 +        "//third_party/blink/public:resources",
 +        "//third_party/blink/public/strings",
-+    
++        "//third_party/blink/renderer/core:core",
++        "//third_party/blink/renderer/platform:platform",
++        "//third_party/blink/renderer/modules:modules",
++        "//third_party/blink/renderer/bindings:generate_v8_bindings",
++
++        "//mojo/core/embedder:embedder",
 +      ]
 +}
 \ No newline at end of file

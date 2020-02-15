@@ -44,6 +44,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   void onBeginResizing() override;
   void onEndResizing() override;
   void onPaint(SkSurface*) override;
+  bool onMouse(int x, int y, skui::InputState, skui::ModifierKey) override;
   bool onChar(SkUnichar c, skui::ModifierKey modifiers) override;
 
   blink::Document& GetDocument();
@@ -89,6 +90,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   blink::GraphicsLayer* root_graphics_layer = nullptr;
   bool blankLoaded = false;
 
+  std::shared_ptr<blink::WebCoalescedInputEvent> coalescedInputEvent = nullptr;
   blink::HeapHashMap<String, blink::Member<blink::Element>>
       linked_destinations_;
 

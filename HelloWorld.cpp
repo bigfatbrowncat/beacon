@@ -54,9 +54,12 @@
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "cc/paint/skia_paint_canvas.h"
 #include "my_frame_test_helpers.h"
+#include "third_party/blink/renderer/platform/geometry/int_point.h"
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/skia/include/core/SkCanvas.h"
+
+#include "third_party/skia/third_party/icu/SkLoadICU.h"
 
 using namespace sk_app;
 using namespace blink;
@@ -224,6 +227,8 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
     htmlFilename = parsedArgs[0];
   }
 
+  SkLoadICU();
+
   mojo::core::Init();
 
   // Creating a thread pool
@@ -307,6 +312,7 @@ void HelloWorld::updateTitle() {
 }
 
 void HelloWorld::onBackendCreated() {
+  std::cout << "HelloWorld::onBackendCreated" << std::endl;
   this->updateTitle();
   fWindow->show();
   fWindow->inval();
@@ -438,6 +444,11 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
 
   webView->Resize(WebSize(page_size));
 
+  if (coalescedInputEvent != nullptr) {
+    webView->MainFrameWidget()->HandleInputEvent(*coalescedInputEvent);
+    coalescedInputEvent = nullptr;
+  }
+
   LocalFrameView* frame_view =
       webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
 
@@ -477,10 +488,17 @@ void HelloWorld::SetBodyInnerHTML(String body_content) {
 }
 
 void HelloWorld::UpdateBackend() {
+  // Checking if we need a fallback to Raster renderer.
+  // Fallback is effective for small screens and weak videochips
+  bool fallback = false;
+  if (fWindow->width() * fWindow->height() <= 1920 * 1080 && resizing) {
+    fallback = true;
+  }
+
   // OpenGL context slows down the resizing process.
   // So we are changing the backend to software raster during resizing
   auto newBackendType =
-      /*resizing ? Window::kRaster_BackendType :*/ Window::kNativeGL_BackendType;
+      fallback ? Window::kRaster_BackendType : Window::kNativeGL_BackendType;
 
   // If there is no GL context allocated then falling back to raster
   if (fWindow->getGrContext() == nullptr) {
@@ -491,14 +509,17 @@ void HelloWorld::UpdateBackend() {
   // and we aren't resizing, try again
   std::chrono::steady_clock::time_point curTime =
       std::chrono::steady_clock::now();
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(
-      curTime - lastGLInitAttempt).count() > 1000 /*&& !resizing*/) {
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
+                                                            lastGLInitAttempt)
+              .count() > 1000 &&
+      !fallback) {
     // Good luck to us!
     newBackendType = Window::kNativeGL_BackendType;
     lastGLInitAttempt = curTime;
   }
 
   if (fBackendType != newBackendType) {
+    std::cout << "HelloWorld::UpdateBackend: updating backend" << std::endl;
     fBackendType = newBackendType;
     fWindow->detach();
     fWindow->attach(fBackendType);
@@ -507,16 +528,19 @@ void HelloWorld::UpdateBackend() {
 }
 
 void HelloWorld::onResize(int width, int height) {
+  std::cout << "HelloWorld::onResize" << std::endl;
   UpdateBackend();
   fWindow->inval();
 }
 
 void HelloWorld::onBeginResizing() {
+  std::cout << "HelloWorld::onBeginResizing" << std::endl;
   resizing = true;
   UpdateBackend();
 }
 
 void HelloWorld::onEndResizing() {
+  std::cout << "HelloWorld::onEndResizing" << std::endl;
   resizing = false;
   UpdateBackend();
 }
@@ -532,6 +556,37 @@ void HelloWorld::onPaint(SkSurface* surface) {
   PrintSinglePage(canvas, width, height);
 
   canvas->restore();
+}
+
+bool HelloWorld::onMouse(int x,
+                         int y,
+                         skui::InputState inState,
+                         skui::ModifierKey modKey) {
+  WebInputEvent::Type mtp;
+  switch (inState) {
+    case skui::InputState::kDown:
+      mtp = WebInputEvent::Type::kMouseDown;
+      break;
+    case skui::InputState::kUp:
+      mtp = WebInputEvent::Type::kMouseUp;
+      break;
+    case skui::InputState::kMove:
+      mtp = WebInputEvent::Type::kMouseMove;
+      break;
+    default:
+      return false;
+  }
+
+  IntPoint pos(x, y);
+
+  auto mouseEvent = my_frame_test_helpers::CreateMouseEvent(
+      mtp, WebMouseEvent::Button::kLeft, pos, 0);
+  if (coalescedInputEvent == nullptr) {
+    coalescedInputEvent = std::make_shared<WebCoalescedInputEvent>(mouseEvent);
+  } else {
+    coalescedInputEvent->AddCoalescedEvent(mouseEvent);
+  }
+  return true;
 }
 
 void HelloWorld::UpdateContents() {

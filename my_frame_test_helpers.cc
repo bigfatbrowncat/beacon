@@ -775,19 +775,6 @@ TestWebWidgetClient::TestWebWidgetClient(
     scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner,
     blink::scheduler::WebThreadScheduler* my_web_thread_sched) {
 
-    //static v8::FunctionCallbackInfo<v8::Value> fci(nullptr, nullptr, 0);
-
-    //ExecutionContext* ec = ExecutionContext::ForCurrentRealm(fci);
-    
-    //base::SequencedTaskRunnerHandle::Get()
-    
-    /*scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner =
-        scoped_refptr<base::SingleThreadTaskRunner>(
-            new blink::my_scheduler::FakeTaskRunner());*/
-    /*scoped_refptr<base::SingleThreadTaskRunner> composerTaskRunner =
-        scoped_refptr<base::SingleThreadTaskRunner>(
-            new blink::my_scheduler::FakeTaskRunner());*/
-
     layer_tree_view_ = std::make_unique<content::LayerTreeView>(
         delegate, 
         mainTaskRunner, composeTaskRunner,
@@ -808,7 +795,6 @@ TestWebWidgetClient::TestWebWidgetClient(
   layer_tree_view_->Initialize(settings,
                                    std::make_unique<TestUkmRecorderFactory>());
 
-  //layer_tree_view_ = layer_tree_view_factory_.Initialize(delegate);
   animation_host_ = layer_tree_view_->animation_host();
 }
 
