@@ -1,0 +1,99 @@
+diff --git a/tools/sk_app/win/Window_win.h b/tools/sk_app/win/Window_win.h
+index 9e108e0561..219d7301fa 100644
+--- a/tools/sk_app/win/Window_win.h
++++ b/tools/sk_app/win/Window_win.h
+@@ -1,45 +1,49 @@
+-/*
+-* Copyright 2016 Google Inc.
+-*
+-* Use of this source code is governed by a BSD-style license that can be
+-* found in the LICENSE file.
+-*/
+-
+-#ifndef Window_win_DEFINED
+-#define Window_win_DEFINED
+-
+-#include "tools/sk_app/Window.h"
+-
+-#include <windows.h>
+-
+-namespace sk_app {
+-
+-class Window_win : public Window {
+-public:
+-    Window_win() : Window() {}
+-    ~Window_win() override;
+-
+-    bool init(HINSTANCE instance);
+-
+-    void setTitle(const char*) override;
+-    void show() override;
+-
+-    bool attach(BackendType) override;
+-
+-    void onInval() override;
+-
+-    void setRequestedDisplayParams(const DisplayParams&, bool allowReattach) override;
+-
+-private:
+-    void closeWindow();
+-
+-    HINSTANCE fHInstance;
+-    HWND      fHWnd;
+-    BackendType fBackend;
+-
+-    typedef Window INHERITED;
+-};
+-
+-}   // namespace sk_app
+-
+-#endif
++/*
++* Copyright 2016 Google Inc.
++*
++* Use of this source code is governed by a BSD-style license that can be
++* found in the LICENSE file.
++*/
++
++#ifndef Window_win_DEFINED
++#define Window_win_DEFINED
++
++#include "tools/sk_app/Window.h"
++
++#include <windows.h>
++
++namespace sk_app {
++
++class Window_win : public Window {
++public:
++    Window_win(const std::shared_ptr<PlatformData>& platformData) 
++        : Window(), platformData(platformData) {
++    }
++    
++    ~Window_win() override;
++
++    bool init();
++
++    void setTitle(const char*) override;
++    void show() override;
++
++    bool attach(BackendType) override;
++
++    void onInval() override;
++
++    void setRequestedDisplayParams(const DisplayParams&, bool allowReattach) override;
++    PlatformData& getPlatformData() { return *platformData; }
++
++private:
++    void closeWindow();
++
++    std::shared_ptr<PlatformData> platformData;
++    HWND fHWnd;
++    BackendType fBackend;
++
++    typedef Window INHERITED;
++};
++
++}   // namespace sk_app
++
++#endif

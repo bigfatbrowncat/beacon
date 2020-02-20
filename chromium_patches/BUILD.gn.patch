@@ -1,5 +1,5 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index b30933941690..fab96328764f 100644
+index b30933941690..2f537a7a5f49 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -650,11 +650,7 @@ group("gn_all") {
@@ -72,7 +72,7 @@ index b30933941690..fab96328764f 100644
        "content/browser/resources:closure_compile",
        "mojo/public/tools/bindings/generators/js_templates/lite/test:closure_compile",
        "ui/webui/resources:closure_compile",
-@@ -1352,3 +1348,56 @@ if (closure_compile) {
+@@ -1352,3 +1348,58 @@ if (closure_compile) {
  assert_valid_out_dir("_unused") {
    actual_sources = [ "$root_build_dir/foo" ]
  }
@@ -116,6 +116,8 @@ index b30933941690..fab96328764f 100644
 +
 +        "//cc:cc",
 +        "//components/ukm:ukm",
++
++        "//ui/events:events",
 +
 +        "//third_party/blink/public:blink",
 +        "//third_party/blink/public:image_resources",

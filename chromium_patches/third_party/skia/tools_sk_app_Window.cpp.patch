@@ -1,8 +1,53 @@
 diff --git a/tools/sk_app/Window.cpp b/tools/sk_app/Window.cpp
-index 2ccad5580b..ae92a2bf2d 100644
+index 2ccad5580b..e50aa6e7d5 100644
 --- a/tools/sk_app/Window.cpp
 +++ b/tools/sk_app/Window.cpp
-@@ -100,6 +100,21 @@ void Window::onResize(int w, int h) {
+@@ -40,24 +40,34 @@ void Window::onBackendCreated() {
+     this->visitLayers([](Layer* layer) { layer->onBackendCreated(); });
+ }
+ 
+-bool Window::onChar(SkUnichar c, skui::ModifierKey modifiers) {
+-    return this->signalLayers([=](Layer* layer) { return layer->onChar(c, modifiers); });
++bool Window::onChar(const ui::PlatformEvent& platformEvent, SkUnichar c,
++                    skui::ModifierKey modifiers) {
++    return this->signalLayers(
++            [=](Layer* layer) { return layer->onChar(platformEvent, c, modifiers); });
+ }
+ 
+-bool Window::onKey(skui::Key key, skui::InputState state, skui::ModifierKey modifiers) {
+-    return this->signalLayers([=](Layer* layer) { return layer->onKey(key, state, modifiers); });
++bool Window::onKey(const ui::PlatformEvent& platformEvent, uint64_t key, skui::InputState state,
++                   skui::ModifierKey modifiers) {
++    return this->signalLayers(
++            [=](Layer* layer) { return layer->onKey(platformEvent, key, state, modifiers); });
+ }
+ 
+-bool Window::onMouse(int x, int y, skui::InputState state, skui::ModifierKey modifiers) {
+-    return this->signalLayers([=](Layer* layer) { return layer->onMouse(x, y, state, modifiers); });
++bool Window::onMouse(const ui::PlatformEvent& platformEvent, int x, int y, skui::InputState state,
++                     skui::ModifierKey modifiers) {
++    return this->signalLayers(
++            [=](Layer* layer) { return layer->onMouse(platformEvent, x, y, state, modifiers); });
+ }
+ 
+-bool Window::onMouseWheel(float delta, skui::ModifierKey modifiers) {
+-    return this->signalLayers([=](Layer* layer) { return layer->onMouseWheel(delta, modifiers); });
++bool Window::onMouseWheel(const ui::PlatformEvent& platformEvent, float delta,
++                          skui::ModifierKey modifiers) {
++    return this->signalLayers(
++            [=](Layer* layer) { return layer->onMouseWheel(platformEvent, delta, modifiers); });
+ }
+ 
+-bool Window::onTouch(intptr_t owner, skui::InputState state, float x, float y) {
+-    return this->signalLayers([=](Layer* layer) { return layer->onTouch(owner, state, x, y); });
++bool Window::onTouch(const ui::PlatformEvent& platformEvent, intptr_t owner, skui::InputState state,
++                     float x, float y) {
++    return this->signalLayers(
++            [=](Layer* layer) { return layer->onTouch(platformEvent, owner, state, x, y); });
+ }
+ 
+ bool Window::onFling(skui::InputState state) {
+@@ -100,6 +110,21 @@ void Window::onResize(int w, int h) {
      this->visitLayers([=](Layer* layer) { layer->onResize(w, h); });
  }
  

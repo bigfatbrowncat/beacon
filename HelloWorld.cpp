@@ -58,7 +58,6 @@
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/skia/include/core/SkCanvas.h"
-
 #include "third_party/skia/third_party/icu/SkLoadICU.h"
 
 using namespace sk_app;
@@ -204,7 +203,10 @@ class TestBoundDelegate final : public InjectableTestDelegate {
   bool should_quit_ = false;
 };
 
-Application* Application::Create(int argc, char** argv, void* platformData) {
+Application* Application::Create(
+    int argc,
+    char** argv,
+    const std::shared_ptr<PlatformData>& platformData) {
   return new HelloWorld(argc, argv, platformData);
 }
 
@@ -216,8 +218,11 @@ class MyPlatform : public blink::Platform {
   WebString DefaultLocale() override { return WebString("en-US"); }
 };
 
-HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
+HelloWorld::HelloWorld(int argc,
+                       char** argv,
+                       const std::shared_ptr<PlatformData>& platformData)
     : fBackendType(Window::kRaster_BackendType),
+      platformData(platformData),
       platform(std::make_unique<MyPlatform>()) {
   base::CommandLine::Init(argc, argv);
   base::CommandLine::StringVector parsedArgs =
@@ -244,6 +249,7 @@ HelloWorld::HelloWorld(int argc, char** argv, void* platformData)
           base::MessagePump::Create(base::MessagePumpType::DEFAULT),
           base::Optional<base::Time>());
 
+  exit_manager = std::make_shared<base::AtExitManager>();
   run_loop = std::make_shared<base::RunLoop>();
 
   binder_map = std::make_unique<mojo::BinderMap>();
@@ -558,7 +564,8 @@ void HelloWorld::onPaint(SkSurface* surface) {
   canvas->restore();
 }
 
-bool HelloWorld::onMouse(int x,
+bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
+                         int x,
                          int y,
                          skui::InputState inState,
                          skui::ModifierKey modKey) {
@@ -587,6 +594,57 @@ bool HelloWorld::onMouse(int x,
     coalescedInputEvent->AddCoalescedEvent(mouseEvent);
   }
   return true;
+}
+
+bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
+                       uint64_t key,
+                       skui::InputState inState,
+                       skui::ModifierKey modKey) {
+  std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
+  if (evt == nullptr)
+    return false;
+
+  std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
+  if (evt->IsKeyEvent()) {
+    auto* keyEvt = evt->AsKeyEvent();
+    std::shared_ptr<blink::WebKeyboardEvent> bKbdEvent;
+    WebInputEvent::Type mtp;
+
+    switch (keyEvt->type()) {
+      case ui::ET_KEY_PRESSED:
+        mtp = WebInputEvent::Type::kKeyDown;
+        break;
+      case ui::ET_KEY_RELEASED:
+        mtp = WebInputEvent::Type::kKeyUp;
+        break;
+      default:
+        return false;
+    }
+
+    bKbdEvent =
+        std::make_shared<blink::WebKeyboardEvent>(mtp, 0, base::TimeTicks());
+    bKbdEvent->text[0] = keyEvt->GetText();
+    bKbdEvent->windows_key_code = keyEvt->key_code();
+    bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
+
+    bEvent = bKbdEvent;
+  }
+
+  if (evt->IsKeyEvent() /* || evt.IsMouseEvent() || evt.IsTouchEvent()*/) {
+    if (coalescedInputEvent == nullptr) {
+      coalescedInputEvent = std::make_shared<WebCoalescedInputEvent>(*bEvent);
+    } else {
+      coalescedInputEvent->AddCoalescedEvent(*bEvent);
+    }
+    return true;
+  }
+  return false;
+}
+
+bool HelloWorld::onChar(const ui::PlatformEvent& platformEvent,
+                        SkUnichar c,
+                        skui::ModifierKey modifiers) {
+  return false;
 }
 
 void HelloWorld::UpdateContents() {
@@ -648,9 +706,3 @@ void HelloWorld::onIdle() {
 }
 
 void HelloWorld::onAttach(sk_app::Window* window) {}
-
-bool HelloWorld::onChar(SkUnichar c, skui::ModifierKey modifiers) {
-  if (' ' == c) {
-  }
-  return true;
-}

@@ -72,6 +72,11 @@
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
 
+#include "third_party/blink/public/common/input/web_mouse_event.h"
+#include "third_party/blink/public/common/input/web_keyboard_event.h"
+
+
+
 #define EXPECT_FLOAT_POINT_EQ(expected, actual)    \
   do {                                             \
     EXPECT_FLOAT_EQ((expected).X(), (actual).X()); \
@@ -189,8 +194,11 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type,
                                WebMouseEvent::Button,
                                const IntPoint&,
                                int modifiers);
+WebKeyboardEvent CreateKeyboardEvent(char key_code,
+                                     int modifiers,
+                                     WebInputEvent::Type type);
 
-// Helpers for creating frames for test purposes. All methods that accept raw
+    // Helpers for creating frames for test purposes. All methods that accept raw
 // pointer client arguments allow nullptr as a valid argument; if a client
 // pointer is null, the test framework will automatically create and manage the
 // lifetime of that client interface. Otherwise, the caller is responsible for

@@ -1,76 +1,87 @@
 diff --git a/tools/sk_app/win/GLWindowContext_win.cpp b/tools/sk_app/win/GLWindowContext_win.cpp
-index 32c47b4f58..594a82942f 100644
+index 32c47b4f58..f244234ee1 100644
 --- a/tools/sk_app/win/GLWindowContext_win.cpp
 +++ b/tools/sk_app/win/GLWindowContext_win.cpp
-@@ -11,11 +11,13 @@
- #include "tools/sk_app/GLWindowContext.h"
- #include "tools/sk_app/win/WindowContextFactory_win.h"
- 
+@@ -1,160 +1,180 @@
+-
+-/*
+- * Copyright 2015 Google Inc.
+- *
+- * Use of this source code is governed by a BSD-style license that can be
+- * found in the LICENSE file.
+- */
+-
+-#include "include/gpu/gl/GrGLInterface.h"
+-#include "src/utils/win/SkWGL.h"
+-#include "tools/sk_app/GLWindowContext.h"
+-#include "tools/sk_app/win/WindowContextFactory_win.h"
+-
 -#include <Windows.h>
- #include <GL/gl.h>
-+#include <Windows.h>
-+
-+#include <iostream>
- 
+-#include <GL/gl.h>
+-
 -using sk_app::GLWindowContext;
- using sk_app::DisplayParams;
-+using sk_app::GLWindowContext;
- 
- #if defined(_M_ARM64)
- 
-@@ -43,56 +45,68 @@ protected:
-     void onDestroyContext() override;
- 
- private:
+-using sk_app::DisplayParams;
+-
+-#if defined(_M_ARM64)
+-
+-namespace sk_app {
+-namespace window_context_factory {
+-
+-std::unique_ptr<WindowContext> MakeGLForWin(HWND, const DisplayParams&) { return nullptr; }
+-
+-}  // namespace window_context_factory
+-}  // namespace sk_app
+-
+-#else
+-
+-namespace {
+-
+-class GLWindowContext_win : public GLWindowContext {
+-public:
+-    GLWindowContext_win(HWND, const DisplayParams&);
+-    ~GLWindowContext_win() override;
+-
+-protected:
+-    void onSwapBuffers() override;
+-
+-    sk_sp<const GrGLInterface> onInitializeContext() override;
+-    void onDestroyContext() override;
+-
+-private:
 -    HWND              fHWND;
 -    HGLRC             fHGLRC;
-+    HWND fHWND;
-+    HGLRC fHGLRC;
- 
-     typedef GLWindowContext INHERITED;
- };
- 
- GLWindowContext_win::GLWindowContext_win(HWND wnd, const DisplayParams& params)
+-
+-    typedef GLWindowContext INHERITED;
+-};
+-
+-GLWindowContext_win::GLWindowContext_win(HWND wnd, const DisplayParams& params)
 -    : INHERITED(params)
 -    , fHWND(wnd)
 -    , fHGLRC(NULL) {
 -
-+        : INHERITED(params), fHWND(wnd), fHGLRC(NULL) {
-     // any config code here (particularly for msaa)?
- 
-     this->initializeContext();
- }
- 
+-    // any config code here (particularly for msaa)?
+-
+-    this->initializeContext();
+-}
+-
 -GLWindowContext_win::~GLWindowContext_win() {
 -    this->destroyContext();
 -}
-+GLWindowContext_win::~GLWindowContext_win() { this->destroyContext(); }
- 
- sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
-     HDC dc = GetDC(fHWND);
+-
+-sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
+-    HDC dc = GetDC(fHWND);
 -
 -    fHGLRC = SkCreateWGLContext(dc, fDisplayParams.fMSAASampleCount, false /* deepColor */,
 -                                kGLPreferCompatibilityProfile_SkWGLContextRequest);
 -    if (NULL == fHGLRC) {
-+    if (dc == NULL) {
-+        std::cout << "GLWindowContext_win::onInitializeContext: dc = NULL" << std::endl;
-         return nullptr;
-     }
- 
+-        return nullptr;
+-    }
+-
 -    SkWGLExtensions extensions;
 -    if (extensions.hasExtension(dc, "WGL_EXT_swap_control")) {
 -        extensions.swapInterval(fDisplayParams.fDisableVsync ? 0 : 1);
 -    }
-+    if (NULL == fHGLRC) {
-+        std::cout << "GLWindowContext_win::onInitializeContext: initializing the context" << std::endl;
-+        fHGLRC = SkCreateWGLContext(dc, fDisplayParams.fMSAASampleCount, false /* deepColor */,
-+                                    kGLPreferCompatibilityProfile_SkWGLContextRequest);
-+        if (NULL == fHGLRC) {
-+            std::cout << "GLWindowContext_win::onInitializeContext: SkCreateWGLContext returns NULL"
-+                      << std::endl;
-+            return nullptr;
-+        }
- 
+-
 -    // Look to see if RenderDoc is attached. If so, re-create the context with a core profile
 -    if (wglMakeCurrent(dc, fHGLRC)) {
 -        auto interface = GrGLMakeNativeInterface();
@@ -82,6 +93,155 @@ index 32c47b4f58..594a82942f 100644
 -                                        kGLPreferCoreProfile_SkWGLContextRequest);
 -            if (NULL == fHGLRC) {
 -                return nullptr;
+-            }
+-        }
+-    }
+-
+-    if (wglMakeCurrent(dc, fHGLRC)) {
+-        glClearStencil(0);
+-        glClearColor(0, 0, 0, 0);
+-        glStencilMask(0xffffffff);
+-        glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+-
+-        // use DescribePixelFormat to get the stencil and color bit depth.
+-        int pixelFormat = GetPixelFormat(dc);
+-        PIXELFORMATDESCRIPTOR pfd;
+-        DescribePixelFormat(dc, pixelFormat, sizeof(pfd), &pfd);
+-        fStencilBits = pfd.cStencilBits;
+-
+-        // Get sample count if the MSAA WGL extension is present
+-        if (extensions.hasExtension(dc, "WGL_ARB_multisample")) {
+-            static const int kSampleCountAttr = SK_WGL_SAMPLES;
+-            extensions.getPixelFormatAttribiv(dc,
+-                                              pixelFormat,
+-                                              0,
+-                                              1,
+-                                              &kSampleCountAttr,
+-                                              &fSampleCount);
+-            fSampleCount = SkTMax(fSampleCount, 1);
+-        } else {
+-            fSampleCount = 1;
+-        }
+-
+-        RECT rect;
+-        GetClientRect(fHWND, &rect);
+-        fWidth = rect.right - rect.left;
+-        fHeight = rect.bottom - rect.top;
+-        glViewport(0, 0, fWidth, fHeight);
+-    }
+-    return GrGLMakeNativeInterface();
+-}
+-
+-
+-void GLWindowContext_win::onDestroyContext() {
+-    wglDeleteContext(fHGLRC);
+-    fHGLRC = NULL;
+-}
+-
+-
+-void GLWindowContext_win::onSwapBuffers() {
+-    HDC dc = GetDC((HWND)fHWND);
+-    SwapBuffers(dc);
+-    ReleaseDC((HWND)fHWND, dc);
+-}
+-
+-
+-}  // anonymous namespace
+-
+-namespace sk_app {
+-namespace window_context_factory {
+-
+-std::unique_ptr<WindowContext> MakeGLForWin(HWND wnd, const DisplayParams& params) {
+-    std::unique_ptr<WindowContext> ctx(new GLWindowContext_win(wnd, params));
+-    if (!ctx->isValid()) {
+-        return nullptr;
+-    }
+-    return ctx;
+-}
+-
+-}  // namespace window_context_factory
+-}  // namespace sk_app
+-
+-#endif
++
++/*
++ * Copyright 2015 Google Inc.
++ *
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++#include "include/gpu/gl/GrGLInterface.h"
++#include "src/utils/win/SkWGL.h"
++#include "tools/sk_app/GLWindowContext.h"
++#include "tools/sk_app/win/WindowContextFactory_win.h"
++
++#include <GL/gl.h>
++#include <Windows.h>
++
++#include <iostream>
++
++using sk_app::DisplayParams;
++using sk_app::GLWindowContext;
++
++#if defined(_M_ARM64)
++
++namespace sk_app {
++namespace window_context_factory {
++
++std::unique_ptr<WindowContext> MakeGLForWin(HWND, const DisplayParams&) { return nullptr; }
++
++}  // namespace window_context_factory
++}  // namespace sk_app
++
++#else
++
++namespace {
++
++class GLWindowContext_win : public GLWindowContext {
++public:
++    GLWindowContext_win(HWND, const DisplayParams&);
++    ~GLWindowContext_win() override;
++
++protected:
++    void onSwapBuffers() override;
++
++    sk_sp<const GrGLInterface> onInitializeContext() override;
++    void onDestroyContext() override;
++
++private:
++    HWND fHWND;
++    HGLRC fHGLRC;
++
++    typedef GLWindowContext INHERITED;
++};
++
++GLWindowContext_win::GLWindowContext_win(HWND wnd, const DisplayParams& params)
++        : INHERITED(params), fHWND(wnd), fHGLRC(NULL) {
++    // any config code here (particularly for msaa)?
++
++    this->initializeContext();
++}
++
++GLWindowContext_win::~GLWindowContext_win() { this->destroyContext(); }
++
++sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
++    HDC dc = GetDC(fHWND);
++    if (dc == NULL) {
++        std::cout << "GLWindowContext_win::onInitializeContext: dc = NULL" << std::endl;
++        return nullptr;
++    }
++
++    if (NULL == fHGLRC) {
++        std::cout << "GLWindowContext_win::onInitializeContext: initializing the context" << std::endl;
++        fHGLRC = SkCreateWGLContext(dc, fDisplayParams.fMSAASampleCount, false /* deepColor */,
++                                    kGLPreferCompatibilityProfile_SkWGLContextRequest);
++        if (NULL == fHGLRC) {
++            std::cout << "GLWindowContext_win::onInitializeContext: SkCreateWGLContext returns NULL"
++                      << std::endl;
++            return nullptr;
++        }
++
 +        SkWGLExtensions extensions;
 +        if (extensions.hasExtension(dc, "WGL_EXT_swap_control")) {
 +            extensions.swapInterval(fDisplayParams.fDisableVsync ? 0 : 1);
@@ -102,39 +262,41 @@ index 32c47b4f58..594a82942f 100644
 +                                 "returns NULL (2)" << std::endl;
 +                    return nullptr;
 +                }
-             }
++            }
 +        } else {
 +            std::cout << "GLWindowContext_win::onInitializeContext: wglMakeCurrent returns NULL"
 +                      << std::endl;
-         }
-     }
- 
-     if (wglMakeCurrent(dc, fHGLRC)) {
++        }
++    }
++
++    if (wglMakeCurrent(dc, fHGLRC)) {
 +        SkWGLExtensions extensions;
 +
-         glClearStencil(0);
-         glClearColor(0, 0, 0, 0);
-         glStencilMask(0xffffffff);
-@@ -107,12 +121,8 @@ sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
-         // Get sample count if the MSAA WGL extension is present
-         if (extensions.hasExtension(dc, "WGL_ARB_multisample")) {
-             static const int kSampleCountAttr = SK_WGL_SAMPLES;
--            extensions.getPixelFormatAttribiv(dc,
--                                              pixelFormat,
--                                              0,
--                                              1,
--                                              &kSampleCountAttr,
--                                              &fSampleCount);
++        glClearStencil(0);
++        glClearColor(0, 0, 0, 0);
++        glStencilMask(0xffffffff);
++        glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
++
++        // use DescribePixelFormat to get the stencil and color bit depth.
++        int pixelFormat = GetPixelFormat(dc);
++        PIXELFORMATDESCRIPTOR pfd;
++        DescribePixelFormat(dc, pixelFormat, sizeof(pfd), &pfd);
++        fStencilBits = pfd.cStencilBits;
++
++        // Get sample count if the MSAA WGL extension is present
++        if (extensions.hasExtension(dc, "WGL_ARB_multisample")) {
++            static const int kSampleCountAttr = SK_WGL_SAMPLES;
 +            extensions.getPixelFormatAttribiv(
 +                    dc, pixelFormat, 0, 1, &kSampleCountAttr, &fSampleCount);
-             fSampleCount = SkTMax(fSampleCount, 1);
-         } else {
-             fSampleCount = 1;
-@@ -122,25 +132,32 @@ sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
-         GetClientRect(fHWND, &rect);
-         fWidth = rect.right - rect.left;
-         fHeight = rect.bottom - rect.top;
--        glViewport(0, 0, fWidth, fHeight);
++            fSampleCount = SkTMax(fSampleCount, 1);
++        } else {
++            fSampleCount = 1;
++        }
++
++        RECT rect;
++        GetClientRect(fHWND, &rect);
++        fWidth = rect.right - rect.left;
++        fHeight = rect.bottom - rect.top;
 +
 +        // Instead of creating a viewport with our window size,
 +        // we are creating the biggest possible one.
@@ -146,24 +308,38 @@ index 32c47b4f58..594a82942f 100644
 +    } else {
 +        std::cout << "GLWindowContext_win::onInitializeContext: wglMakeCurrent returns NULL (2)"
 +                  << std::endl;
-     }
-     return GrGLMakeNativeInterface();
- }
- 
--
- void GLWindowContext_win::onDestroyContext() {
-     wglDeleteContext(fHGLRC);
-     fHGLRC = NULL;
- }
- 
--
- void GLWindowContext_win::onSwapBuffers() {
-     HDC dc = GetDC((HWND)fHWND);
-     SwapBuffers(dc);
-     ReleaseDC((HWND)fHWND, dc);
- }
- 
--
- }  // anonymous namespace
- 
- namespace sk_app {
++    }
++    return GrGLMakeNativeInterface();
++}
++
++
++void GLWindowContext_win::onDestroyContext() {
++    wglDeleteContext(fHGLRC);
++    fHGLRC = NULL;
++}
++
++
++void GLWindowContext_win::onSwapBuffers() {
++    HDC dc = GetDC((HWND)fHWND);
++    SwapBuffers(dc);
++    ReleaseDC((HWND)fHWND, dc);
++}
++
++
++}  // anonymous namespace
++
++namespace sk_app {
++namespace window_context_factory {
++
++std::unique_ptr<WindowContext> MakeGLForWin(HWND wnd, const DisplayParams& params) {
++    std::unique_ptr<WindowContext> ctx(new GLWindowContext_win(wnd, params));
++    if (!ctx->isValid()) {
++        return nullptr;
++    }
++    return ctx;
++}
++
++}  // namespace window_context_factory
++}  // namespace sk_app
++
++#endif

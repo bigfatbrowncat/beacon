@@ -1,12 +1,52 @@
 diff --git a/tools/sk_app/win/main_win.cpp b/tools/sk_app/win/main_win.cpp
-index 5a7fdc1871..4b898a91c6 100644
+index 5a7fdc1871..3b3bdbc79a 100644
 --- a/tools/sk_app/win/main_win.cpp
 +++ b/tools/sk_app/win/main_win.cpp
-@@ -59,6 +59,7 @@ int main(int argc, char**argv) {
+@@ -59,20 +59,24 @@ int main(int argc, char**argv) {
  }
  
  static int main_common(HINSTANCE hInstance, int show, int argc, char**argv) {
 +    SetProcessDPIAware();
  
-     Application* app = Application::Create(argc, argv, (void*)hInstance);
+-    Application* app = Application::Create(argc, argv, (void*)hInstance);
++    std::shared_ptr<MSG> msg = std::make_shared<MSG>();
++    memset(msg.get(), 0, sizeof(msg));
  
+-    MSG msg;
+-    memset(&msg, 0, sizeof(msg));
++    std::shared_ptr<sk_app::PlatformData> platformData =
++            std::make_shared<sk_app::PlatformData>(hInstance, msg);
++
++    Application* app = Application::Create(argc, argv, platformData);
+ 
+     bool idled = false;
+ 
+     // Main message loop
+-    while (WM_QUIT != msg.message) {
+-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+-            TranslateMessage(&msg);
++    while (WM_QUIT != msg->message) {
++        if (PeekMessage(msg.get(), nullptr, 0, 0, PM_REMOVE)) {
++            TranslateMessage(msg.get());
+ 
+-            if (WM_PAINT == msg.message) {
++            if (WM_PAINT == msg->message) {
+                 // Ensure that call onIdle at least once per WM_PAINT, or mouse events can
+                 // overwhelm the message processing loop, and prevent animation from running.
+                 if (!idled) {
+@@ -80,7 +84,7 @@ static int main_common(HINSTANCE hInstance, int show, int argc, char**argv) {
+                 }
+                 idled = false;
+             }
+-            DispatchMessage(&msg);
++            DispatchMessage(msg.get());
+         } else {
+             app->onIdle();
+             idled = true;
+@@ -89,5 +93,5 @@ static int main_common(HINSTANCE hInstance, int show, int argc, char**argv) {
+ 
+     delete app;
+ 
+-    return (int)msg.wParam;
++    return (int)msg->wParam;
+ }

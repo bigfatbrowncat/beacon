@@ -12,6 +12,7 @@
 
 #include "base/command_line.h"
 #include "base/run_loop.h"
+#include "base/at_exit.h"
 #include "base/task/sequence_manager/thread_controller_with_message_pump_impl.h"
 
 #include "mojo/public/cpp/bindings/binder_map.h"
@@ -33,7 +34,9 @@ class Element;
 
 class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
  public:
-  HelloWorld(int argc, char** argv, void* platformData);
+  HelloWorld(int argc,
+             char** argv,
+             const std::shared_ptr<sk_app::PlatformData>& platformData);
   ~HelloWorld() override;
 
   void onIdle() override;
@@ -44,8 +47,18 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   void onBeginResizing() override;
   void onEndResizing() override;
   void onPaint(SkSurface*) override;
-  bool onMouse(int x, int y, skui::InputState, skui::ModifierKey) override;
-  bool onChar(SkUnichar c, skui::ModifierKey modifiers) override;
+  bool onMouse(const ui::PlatformEvent& platformEvent,
+               int x,
+               int y,
+               skui::InputState,
+               skui::ModifierKey) override;
+  bool onKey(const ui::PlatformEvent& platformEvent,
+             uint64_t,
+             skui::InputState,
+             skui::ModifierKey) override;
+  bool onChar(const ui::PlatformEvent& platformEvent,
+              SkUnichar c,
+              skui::ModifierKey modifiers) override;
 
   blink::Document& GetDocument();
   void PrintSinglePage(SkCanvas* canvas, int width, int height);
@@ -63,6 +76,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   sk_app::Window* fWindow;
   sk_app::Window::BackendType fBackendType;
+  std::shared_ptr<sk_app::PlatformData> platformData;
   bool resizing = false;
 
   base::CommandLine::StringType htmlFilename;
@@ -95,9 +109,8 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
       linked_destinations_;
 
   std::shared_ptr<base::RunLoop> run_loop;
+  std::shared_ptr<base::AtExitManager> exit_manager;
   std::shared_ptr<mojo::BinderMap> binder_map;
-  //    std::shared_ptr<blink::scheduler::WebThreadScheduler>
-  //    my_web_thread_sched;
 };
 
 #endif

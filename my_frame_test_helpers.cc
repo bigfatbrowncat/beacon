@@ -69,6 +69,9 @@
 #include "third_party/blink/renderer/platform/scheduler/test/fake_task_runner.h"
 #include "cc/raster/single_thread_task_graph_runner.h"
 
+#include "ui/events/keycodes/dom/dom_key.h"
+#include "ui/events/keycodes/dom/keycode_converter.h"
+
 namespace blink {
 
 namespace my_scheduler {
@@ -295,6 +298,17 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
   result.button = button;
   result.click_count = 1;
   return result;
+}
+
+WebKeyboardEvent CreateKeyboardEvent(char key_code,
+                                         int modifiers,
+                                         WebInputEvent::Type type) {
+  WebKeyboardEvent event(type, modifiers, base::TimeTicks());
+  event.text[0] = key_code;
+  event.windows_key_code = key_code;
+  event.dom_key = ui::DomKey::FromCharacter(key_code); /*ui::KeycodeConverter::NativeKeycodeToDomCode(
+      key_code); */ // 
+  return event;
 }
 
 WebLocalFrameImpl* CreateLocalChild(WebLocalFrame& parent,

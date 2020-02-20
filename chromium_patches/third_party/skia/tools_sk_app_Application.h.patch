@@ -1,0 +1,68 @@
+diff --git a/tools/sk_app/Application.h b/tools/sk_app/Application.h
+index df9a20d358..f5dfb33d0a 100644
+--- a/tools/sk_app/Application.h
++++ b/tools/sk_app/Application.h
+@@ -1,24 +1,39 @@
+-/*
+-* Copyright 2016 Google Inc.
+-*
+-* Use of this source code is governed by a BSD-style license that can be
+-* found in the LICENSE file.
+-*/
+-
+-#ifndef Application_DEFINED
+-#define Application_DEFINED
+-
+-namespace sk_app {
+-
+-class Application {
+-public:
+-    static Application* Create(int argc, char** argv, void* platformData);
+-
+-    virtual ~Application() {}
+-
+-    virtual void onIdle() = 0;
+-};
+-
+-}   // namespace sk_app
+-
+-#endif
++/*
++* Copyright 2016 Google Inc.
++*
++* Use of this source code is governed by a BSD-style license that can be
++* found in the LICENSE file.
++*/
++
++#ifndef Application_DEFINED
++#define Application_DEFINED
++
++#include <memory>
++
++#ifdef WIN32
++#include <windows.h>
++#endif
++
++namespace sk_app {
++
++#ifdef WIN32
++struct PlatformData {
++    HINSTANCE hInstance;
++    std::shared_ptr<MSG> msg;
++
++    PlatformData(HINSTANCE hInstance, std::shared_ptr<MSG> msg) : hInstance(hInstance), msg(msg) { }
++};
++#endif
++
++class Application {
++public:
++    static Application* Create(int argc, char** argv, const std::shared_ptr<PlatformData>& platformData);
++
++    virtual ~Application() {}
++
++    virtual void onIdle() = 0;
++};
++
++}   // namespace sk_app
++
++#endif
