@@ -191,7 +191,6 @@ class TestBoundDelegate final : public InjectableTestDelegate {
   }
 
   // True if the next invocation of Run() is expected to be from a
-  // True if the next invocation of Run() is expected to be from a
   // kNestableTasksAllowed RunLoop.
   bool nested_run_allowing_tasks_incoming_ = false;
 
@@ -269,15 +268,16 @@ HelloWorld::HelloWorld(int argc,
   webViewHelper =
       std::make_shared<blink::my_frame_test_helpers::WebViewHelper>();
   wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>();
+  wfc->SetScheduler(my_web_thread_sched);
+
   wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>();
   wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
       new my_frame_test_helpers::StubLayerTreeViewDelegate(),
       my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
       composeTaskRunner,
-      // // composeTaskRunner,
       my_web_thread_sched.get());
 
-  webView = webViewHelper->Initialize(wfc.get(), wvc.get(), wwc.get());
+  webView = webViewHelper->InitializeAndLoad("mem://main", wfc.get(), wvc.get(), wwc.get());
 
   UpdateContents();
 
@@ -648,7 +648,7 @@ bool HelloWorld::onChar(const ui::PlatformEvent& platformEvent,
 }
 
 void HelloWorld::UpdateContents() {
-  std::ifstream htmlFile(htmlFilename);
+ /* std::ifstream htmlFile(htmlFilename);
   if (!htmlFile.good()) {
     if (!blankLoaded) {
       GetDocument().SetContent(
@@ -684,7 +684,7 @@ void HelloWorld::UpdateContents() {
       GetDocument().SetContent(WTF::String::FromUTF8(htmlContents.c_str()));
       root_graphics_layer = nullptr;
     }
-  }
+  }*/
 }
 
 void HelloWorld::onIdle() {

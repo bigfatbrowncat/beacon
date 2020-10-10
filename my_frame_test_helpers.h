@@ -38,6 +38,7 @@
 #include <memory>
 #include <string>
 
+#include "base/location.h"
 #include "base/macros.h"
 #include "base/memory/weak_ptr.h"
 #include "base/threading/sequence_local_storage_map.h"
@@ -50,13 +51,14 @@
 #include "content/renderer/compositor/layer_tree_view_delegate.h"
 #include "content/test/stub_layer_tree_view_delegate.h"
 #include "services/service_manager/public/cpp/interface_provider.h"
-
 #include "third_party/blink/public/common/frame/frame_owner_element_type.h"
+#include "third_party/blink/public/common/input/web_keyboard_event.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
 #include "third_party/blink/public/mojom/fetch/fetch_api_request.mojom-blink-forward.h"
 #include "third_party/blink/public/platform/platform.h"
 #include "third_party/blink/public/platform/scheduler/test/web_fake_thread_scheduler.h"
 #include "third_party/blink/public/platform/web_string.h"
+#include "third_party/blink/public/platform/web_url_loader_client.h"
 #include "third_party/blink/public/platform/web_url_request.h"
 #include "third_party/blink/public/web/web_frame_owner_properties.h"
 #include "third_party/blink/public/web/web_history_item.h"
@@ -71,11 +73,6 @@
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
-
-#include "third_party/blink/public/common/input/web_mouse_event.h"
-#include "third_party/blink/public/common/input/web_keyboard_event.h"
-
-
 
 #define EXPECT_FLOAT_POINT_EQ(expected, actual)    \
   do {                                             \
@@ -112,6 +109,7 @@ struct WebNavigationParams;
 class WebRemoteFrameImpl;
 class WebSettings;
 
+/*
 namespace my_scheduler {
 
 // A dummy task runner for tests.
@@ -157,6 +155,7 @@ class FakeTaskRunner : public base::SingleThreadTaskRunner {
 };
 
 }  // namespace my_scheduler
+*/
 
 namespace my_frame_test_helpers {
 class TestWebFrameClient;
@@ -198,7 +197,7 @@ WebKeyboardEvent CreateKeyboardEvent(char key_code,
                                      int modifiers,
                                      WebInputEvent::Type type);
 
-    // Helpers for creating frames for test purposes. All methods that accept raw
+// Helpers for creating frames for test purposes. All methods that accept raw
 // pointer client arguments allow nullptr as a valid argument; if a client
 // pointer is null, the test framework will automatically create and manage the
 // lifetime of that client interface. Otherwise, the caller is responsible for
@@ -409,7 +408,6 @@ class TestWebViewClient : public WebViewClient {
                       const FeaturePolicy::FeatureState&,
                       const SessionStorageNamespaceId&) override;
 
-
  private:
   // LayerTreeViewFactory layer_tree_view_factory_;
   WTF::Vector<std::unique_ptr<WebViewHelper>> child_web_views_;
@@ -523,9 +521,15 @@ class WebViewHelper : public ScopedMockOverlayScrollbars {
 // frames. Tests that load frames and need further specialization of
 // WebLocalFrameClient behavior should subclass this.
 class TestWebFrameClient : public WebLocalFrameClient {
+ private:
+  std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
+
  public:
   TestWebFrameClient();
   ~TestWebFrameClient() override;
+
+  void SetScheduler(std::shared_ptr<blink::scheduler::WebThreadScheduler>
+                        my_web_thread_sched);
 
   static bool IsLoading() { return loads_in_progress_ > 0; }
   Vector<String>& ConsoleMessages() { return console_messages_; }
@@ -623,6 +627,56 @@ class TestWebRemoteFrameClient : public WebRemoteFrameClient {
   // This is null from when the client is created until it is initialized with
   // Bind().
   WebRemoteFrame* frame_ = nullptr;
+};
+
+class MyWebURLRequestWrapper {
+ private:
+  std::shared_ptr<WebURLRequest> request;
+
+ public:
+  MyWebURLRequestWrapper(const WebURLRequest& req);
+  ~MyWebURLRequestWrapper();
+};
+
+class MyWebURLLoader final : public WebURLLoader {
+ private:
+  std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
+
+ public:
+  MyWebURLLoader(std::shared_ptr<blink::scheduler::WebThreadScheduler>
+                     my_web_thread_sched);
+  ~MyWebURLLoader() override;
+
+  void LoadSynchronously(const WebURLRequest&,
+                         WebURLLoaderClient*,
+                         WebURLResponse&,
+                         base::Optional<WebURLError>&,
+                         WebData&,
+                         int64_t& encoded_data_length,
+                         int64_t& encoded_body_length,
+                         WebBlobInfo& downloaded_blob) override;
+
+  void LoadAsynchronously(const WebURLRequest& request,
+                          WebURLLoaderClient* client) override;
+  void LoadAsynchronouslyDo(WebURLRequest request,
+                            WebURLLoaderClient* client);
+
+  void SetDefersLoading(bool defers) override;
+  void DidChangePriority(WebURLRequest::Priority, int) override;
+  scoped_refptr<base::SingleThreadTaskRunner> GetTaskRunner() override;
+};
+
+class MyWebURLLoaderFactory final : public WebURLLoaderFactory {
+ private:
+  std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
+
+ public:
+  MyWebURLLoaderFactory(std::shared_ptr<blink::scheduler::WebThreadScheduler>
+                            my_web_thread_sched);
+  ~MyWebURLLoaderFactory() override;
+  std::unique_ptr<WebURLLoader> CreateURLLoader(
+      const WebURLRequest&,
+      std::unique_ptr<scheduler::WebResourceLoadingTaskRunnerHandle>) override;
 };
 
 }  // namespace my_frame_test_helpers

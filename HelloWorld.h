@@ -102,7 +102,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   blink::WebViewImpl* webView = nullptr;
   blink::GraphicsLayer* root_graphics_layer = nullptr;
-  bool blankLoaded = false;
+  //bool blankLoaded = false;
 
   std::shared_ptr<blink::WebCoalescedInputEvent> coalescedInputEvent = nullptr;
   blink::HeapHashMap<String, blink::Member<blink::Element>>
