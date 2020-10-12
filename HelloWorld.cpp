@@ -265,9 +265,12 @@ HelloWorld::HelloWorld(int argc,
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);
   */
 
+  backend = std::make_shared<SDK::Backend>();
+
   webViewHelper =
       std::make_shared<blink::my_frame_test_helpers::WebViewHelper>();
-  wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>();
+  wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>(
+      backend);
   wfc->SetScheduler(my_web_thread_sched);
 
   wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>();
@@ -277,9 +280,7 @@ HelloWorld::HelloWorld(int argc,
       composeTaskRunner,
       my_web_thread_sched.get());
 
-  webView = webViewHelper->InitializeAndLoad("mem://main", wfc.get(), wvc.get(), wwc.get());
-
-  UpdateContents();
+  webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(), wvc.get(), wwc.get());
 
   SkGraphics::Init();
 
@@ -371,68 +372,6 @@ void HelloWorld::OutputLinkedDestinations(GraphicsContext& context,
   }
 }
 
-bool HelloWorld::Capture(/*cc::PaintCanvas**/ SkCanvas* canvas,
-                         FloatSize size) {
-  // This code is based on ChromePrintContext::SpoolSinglePage()/SpoolPage().
-  // It differs in that it:
-  //   1. Uses a different set of flags for painting and the graphics context.
-  //   2. Paints a single page of |size| rather than a specific page in a
-  //      reformatted document.
-  //   3. Does no scaling.
-  //  if (!GetDocument() || !GetDocument()->GetLayoutView())
-  //    return false;
-  // GetDocument().View()->UpdateLifecyclePhasesForPrinting();
-  //  if (!GetDocument() || !GetDocument()->GetLayoutView())
-  //    return false;
-  FloatRect bounds(0, 0, size.Width(), size.Height());
-  PaintRecordBuilder builder(nullptr, nullptr, nullptr/*,
-                             canvas->GetPaintPreviewTracker()*/); // < --MAY BE NECESSARY
-
-  builder.Context().GetPaintController().SetDisplayItemConstructionIsDisabled(
-      true);
-  builder.Context().BeginRecording(FloatRect());
-
-  builder.Context().SetIsPaintingPreview(true);
-
-  LocalFrameView* frame_view =
-      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
-  DCHECK(frame_view);
-  PropertyTreeState property_tree_state =
-      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
-
-  // This calls BeginRecording on |builder| with dimensions specified by the
-  // CullRect.
-  frame_view->PaintContentsOutsideOfLifecycle(
-      builder.Context(),
-      kGlobalPaintNormalPhase | kGlobalPaintFlattenCompositingLayers |
-          kGlobalPaintAddUrlMetadata,
-      CullRect(RoundedIntRect(bounds)));
-  {
-    // Add anchors.
-    // ScopedPaintChunkProperties scoped_paint_chunk_properties(
-    //    builder.Context().GetPaintController(), property_tree_state, builder,
-    //    DisplayItem::kPrintedContentDestinationLocations); <-- MAY BE
-    //    NECESSARY
-    DrawingRecorder line_boundary_recorder(
-        builder.Context(), builder,
-        DisplayItem::kPrintedContentDestinationLocations
-        /*DisplayItem::kDocumentBackground*/);
-
-    builder.Context().GetPaintController().SetDisplayItemConstructionIsDisabled(
-        false);
-
-    linked_destinations_.clear();
-    OutputLinkedDestinations(builder.Context(), RoundedIntRect(bounds));
-  }
-  // canvas->drawPicture(builder.EndRecording(property_tree_state));         <--
-  // MAY BE NECESSARY
-
-  sk_sp<PaintRecord> playlist = builder.EndRecording(property_tree_state);
-  playlist->Playback(canvas);
-
-  return true;
-}
-
 template <typename Function>
 static void ForAllGraphicsLayers(GraphicsLayer& layer,
                                  const Function& function) {
@@ -446,7 +385,6 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   int kPageHeight = height;
   IntRect page_rect(0, 0, kPageWidth, kPageHeight);
   IntSize page_size(kPageWidth, kPageHeight);
-  FloatSize page_float_size((float)kPageWidth, (float)kPageHeight);
 
   webView->Resize(WebSize(page_size));
 
@@ -497,7 +435,7 @@ void HelloWorld::UpdateBackend() {
   // Checking if we need a fallback to Raster renderer.
   // Fallback is effective for small screens and weak videochips
   bool fallback = false;
-  if (fWindow->width() * fWindow->height() <= 1920 * 1080 && resizing) {
+  if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
     fallback = true;
   }
 
@@ -647,46 +585,6 @@ bool HelloWorld::onChar(const ui::PlatformEvent& platformEvent,
   return false;
 }
 
-void HelloWorld::UpdateContents() {
- /* std::ifstream htmlFile(htmlFilename);
-  if (!htmlFile.good()) {
-    if (!blankLoaded) {
-      GetDocument().SetContent(
-          "<html style=\"background-color: blue\">"
-          "<head>"
-          "<script>document.write(\"boo! \" + (3+2));</script>"
-          "</head>"
-          "<body style=\""
-          "display: block; "
-          "margin: 0px; "
-          "width: 100%; "
-          "height: 100%; "
-          "font-size: 10px; "
-          "font-family: Arial, Helvetica, sans-serif; "
-          "color: #cccccc "
-
-          "\">"
-          "Hello, losers! <div style=\"background-color: lightblue; "
-          "display: "
-          "block\">blah blah blah blah blah</div> blah blah"
-          "</body>"
-          "</html>");
-      blankLoaded = true;
-      root_graphics_layer = nullptr;
-    }
-  } else {
-    blankLoaded = false;
-    std::stringstream ss;
-    ss << htmlFile.rdbuf();
-    std::string newHTMLContents = ss.str();
-    if (htmlContents != newHTMLContents && newHTMLContents != "") {
-      htmlContents = newHTMLContents;
-      GetDocument().SetContent(WTF::String::FromUTF8(htmlContents.c_str()));
-      root_graphics_layer = nullptr;
-    }
-  }*/
-}
-
 void HelloWorld::onIdle() {
   UpdateBackend();
 
@@ -697,7 +595,6 @@ void HelloWorld::onIdle() {
           curTime - htmlContentsUpdateTime)
           .count() > 500) {
     htmlContentsUpdateTime = curTime;
-    UpdateContents();
   }
   run_loop->RunUntilIdle();
 

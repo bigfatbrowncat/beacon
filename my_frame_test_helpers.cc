@@ -34,7 +34,7 @@
 #include <utility>
 
 #include "base/bind.h"
-#include "cc/test/test_ukm_recorder_factory.h"
+#include "cc/raster/single_thread_task_graph_runner.h"
 #include "cc/trees/layer_tree_host.h"
 #include "cc/trees/layer_tree_settings.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -56,8 +56,6 @@
 #include "third_party/blink/renderer/core/exported/web_remote_frame_impl.h"
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
 #include "third_party/blink/renderer/core/loader/document_loader.h"
-//#include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
-#include "cc/raster/single_thread_task_graph_runner.h"
 #include "content/renderer/loader/web_url_loader_impl.h"
 #include "third_party/blink/renderer/core/testing/fake_web_plugin.h"
 #include "third_party/blink/renderer/platform/heap/heap.h"
@@ -72,6 +70,113 @@
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 #include "ui/events/keycodes/dom/dom_key.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
+
+namespace SDK {
+
+ResourceRequest::ResourceRequest(const std::string& url) : url(url) { }
+ResourceRequest::~ResourceRequest() { }
+
+ResourceResponse::ResourceResponse(const std::vector<uint8_t>& data,
+                                 const std::string& mimeType)
+    : data(data), mimeType(mimeType) { }
+
+ResourceResponse::ResourceResponse()
+    : data(std::vector<uint8_t>()), mimeType("text/html") { }
+
+ResourceResponse::ResourceResponse(const ResourceResponse& other) = default;
+
+ResourceResponse::~ResourceResponse() { }
+
+ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
+  ResourceResponse response;
+
+  if (request.getUrl() == "mem://logo.svg") {
+    response.setMimeType("image/svg+xml");
+
+    std::string svgText =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>   \
+    <svg    \
+        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"    \
+        xmlns:cc=\"http://creativecommons.org/ns#\"  \
+        xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"    \
+        xmlns:svg=\"http://www.w3.org/2000/svg\" \
+        xmlns=\"http://www.w3.org/2000/svg\" \
+        id=\"svg8\"  \
+        version=\"1.1\"  \
+        viewBox=\"0 0 20 20\"    \
+        height=\"20mm\"  \
+        width=\"20mm\">  \
+        <defs \
+            id=\"defs2\" />    \
+        <metadata \
+            id=\"metadata5\">  \
+        <rdf:RDF>   \
+            <cc:Work  \
+                rdf:about=\"\">    \
+            <dc:format>image/svg+xml</dc:format>    \
+            <dc:type    \
+                rdf:resource=\"http://purl.org/dc/dcmitype/StillImage\" />   \
+            <dc:title></dc:title>   \
+            </cc:Work>    \
+        </rdf:RDF>  \
+        </metadata>   \
+        <g    \
+            transform=\"translate(0,-277)\"    \
+            id=\"layer1\"> \
+        <path   \
+            d=\"m 6.3410945,291.73753 -5.1379613,-3.99351 v -0.59506 l 5.1379613,-3.98855 0.321704,0.71407 -4.5720358,3.56705 4.5720358,3.57697 z\"  \
+            style=\"font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:1.25;font-family:'Century Schoolbook';-inkscape-font-specification:'Century Schoolbook';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.21157649\"   \
+            id=\"path14\" /> \
+        <path   \
+            d=\"M 11.82605,282.16947 9.0975343,292.56026 8.3780434,292.39934 11.11276,282.00855 Z\"  \
+            style=\"font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:1.25;font-family:'Century Schoolbook';-inkscape-font-specification:'Century Schoolbook';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332\"   \
+            id=\"path16\" /> \
+        <path   \
+            d=\"m 13.695671,291.73753 5.137962,-3.99351 v -0.59506 l -5.137962,-3.98855 -0.321703,0.71407 4.572036,3.56705 -4.572036,3.57697 z\" \
+            style=\"font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:1.25;font-family:'Century Schoolbook';-inkscape-font-specification:'Century Schoolbook';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.21157649\"   \
+            id=\"path14-2\" />   \
+        </g>  \
+    </svg>  \
+    ";
+
+    std::vector<uint8_t> data(svgText.begin(), svgText.end());
+    response.setData(data);
+
+  } else if (request.getUrl() == "mem://index.html") {
+    std::string htmlText =
+        "<html style=\"background-color: blue\">"
+        "<head>"
+        "<script>document.write(\"boo! \" + (3+2));</script>"
+        "</head>"
+        "<body style=\""
+        "display: block; "
+        "margin: 0px; "
+        "width: 100%; "
+        "height: 100%; "
+        "font-size: 10px; "
+        "font-family: Arial, Helvetica, sans-serif; "
+        "color: #cccccc "
+
+        "\">"
+        "Hello, losers! <div style=\"background-color: #1100ff; "
+        "display: "
+        "block\">[<img style=\"width: 20mm; height: 20mm\" "
+        "src=\"mem://logo.svg\"></img>]blah blah blah blah blah</div> "
+        "blah blah"
+        "</body>"
+        "</html>";
+
+    std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
+    response.setData(data);
+  }
+
+  return response;
+}
+
+Backend::Backend() { }
+Backend::~Backend() { }
+
+}  // namespace SDK
 
 // We need this for WTF::Passed(std::move(blink::WebURLRequest))
 namespace WTF {
@@ -209,10 +314,10 @@ void RunServeAsyncRequestsTask(scoped_refptr<base::TaskRunner> task_runner) {
 // In both cases the client to be used is returned.
 template <typename T>
 T* CreateDefaultClientIfNeeded(T* client, std::unique_ptr<T>& owned_client) {
-  if (client)
+  //if (client)
     return client;
-  owned_client = std::make_unique<T>();
-  return owned_client.get();
+  //owned_client = std::make_unique<T>();
+  //return owned_client.get();
 }
 
 }  // namespace
@@ -227,14 +332,21 @@ void LoadFrameDontWait(WebLocalFrame* frame, const WebURL& url) {
     params->navigation_timings.navigation_start = base::TimeTicks::Now();
     params->navigation_timings.fetch_start = base::TimeTicks::Now();
     params->is_browser_initiated = true;
-    FillNavigationParamsResponse(params.get());
+
+    WebLocalFrameClient* client = frame->Client();
+    TestWebFrameClient* tclient =
+        static_cast<blink::my_frame_test_helpers::TestWebFrameClient*>(client);
+    auto backend = tclient->Backend();
+    FillNavigationParamsResponse(params.get(), backend.get());
+
     impl->CommitNavigation(
         std::move(params), nullptr /* extra_data */,
         base::DoNothing::Once() /* call_before_attaching_new_document */);
   }
 }
 
-void LoadFrame(WebLocalFrame* frame, const std::string& url) {
+void LoadFrame(WebLocalFrame* frame,
+               const std::string& url) {
   LoadFrameDontWait(frame, url_test_helpers::ToKURL(url));
   PumpPendingRequestsForFrameToLoad(frame);
 }
@@ -253,7 +365,7 @@ void LoadHTMLString(WebLocalFrame* frame,
   PumpPendingRequestsForFrameToLoad(frame);
 }
 
-void LoadHistoryItem(WebLocalFrame* frame,
+void LoadHistoryItem(WebLocalFrame* frame, SDK::Backend* backend,
                      const WebHistoryItem& item,
                      mojom::FetchCacheMode cache_mode) {
   auto* impl = To<WebLocalFrameImpl>(frame);
@@ -264,7 +376,7 @@ void LoadHistoryItem(WebLocalFrame* frame,
   params->history_item = item;
   params->navigation_timings.navigation_start = base::TimeTicks::Now();
   params->navigation_timings.fetch_start = base::TimeTicks::Now();
-  FillNavigationParamsResponse(params.get());
+  FillNavigationParamsResponse(params.get(), backend);
   impl->CommitNavigation(
       std::move(params), nullptr /* extra_data */,
       base::DoNothing::Once() /* call_before_attaching_new_document */);
@@ -289,47 +401,22 @@ void PumpPendingRequestsForFrameToLoad(WebLocalFrame* frame) {
   // test::EnterRunLoop();
 }
 
-void FillNavigationParamsResponse(WebNavigationParams* params) {
-  KURL kurl(params->url);
-  // Empty documents and srcdoc will be handled by DocumentLoader.
-  // if (DocumentLoader::WillLoadUrlAsEmpty(kurl) || kurl.IsAboutSrcdocURL())
-  //  return;
-  // Platform::Current()->GetURLLoaderMockFactory()->FillNavigationParamsResponse(
-  //    params);
-
+void FillNavigationParamsResponse(WebNavigationParams* params,
+                                  SDK::Backend* backend) {
   params->response = WebURLResponse(params->url);
-  params->response.SetMimeType("text/html");
+
+  SDK::ResourceRequest resReq(params->url.GetString().Ascii());
+  SDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
+
+  blink::WebString mimeType =
+      blink::WebString::FromASCII(resResp.getMimeType());
+
+  params->response.SetMimeType(mimeType);
   params->response.SetHttpStatusCode(200);
 
-  WTF::String data(
-      "<html style=\"background-color: blue\">"
-      "<head>"
-      "<script>document.write(\"boo! \" + (3+2));</script>"
-      "</head>"
-      "<body style=\""
-      "display: block; "
-      "margin: 0px; "
-      "width: 100%; "
-      "height: 100%; "
-      "font-size: 10px; "
-      "font-family: Arial, Helvetica, sans-serif; "
-      "color: #cccccc "
-
-      "\">"
-      "Hello, losers! <div style=\"background-color: #1100ff; "
-      "display: "
-      "block\">[<img style=\"width: 20mm; height: 20mm\" "
-      "src=\"mem://image.png\"></img>]blah blah blah blah blah</div> "
-      "blah blah"
-      "</body>"
-      "</html>");
-
-  /*for (wtf_size_t i = 0; i < data.length(); i++)
-    data_.push_back(data[i]);*/
-
   auto body_loader = std::make_unique<blink::StaticDataNavigationBodyLoader>();
-  //  body_loader_ = body_loader.get();
-  body_loader->Write((const char*)data.Characters8(), data.length());
+  body_loader->Write((const char*)&resResp.getData()[0],
+                     resResp.getData().size());
   body_loader->Finish();
   params->body_loader = std::move(body_loader);
 }
@@ -662,8 +749,9 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
 
 int TestWebFrameClient::loads_in_progress_ = 0;
 
-TestWebFrameClient::TestWebFrameClient()
-    : interface_provider_(new service_manager::InterfaceProvider()),
+TestWebFrameClient::TestWebFrameClient(std::shared_ptr<SDK::Backend> backend)
+    : backend(backend), interface_provider_(
+          new service_manager::InterfaceProvider()),
       associated_interface_provider_(new AssociatedInterfaceProvider(nullptr)),
       effective_connection_type_(WebEffectiveConnectionType::kTypeUnknown) {}
 
@@ -743,7 +831,7 @@ void TestWebFrameClient::CommitNavigation(
     return;
   auto params = WebNavigationParams::CreateFromInfo(*info);
   if (info->archive_status != WebNavigationInfo::ArchiveStatus::Present)
-    FillNavigationParamsResponse(params.get());
+    FillNavigationParamsResponse(params.get(), backend.get());
   frame_->CommitNavigation(
       std::move(params), nullptr /* extra_data */,
       base::DoNothing::Once() /* call_before_attaching_new_document */);
@@ -810,44 +898,17 @@ StubLayerTreeViewDelegate::GetBeginMainFrameMetrics() {
   return nullptr;
 }
 
-// content::LayerTreeView* LayerTreeViewFactory::Initialize() {
-//  return Initialize(nullptr);
-//}
-//
-// content::LayerTreeView* LayerTreeViewFactory::Initialize(
-//    content::LayerTreeViewDelegate* specified_delegate) {
-//  cc::LayerTreeSettings settings;
-//  // Use synchronous compositing so that the MessageLoop becomes idle and the
-//  // test makes progress.
-//  settings.single_thread_proxy_scheduler = false;
-//  settings.use_layer_lists = true;
-//
-//  layer_tree_view_ = std::make_unique<content::LayerTreeView>(
-//      specified_delegate ? specified_delegate : &delegate_,
-//      Thread::Current()->GetTaskRunner(),
-//      /*compositor_thread=*/nullptr, /*&test_task_graph_runner_*/nullptr,
-//      &fake_thread_scheduler_);
-//  layer_tree_view_->Initialize(settings,
-//                               std::make_unique<cc::TestUkmRecorderFactory>());
-//  return layer_tree_view_.get();
-//}
-
 TestWebWidgetClient::TestWebWidgetClient(
     content::LayerTreeViewDelegate* delegate,
     scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner,
     scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner,
     blink::scheduler::WebThreadScheduler* my_web_thread_sched) {
-  layer_tree_view_ = std::make_unique<content::LayerTreeView>(
-      delegate, mainTaskRunner,
-      composeTaskRunner, new cc::SingleThreadTaskGraphRunner(), my_web_thread_sched /*, blink::scheduler::WebThreadScheduler::MainThreadScheduler()*/);
-
-  ///*compositor_thread=*/nullptr, /*&test_task_graph_runner_*/nullptr,
-  ///*&fake_thread_scheduler_*/nullptr);
+  layer_tree_view_ = std::make_unique<content::LayerTreeView>(delegate, mainTaskRunner,
+      composeTaskRunner, new cc::SingleThreadTaskGraphRunner(), my_web_thread_sched);
 
   cc::LayerTreeSettings settings;
-  //  // Use synchronous compositing so that the MessageLoop becomes idle and
-  //  the
-  //  // test makes progress.
+  //  Use synchronous compositing so that the MessageLoop becomes idle and
+  //  the test makes progress.
   settings.single_thread_proxy_scheduler = true;
   settings.using_synchronous_renderer_compositor = true;
   settings.use_layer_lists = true;
@@ -869,8 +930,7 @@ void TestWebWidgetClient::SetBackgroundColor(SkColor color) {
 void TestWebWidgetClient::SetPageScaleStateAndLimits(
     float page_scale_factor,
     bool is_pinch_gesture_active,
-    float minimum,
-    float maximum) {
+    float minimum, float maximum) {
   layer_tree_host()->SetPageScaleFactorAndLimits(page_scale_factor, minimum,
                                                  maximum);
 }
@@ -967,9 +1027,6 @@ WebView* TestWebViewClient::CreateView(WebLocalFrame* opener,
   return result;
 }
 
-// LayerTreeViewFactory::LayerTreeViewFactory() {}
-// LayerTreeViewFactory ::~LayerTreeViewFactory() {}
-
 TestWebWidgetClient::~TestWebWidgetClient() {}
 void TestWebWidgetClient::ScheduleAnimation() {
   animation_scheduled_ = true;
@@ -992,7 +1049,7 @@ std::unique_ptr<blink::WebURLLoaderFactory>
 TestWebFrameClient::CreateURLLoaderFactory() {
   // TODO(kinuko,toyoshim): Stop using Platform's URLLoaderFactory, but create
   // its own WebURLLoaderFactoryWithMock. (crbug.com/751425)
-  return std::make_unique<MyWebURLLoaderFactory>(my_web_thread_sched);
+  return std::make_unique<MyWebURLLoaderFactory>(my_web_thread_sched, backend);
   // Platform::Current()->CreateDefaultURLLoaderFactory();
 }
 WebRemoteFrame* TestWebRemoteFrameClient::Frame() const {
@@ -1000,8 +1057,8 @@ WebRemoteFrame* TestWebRemoteFrameClient::Frame() const {
 }
 
 MyWebURLLoader::MyWebURLLoader(
-    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched)
-    : my_web_thread_sched(my_web_thread_sched) {}
+    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched, std::shared_ptr<SDK::Backend> backend)
+    : my_web_thread_sched(my_web_thread_sched), backend(backend) {}
 
 MyWebURLLoader::~MyWebURLLoader() {}
 
@@ -1016,91 +1073,58 @@ void MyWebURLLoader::LoadSynchronously(const WebURLRequest&,
   NOTREACHED();
 }
 
-void MyWebURLLoader::LoadAsynchronouslyDo(WebURLRequest request,
+void MyWebURLLoader::DoLoadAsynchronously(WebURLRequest request,
                                           WebURLLoaderClient* client) {
   WebURLResponse response;
-  response.SetMimeType("image/svg+xml");
+  
+  SDK::ResourceRequest resReq(request.Url().GetString().Ascii());
+  SDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
+
+  blink::WebString mimeType =
+      blink::WebString::FromASCII(resResp.getMimeType());
+
+  response.SetMimeType(mimeType);
   response.SetHttpStatusCode(200);
 
-  std::string svgText =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>   \
-<svg    \
-   xmlns:dc=\"http://purl.org/dc/elements/1.1/\"    \
-   xmlns:cc=\"http://creativecommons.org/ns#\"  \
-   xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"    \
-   xmlns:svg=\"http://www.w3.org/2000/svg\" \
-   xmlns=\"http://www.w3.org/2000/svg\" \
-   id=\"svg8\"  \
-   version=\"1.1\"  \
-   viewBox=\"0 0 20 20\"    \
-   height=\"20mm\"  \
-   width=\"20mm\">  \
-  <defs \
-     id=\"defs2\" />    \
-  <metadata \
-     id=\"metadata5\">  \
-    <rdf:RDF>   \
-      <cc:Work  \
-         rdf:about=\"\">    \
-        <dc:format>image/svg+xml</dc:format>    \
-        <dc:type    \
-           rdf:resource=\"http://purl.org/dc/dcmitype/StillImage\" />   \
-        <dc:title></dc:title>   \
-      </cc:Work>    \
-    </rdf:RDF>  \
-  </metadata>   \
-  <g    \
-     transform=\"translate(0,-277)\"    \
-     id=\"layer1\"> \
-    <path   \
-       d=\"m 6.3410945,291.73753 -5.1379613,-3.99351 v -0.59506 l 5.1379613,-3.98855 0.321704,0.71407 -4.5720358,3.56705 4.5720358,3.57697 z\"  \
-       style=\"font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:1.25;font-family:'Century Schoolbook';-inkscape-font-specification:'Century Schoolbook';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.21157649\"   \
-       id=\"path14\" /> \
-    <path   \
-       d=\"M 11.82605,282.16947 9.0975343,292.56026 8.3780434,292.39934 11.11276,282.00855 Z\"  \
-       style=\"font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:1.25;font-family:'Century Schoolbook';-inkscape-font-specification:'Century Schoolbook';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332\"   \
-       id=\"path16\" /> \
-    <path   \
-       d=\"m 13.695671,291.73753 5.137962,-3.99351 v -0.59506 l -5.137962,-3.98855 -0.321703,0.71407 4.572036,3.56705 -4.572036,3.57697 z\" \
-       style=\"font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:1.25;font-family:'Century Schoolbook';-inkscape-font-specification:'Century Schoolbook';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.21157649\"   \
-       id=\"path14-2\" />   \
-  </g>  \
-</svg>  \
-";
-
   client->DidReceiveResponse(response);
-  client->DidReceiveData(svgText.c_str(), (int)svgText.size());
-  client->DidFinishLoading(base::TimeTicks::Now(), (int)svgText.size(),
-                           (int)svgText.size(), (int)svgText.size(), false);
+  auto& data = resResp.getData();
+  client->DidReceiveData((const char*)&data[0],
+                         (int)data.size());
+  client->DidFinishLoading(base::TimeTicks::Now(), (int)data.size(),
+                           (int)data.size(), (int)data.size(), false);
 }
 
 void MyWebURLLoader::LoadAsynchronously(const WebURLRequest& request,
                                         WebURLLoaderClient* client) {
-  WebURLRequest req = request;
-  PostCrossThreadTask(*GetTaskRunner(), FROM_HERE,
-                      CrossThreadBindOnce(&MyWebURLLoader::LoadAsynchronouslyDo,
-                                          CrossThreadUnretained(this),
-                                          WTF::Passed(std::move(req)),
-                                          CrossThreadUnretained(client)));
+    // Saving the request
+    WebURLRequest req = request;
+  
+    // Running the task for request processing
+    PostCrossThreadTask(*GetTaskRunner(), FROM_HERE,
+                        CrossThreadBindOnce(&MyWebURLLoader::DoLoadAsynchronously,
+                                            CrossThreadUnretained(this),
+                                            WTF::Passed(std::move(req)),
+                                            CrossThreadUnretained(client)));
 }
 
 void MyWebURLLoader::SetDefersLoading(bool defers) {}
 void MyWebURLLoader::DidChangePriority(WebURLRequest::Priority, int) {}
+
 scoped_refptr<base::SingleThreadTaskRunner> MyWebURLLoader::GetTaskRunner() {
   return my_web_thread_sched->DefaultTaskRunner();
-  // base::MakeRefCounted<scheduler::FakeTaskRunner>();
 }
 
 MyWebURLLoaderFactory::MyWebURLLoaderFactory(
-    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched)
-    : my_web_thread_sched(my_web_thread_sched) {}
+    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
+    std::shared_ptr<SDK::Backend> backend)
+    : my_web_thread_sched(my_web_thread_sched), backend(backend) {}
 
 MyWebURLLoaderFactory::~MyWebURLLoaderFactory() {}
 
 std::unique_ptr<WebURLLoader> MyWebURLLoaderFactory::CreateURLLoader(
     const WebURLRequest&,
     std::unique_ptr<scheduler::WebResourceLoadingTaskRunnerHandle>) {
-  return std::make_unique<MyWebURLLoader>(my_web_thread_sched);
+  return std::make_unique<MyWebURLLoader>(my_web_thread_sched, backend);
 }
 
 }  // namespace my_frame_test_helpers

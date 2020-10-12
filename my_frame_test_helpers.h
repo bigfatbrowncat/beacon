@@ -94,6 +94,47 @@
     EXPECT_FLOAT_EQ((expected).Height(), (actual).Height()); \
   } while (false)
 
+namespace SDK {
+
+class ResourceRequest {
+  private:
+    std::string url;
+
+  public:
+    ResourceRequest(const std::string& url);
+    const std::string& getUrl() const { return url; }
+    virtual ~ResourceRequest();
+};
+
+class ResourceResponse {
+  private:
+    std::vector<uint8_t> data;
+    std::string mimeType;
+  public:
+    ResourceResponse(const std::vector<uint8_t>& data,
+                     const std::string& mimeType);
+    ResourceResponse();
+    ResourceResponse(const ResourceResponse& other);
+
+    const std::vector<uint8_t>& getData() const { return data; } 
+    const std::string& getMimeType() const { return mimeType; }
+
+    void setData(const std::vector<uint8_t>& data) { this->data = data; }
+    void setMimeType(const std::string& mimeType) { this->mimeType = mimeType; }
+
+    virtual ~ResourceResponse();
+};
+
+class Backend {
+  public:
+    virtual ResourceResponse ProcessRequest(const ResourceRequest& request);
+    Backend();
+    virtual ~Backend();
+};
+
+}
+
+
 namespace base {
 class TickClock;
 }
@@ -109,54 +150,6 @@ struct WebNavigationParams;
 class WebRemoteFrameImpl;
 class WebSettings;
 
-/*
-namespace my_scheduler {
-
-// A dummy task runner for tests.
-class FakeTaskRunner : public base::SingleThreadTaskRunner {
- public:
-  FakeTaskRunner();
-
-  void SetTime(base::TimeTicks new_time);
-  void SetTime(double new_time) {
-    SetTime(base::TimeTicks() + base::TimeDelta::FromSecondsD(new_time));
-  }
-
-  // base::SingleThreadTaskRunner implementation:
-  bool RunsTasksInCurrentSequence() const override;
-
-  void RunUntilIdle();
-  void AdvanceTimeAndRun(base::TimeDelta delta);
-  void AdvanceTimeAndRun(double delta_seconds) {
-    AdvanceTimeAndRun(base::TimeDelta::FromSecondsD(delta_seconds));
-  }
-
-  using PendingTask = std::pair<base::OnceClosure, base::TimeTicks>;
-  Deque<PendingTask> TakePendingTasksForTesting();
-
- protected:
-  bool PostDelayedTask(const base::Location& location,
-                       base::OnceClosure task,
-                       base::TimeDelta delay) override;
-  bool PostNonNestableDelayedTask(const base::Location&,
-                                  base::OnceClosure task,
-                                  base::TimeDelta delay) override;
-
- private:
-  ~FakeTaskRunner() override;
-
-  class Data;
-  class BaseTaskRunner;
-  scoped_refptr<Data> data_;
-
-  explicit FakeTaskRunner(scoped_refptr<Data> data);
-
-  DISALLOW_COPY_AND_ASSIGN(FakeTaskRunner);
-};
-
-}  // namespace my_scheduler
-*/
-
 namespace my_frame_test_helpers {
 class TestWebFrameClient;
 class TestWebRemoteFrameClient;
@@ -165,7 +158,8 @@ class TestWebViewClient;
 class WebViewHelper;
 
 // Loads a url into the specified WebLocalFrame for testing purposes.
-void LoadFrameDontWait(WebLocalFrame*, const WebURL& url);
+void LoadFrameDontWait(WebLocalFrame*,
+                       const WebURL& url);
 // Same as above, but also pumps any pending resource requests,
 // as well as waiting for the threaded parser to finish, before returning.
 void LoadFrame(WebLocalFrame*, const std::string& url);
@@ -183,7 +177,8 @@ void ReloadFrame(WebLocalFrame*);
 void ReloadFrameBypassingCache(WebLocalFrame*);
 
 // Fills navigation params if needed. Params should have the proper url set up.
-void FillNavigationParamsResponse(WebNavigationParams*);
+void FillNavigationParamsResponse(WebNavigationParams* params,
+                                  SDK::Backend* backend);
 
 // Pumps pending resource requests while waiting for a frame to load. Consider
 // using one of the above helper methods whenever possible.
@@ -277,29 +272,6 @@ class StubLayerTreeViewDelegate : public content::LayerTreeViewDelegate {
   void UpdateVisualState() override {}
   void WillBeginCompositorFrame() override {}
 };
-
-// A class that constructs and owns a LayerTreeView for blink
-// unit tests.
-// class LayerTreeViewFactory {
-//
-//  DISALLOW_NEW();
-//
-// public:
-//  LayerTreeViewFactory();
-//  ~LayerTreeViewFactory();
-//
-//
-//     // Use this to make a LayerTreeView with a stub delegate.
-//  content::LayerTreeView* Initialize();
-//  // Use this to specify a delegate instead of using a stub.
-//  content::LayerTreeView* Initialize(content::LayerTreeViewDelegate*);
-//
-// private:
-//  content::StubLayerTreeViewDelegate delegate_;
-//  //cc::TestTaskGraphRunner test_task_graph_runner_;
-//  blink::scheduler::WebFakeThreadScheduler fake_thread_scheduler_;
-//  std::unique_ptr<content::LayerTreeView> layer_tree_view_;
-//};
 
 struct InjectedScrollGestureData {
   WebFloatSize delta;
@@ -517,15 +489,12 @@ class WebViewHelper : public ScopedMockOverlayScrollbars {
   DISALLOW_COPY_AND_ASSIGN(WebViewHelper);
 };
 
-// Minimal implementation of WebLocalFrameClient needed for unit tests that load
-// frames. Tests that load frames and need further specialization of
-// WebLocalFrameClient behavior should subclass this.
 class TestWebFrameClient : public WebLocalFrameClient {
  private:
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-
+  std::shared_ptr<SDK::Backend> backend;
  public:
-  TestWebFrameClient();
+  TestWebFrameClient(std::shared_ptr<SDK::Backend> backend);
   ~TestWebFrameClient() override;
 
   void SetScheduler(std::shared_ptr<blink::scheduler::WebThreadScheduler>
@@ -533,6 +502,8 @@ class TestWebFrameClient : public WebLocalFrameClient {
 
   static bool IsLoading() { return loads_in_progress_ > 0; }
   Vector<String>& ConsoleMessages() { return console_messages_; }
+
+  std::shared_ptr<SDK::Backend> Backend() { return backend; }
 
   WebNavigationControl* Frame() const { return frame_; }
   // Pass ownership of the TestWebFrameClient to |self_owned| here if the
@@ -641,10 +612,13 @@ class MyWebURLRequestWrapper {
 class MyWebURLLoader final : public WebURLLoader {
  private:
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
+  std::shared_ptr<SDK::Backend> backend;
+
+  void DoLoadAsynchronously(WebURLRequest request, WebURLLoaderClient* client);
 
  public:
   MyWebURLLoader(std::shared_ptr<blink::scheduler::WebThreadScheduler>
-                     my_web_thread_sched);
+                     my_web_thread_sched, std::shared_ptr<SDK::Backend> backend);
   ~MyWebURLLoader() override;
 
   void LoadSynchronously(const WebURLRequest&,
@@ -658,8 +632,6 @@ class MyWebURLLoader final : public WebURLLoader {
 
   void LoadAsynchronously(const WebURLRequest& request,
                           WebURLLoaderClient* client) override;
-  void LoadAsynchronouslyDo(WebURLRequest request,
-                            WebURLLoaderClient* client);
 
   void SetDefersLoading(bool defers) override;
   void DidChangePriority(WebURLRequest::Priority, int) override;
@@ -669,10 +641,12 @@ class MyWebURLLoader final : public WebURLLoader {
 class MyWebURLLoaderFactory final : public WebURLLoaderFactory {
  private:
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
+  std::shared_ptr<SDK::Backend> backend;
 
  public:
-  MyWebURLLoaderFactory(std::shared_ptr<blink::scheduler::WebThreadScheduler>
-                            my_web_thread_sched);
+  MyWebURLLoaderFactory(
+      std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
+      std::shared_ptr<SDK::Backend> backend);
   ~MyWebURLLoaderFactory() override;
   std::unique_ptr<WebURLLoader> CreateURLLoader(
       const WebURLRequest&,

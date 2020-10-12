@@ -63,13 +63,11 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   blink::Document& GetDocument();
   void PrintSinglePage(SkCanvas* canvas, int width, int height);
   void SetBodyInnerHTML(String body_content);
-  void UpdateContents();
   void UpdateBackend();
 
   void OutputLinkedDestinations(blink::GraphicsContext& context,
                                 const blink::IntRect& page_rect);
   void CollectLinkedDestinations(blink::Node* node);
-  bool Capture(/*cc::PaintCanvas* */ SkCanvas* canvas, blink::FloatSize size);
 
  private:
   void updateTitle();
@@ -88,6 +86,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   std::shared_ptr<blink::Platform> platform;
 
+  std::shared_ptr<SDK::Backend> backend;
   std::shared_ptr<blink::my_frame_test_helpers::WebViewHelper> webViewHelper;
   std::shared_ptr<blink::my_frame_test_helpers::TestWebFrameClient> wfc;
   std::shared_ptr<blink::my_frame_test_helpers::TestWebViewClient> wvc;
@@ -102,7 +101,6 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   blink::WebViewImpl* webView = nullptr;
   blink::GraphicsLayer* root_graphics_layer = nullptr;
-  //bool blankLoaded = false;
 
   std::shared_ptr<blink::WebCoalescedInputEvent> coalescedInputEvent = nullptr;
   blink::HeapHashMap<String, blink::Member<blink::Element>>
