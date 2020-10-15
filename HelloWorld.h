@@ -27,8 +27,6 @@
 #include "components/discardable_memory/service/discardable_shared_memory_manager.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 
-#include "MyRunLoop.h"
-
 class SkCanvas;
 namespace blink {
 class Element;
