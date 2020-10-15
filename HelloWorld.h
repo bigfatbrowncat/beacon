@@ -11,7 +11,6 @@
 #include <chrono>
 
 #include "base/command_line.h"
-#include "base/run_loop.h"
 #include "base/at_exit.h"
 #include "base/task/sequence_manager/thread_controller_with_message_pump_impl.h"
 
@@ -22,10 +21,13 @@
 #include "third_party/blink/public/platform/web_common.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
-#include "tools/sk_app/Application.h"
-#include "tools/sk_app/Window.h"
+#include "app_base/Application.h"
+#include "app_base/Window.h"
 
+#include "components/discardable_memory/service/discardable_shared_memory_manager.h"
+#include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 
+#include "MyRunLoop.h"
 
 class SkCanvas;
 namespace blink {
@@ -52,6 +54,9 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
                int y,
                skui::InputState,
                skui::ModifierKey) override;
+  bool onMouseWheel(const ui::PlatformEvent& platformEvent,
+                    float delta,
+                    skui::ModifierKey) override;
   bool onKey(const ui::PlatformEvent& platformEvent,
              uint64_t,
              skui::InputState,
@@ -76,6 +81,8 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   sk_app::Window::BackendType fBackendType;
   std::shared_ptr<sk_app::PlatformData> platformData;
   bool resizing = false;
+  std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
+      discardableSharedMemoryManager;    
 
   base::CommandLine::StringType htmlFilename;
   std::string htmlContents;
@@ -102,11 +109,11 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
   blink::WebViewImpl* webView = nullptr;
   blink::GraphicsLayer* root_graphics_layer = nullptr;
 
-  std::shared_ptr<blink::WebCoalescedInputEvent> coalescedInputEvent = nullptr;
+  WTF::Vector<std::shared_ptr<blink::WebInputEvent>> collectedInputEvents;
+
   blink::HeapHashMap<String, blink::Member<blink::Element>>
       linked_destinations_;
 
-  std::shared_ptr<base::RunLoop> run_loop;
   std::shared_ptr<base::AtExitManager> exit_manager;
   std::shared_ptr<mojo::BinderMap> binder_map;
 };

@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/BUILD.gn b/third_party/blink/renderer/modules/BUILD.gn
-index e7ba2fb4653c..48ad04e058d4 100644
+index e7ba2fb465..671c632db7 100644
 --- a/third_party/blink/renderer/modules/BUILD.gn
 +++ b/third_party/blink/renderer/modules/BUILD.gn
 @@ -31,7 +31,7 @@ jumbo_component("modules") {
@@ -7,7 +7,7 @@ index e7ba2fb4653c..48ad04e058d4 100644
  
    visibility = []  # Allow re-assignment of list.
 -  visibility = [ "//third_party/blink/*" ]
-+  visibility = [ "//third_party/blink/*", "//:HelloWorld" ]
++  visibility = [ "//third_party/blink/*", "//my_example:HelloWorld" ]
  
    sources = [
      "event_modules.h",

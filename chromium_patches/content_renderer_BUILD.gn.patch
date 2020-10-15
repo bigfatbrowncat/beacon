@@ -1,5 +1,5 @@
 diff --git a/content/renderer/BUILD.gn b/content/renderer/BUILD.gn
-index 87d66b8ffa42..9a002141fe63 100644
+index 87d66b8ffa..492e5ca869 100644
 --- a/content/renderer/BUILD.gn
 +++ b/content/renderer/BUILD.gn
 @@ -28,6 +28,8 @@ target(link_target_type, "renderer") {
@@ -7,7 +7,7 @@ index 87d66b8ffa42..9a002141fe63 100644
      "//content/renderer:audio_decoder_fuzzer",
      "//chromecast/media/audio:*",
 +    
-+    "//:HelloWorld",
++    "//my_example:HelloWorld",
    ]
  
    sources = [

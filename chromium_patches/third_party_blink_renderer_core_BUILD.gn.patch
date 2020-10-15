@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/core/BUILD.gn b/third_party/blink/renderer/core/BUILD.gn
-index fbdf332d091d..6f13d7e174ad 100644
+index fbdf332d09..8c85996908 100644
 --- a/third_party/blink/renderer/core/BUILD.gn
 +++ b/third_party/blink/renderer/core/BUILD.gn
 @@ -142,7 +142,10 @@ component("core") {
@@ -9,7 +9,7 @@ index fbdf332d091d..6f13d7e174ad 100644
 -  visibility = [ "//third_party/blink/*" ]
 +  visibility = [ 
 +    "//third_party/blink/*", 
-+    "//:HelloWorld"
++    "//my_example:HelloWorld"
 +  ]
  
    # If you create a new subdirectory, make a new BUILD file for that directory

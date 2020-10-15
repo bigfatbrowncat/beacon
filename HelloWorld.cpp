@@ -27,7 +27,6 @@
 #include "third_party/blink/renderer/core/paint/paint_layer_painter.h"
 #include "third_party/blink/renderer/core/scroll/scrollbar_theme.h"
 #include "third_party/blink/renderer/platform/language.h"
-//#include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
 
 #include "base/message_loop/message_pump.h"
 #include "base/run_loop.h"
@@ -38,6 +37,8 @@
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
 #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
+#include "third_party/blink/renderer/core/html/html_head_element.h"
+#include "third_party/blink/renderer/core/html/html_collection.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_context.h"
 #include "third_party/blink/renderer/platform/graphics/paint/drawing_recorder.h"
 #include "third_party/blink/renderer/platform/graphics/paint/paint_record_builder.h"
@@ -45,9 +46,7 @@
 #include "third_party/blink/renderer/platform/scheduler/main_thread/main_thread_scheduler_impl.h"
 #include "third_party/blink/renderer/platform/scheduler/public/dummy_schedulers.h"
 
-//#include
-//"third_party/blink/renderer/platform/testing/paint_test_configurations.h"
-
+#include "base/memory/discardable_memory_allocator.h"
 #include "base/task/post_task.h"
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_impl.h"
@@ -59,6 +58,9 @@
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 #include "third_party/skia/third_party/icu/SkLoadICU.h"
+
+#include "ui/events/blink/blink_event_util.h"
+
 
 using namespace sk_app;
 using namespace blink;
@@ -144,64 +146,6 @@ class InjectableTestDelegate : public base::RunLoop::Delegate {
   base::OnceClosure closure_;
 };
 
-// A simple test RunLoop::Delegate to exercise Runloop logic independent of any
-// other base constructs. BindToCurrentThread() must be called before this
-// TestBoundDelegate is operational.
-class TestBoundDelegate final : public InjectableTestDelegate {
- public:
-  TestBoundDelegate() = default;
-
-  // Makes this TestBoundDelegate become the RunLoop::Delegate and
-  // ThreadTaskRunnerHandle for this thread.
-  void BindToCurrentThread() {
-    thread_task_runner_handle_ =
-        std::make_unique<base::ThreadTaskRunnerHandle>(simple_task_runner_);
-    base::RunLoop::RegisterDelegateForCurrentThread(this);
-  }
-
- private:
-  void Run(bool application_tasks_allowed, base::TimeDelta timeout) override {
-    if (nested_run_allowing_tasks_incoming_) {
-      // EXPECT_TRUE(base::RunLoop::IsNestedOnCurrentThread());
-      // EXPECT_TRUE(application_tasks_allowed);
-    } else if (base::RunLoop::IsNestedOnCurrentThread()) {
-      // EXPECT_FALSE(application_tasks_allowed);
-    }
-    nested_run_allowing_tasks_incoming_ = false;
-
-    while (!should_quit_) {
-      if (application_tasks_allowed && simple_task_runner_->ProcessSingleTask())
-        continue;
-
-      if (ShouldQuitWhenIdle())
-        break;
-
-      if (RunInjectedClosure())
-        continue;
-
-      base::PlatformThread::YieldCurrentThread();
-    }
-    should_quit_ = false;
-  }
-
-  void Quit() override { should_quit_ = true; }
-
-  void EnsureWorkScheduled() override {
-    nested_run_allowing_tasks_incoming_ = true;
-  }
-
-  // True if the next invocation of Run() is expected to be from a
-  // kNestableTasksAllowed RunLoop.
-  bool nested_run_allowing_tasks_incoming_ = false;
-
-  scoped_refptr<SimpleSingleThreadTaskRunner> simple_task_runner_ =
-      base::MakeRefCounted<SimpleSingleThreadTaskRunner>();
-
-  std::unique_ptr<base::ThreadTaskRunnerHandle> thread_task_runner_handle_;
-
-  bool should_quit_ = false;
-};
-
 Application* Application::Create(
     int argc,
     char** argv,
@@ -248,10 +192,16 @@ HelloWorld::HelloWorld(int argc,
           base::MessagePump::Create(base::MessagePumpType::DEFAULT),
           base::Optional<base::Time>());
 
+
   exit_manager = std::make_shared<base::AtExitManager>();
-  run_loop = std::make_shared<base::RunLoop>();
 
   binder_map = std::make_unique<mojo::BinderMap>();
+
+  // Creating a discardable memory allocator
+  discardableSharedMemoryManager =
+      std::make_shared<discardable_memory::DiscardableSharedMemoryManager>();
+  base::DiscardableMemoryAllocator::SetInstance(discardableSharedMemoryManager.get());
+
   blink::Initialize(platform.get(), binder_map.get(),
                     /*scheduler::WebThreadScheduler * main_thread_scheduler*/
                     my_web_thread_sched.get());
@@ -310,12 +260,21 @@ void HelloWorld::updateTitle() {
     return;
   }
 
-  SkString title("Hello World");
-  title.append(" [");
-  title.append(Window::kRaster_BackendType == fBackendType ? "Raster"
-                                                           : "OpenGL");
-  title.append("]");
-  fWindow->setTitle(title.c_str());
+  WTF::String title = "Blink window";
+  if (GetDocument() != nullptr && GetDocument().head() != nullptr) {
+      // Search for <title> tags in the <head>
+      HTMLCollection* titleEls = GetDocument().head()->getElementsByTagName("title");
+      if (titleEls != nullptr && titleEls->length() > 0) {
+        // Taking the first one (assuming it is only one)
+        title = titleEls->item(0)->innerText();
+      }
+  }
+  SkString skTitle(title.Utf8().c_str());
+  skTitle.append(" [");
+  skTitle.append(Window::kRaster_BackendType == fBackendType ? "Raster"
+                                                             : "OpenGL");
+  skTitle.append("]");
+  fWindow->setTitle(skTitle.c_str());
 }
 
 void HelloWorld::onBackendCreated() {
@@ -388,10 +347,55 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
 
   webView->Resize(WebSize(page_size));
 
-  if (coalescedInputEvent != nullptr) {
-    webView->MainFrameWidget()->HandleInputEvent(*coalescedInputEvent);
-    coalescedInputEvent = nullptr;
+  // Handling events
+
+  for (auto& p : collectedInputEvents) {
+
+    WebInputEvent& theEvent = *p;
+    auto mtp = theEvent.GetType();
+    switch (mtp) {
+    case WebInputEvent::Type::kMouseDown:
+        ((PageWidgetEventHandler*)webView)
+            ->HandleMouseDown(*webView->MainFrameImpl()->GetFrame(),
+                            (WebMouseEvent&)theEvent);
+        break;
+
+    case WebInputEvent::Type::kMouseUp:
+        ((PageWidgetEventHandler*)webView)
+            ->HandleMouseUp(*webView->MainFrameImpl()->GetFrame(),
+                            (WebMouseEvent&)theEvent);
+        break;
+
+    case WebInputEvent::Type::kMouseMove:
+        ((PageWidgetEventHandler*)webView)
+            ->HandleMouseMove(*webView->MainFrameImpl()->GetFrame(),
+                            (WebMouseEvent&)theEvent,
+                            WebVector<const WebInputEvent*>(),
+                            WebVector<const WebInputEvent*>());
+        break;
+
+    case WebInputEvent::Type::kMouseWheel:
+        ((PageWidgetEventHandler*)webView)
+            ->HandleMouseWheel(*webView->MainFrameImpl()->GetFrame(),
+                                (WebMouseWheelEvent&)theEvent);
+        break;
+
+    case WebInputEvent::Type::kKeyDown:
+    case WebInputEvent::Type::kKeyUp:
+        ((PageWidgetEventHandler*)webView)
+            ->HandleKeyEvent((WebKeyboardEvent&)theEvent);
+        break;
+
+    case WebInputEvent::Type::kChar:
+        ((PageWidgetEventHandler*)webView)
+            ->HandleCharEvent((WebKeyboardEvent&)theEvent);
+        break;
+
+    default:
+        break;
+    }
   }
+  collectedInputEvents.clear();
 
   LocalFrameView* frame_view =
       webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
@@ -472,7 +476,6 @@ void HelloWorld::UpdateBackend() {
 }
 
 void HelloWorld::onResize(int width, int height) {
-  std::cout << "HelloWorld::onResize" << std::endl;
   UpdateBackend();
   fWindow->inval();
 }
@@ -497,6 +500,7 @@ void HelloWorld::onPaint(SkSurface* surface) {
 
   canvas->save();
 
+  updateTitle();
   PrintSinglePage(canvas, width, height);
 
   canvas->restore();
@@ -511,9 +515,11 @@ bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
   switch (inState) {
     case skui::InputState::kDown:
       mtp = WebInputEvent::Type::kMouseDown;
+      std::cout << "HelloWorld::onMouse [down]" << std::endl;
       break;
     case skui::InputState::kUp:
       mtp = WebInputEvent::Type::kMouseUp;
+      std::cout << "HelloWorld::onMouse [up]" << std::endl;
       break;
     case skui::InputState::kMove:
       mtp = WebInputEvent::Type::kMouseMove;
@@ -524,14 +530,34 @@ bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
 
   IntPoint pos(x, y);
 
+  int mods = 0;
+
   auto mouseEvent = my_frame_test_helpers::CreateMouseEvent(
-      mtp, WebMouseEvent::Button::kLeft, pos, 0);
-  if (coalescedInputEvent == nullptr) {
-    coalescedInputEvent = std::make_shared<WebCoalescedInputEvent>(mouseEvent);
-  } else {
-    coalescedInputEvent->AddCoalescedEvent(mouseEvent);
-  }
+      mtp, WebMouseEvent::Button::kLeft, pos, mods);
+
+  collectedInputEvents.push_back(
+          std::make_shared<WebMouseEvent>(mouseEvent));
+
   return true;
+}
+
+bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
+    float delta,
+    skui::ModifierKey modKey) {
+
+    std::cout << "HelloWorld::onMouseWheel [delta = " << delta << "]"
+            << std::endl;
+    int mods = 0;
+
+    auto mouseEvent = my_frame_test_helpers::CreateMouseWheelEvent(0, delta * 10, mods);
+    mouseEvent.SetFrameTranslate(gfx::Vector2dF(0, 10 * delta));
+    mouseEvent.event_action =
+        blink::WebMouseWheelEvent::EventAction::kScrollVertical;
+
+    collectedInputEvents.push_back(
+        std::make_shared<WebMouseWheelEvent>(mouseEvent));
+
+    return true;
 }
 
 bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
@@ -569,11 +595,7 @@ bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
   }
 
   if (evt->IsKeyEvent() /* || evt.IsMouseEvent() || evt.IsTouchEvent()*/) {
-    if (coalescedInputEvent == nullptr) {
-      coalescedInputEvent = std::make_shared<WebCoalescedInputEvent>(*bEvent);
-    } else {
-      coalescedInputEvent->AddCoalescedEvent(*bEvent);
-    }
+    collectedInputEvents.push_back(bEvent);
     return true;
   }
   return false;
@@ -596,7 +618,10 @@ void HelloWorld::onIdle() {
           .count() > 500) {
     htmlContentsUpdateTime = curTime;
   }
-  run_loop->RunUntilIdle();
+
+  // Processing the pending commands
+  base::RunLoop run_loop;
+  run_loop.RunUntilIdle();
 
   // Just re-paint continously
   fWindow->inval();

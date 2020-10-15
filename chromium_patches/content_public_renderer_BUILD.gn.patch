@@ -1,5 +1,5 @@
 diff --git a/content/public/renderer/BUILD.gn b/content/public/renderer/BUILD.gn
-index 9e21deaf31f6..933bbbcf185f 100644
+index 9e21deaf31..d8c7c6b4e7 100644
 --- a/content/public/renderer/BUILD.gn
 +++ b/content/public/renderer/BUILD.gn
 @@ -27,7 +27,10 @@ if (is_component_build) {
@@ -9,7 +9,7 @@ index 9e21deaf31f6..933bbbcf185f 100644
 -  visibility = [ "//content/*" ]
 +  visibility = [
 +    "//content/*",
-+    "//:HelloWorld",
++    "//my_example:HelloWorld",
 +  ]
  
    sources = [

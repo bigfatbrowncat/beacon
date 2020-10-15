@@ -1,0 +1,13 @@
+diff --git a/content/common/BUILD.gn b/content/common/BUILD.gn
+index 6a9c28ac49..e08f9541fa 100644
+--- a/content/common/BUILD.gn
++++ b/content/common/BUILD.gn
+@@ -449,7 +449,7 @@ group("for_content_tests") {
+ 
+ mojom("mojo_bindings") {
+   # This interface is internal to content.
+-  visibility = [ "//content/*" ]
++  visibility = [ "//content/*", "//my_example:HelloWorld"  ]
+ 
+   # indexed_db.mojom used a native typemap that was not available in Java.
+   # indexed_db.mojom was removed in an earlier commit.  This should be removed

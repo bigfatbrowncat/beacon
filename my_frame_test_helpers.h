@@ -54,6 +54,7 @@
 #include "third_party/blink/public/common/frame/frame_owner_element_type.h"
 #include "third_party/blink/public/common/input/web_keyboard_event.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
+#include "third_party/blink/public/common/input/web_mouse_wheel_event.h"
 #include "third_party/blink/public/mojom/fetch/fetch_api_request.mojom-blink-forward.h"
 #include "third_party/blink/public/platform/platform.h"
 #include "third_party/blink/public/platform/scheduler/test/web_fake_thread_scheduler.h"
@@ -184,10 +185,15 @@ void FillNavigationParamsResponse(WebNavigationParams* params,
 // using one of the above helper methods whenever possible.
 void PumpPendingRequestsForFrameToLoad(WebLocalFrame*);
 
-WebMouseEvent CreateMouseEvent(WebInputEvent::Type,
-                               WebMouseEvent::Button,
-                               const IntPoint&,
+WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
+                               WebMouseEvent::Button button,
+                               const IntPoint& point,
                                int modifiers);
+
+WebMouseWheelEvent CreateMouseWheelEvent(int delta_x,
+                               int delta_y,
+                               int modifiers);
+
 WebKeyboardEvent CreateKeyboardEvent(char key_code,
                                      int modifiers,
                                      WebInputEvent::Type type);

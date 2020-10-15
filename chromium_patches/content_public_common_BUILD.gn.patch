@@ -1,0 +1,12 @@
+diff --git a/content/public/common/BUILD.gn b/content/public/common/BUILD.gn
+index 1f05fefe28..28aed33216 100644
+--- a/content/public/common/BUILD.gn
++++ b/content/public/common/BUILD.gn
+@@ -334,6 +334,7 @@ mojom("interfaces") {
+     "//chrome/common:mojo_bindings_blink",
+     "//extensions/common:mojom",
+     "//extensions/common:mojom_blink",
++    "//my_example:HelloWorld",
+   ]
+ 
+   sources = [

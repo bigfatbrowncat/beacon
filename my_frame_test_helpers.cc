@@ -56,7 +56,6 @@
 #include "third_party/blink/renderer/core/exported/web_remote_frame_impl.h"
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
 #include "third_party/blink/renderer/core/loader/document_loader.h"
-#include "content/renderer/loader/web_url_loader_impl.h"
 #include "third_party/blink/renderer/core/testing/fake_web_plugin.h"
 #include "third_party/blink/renderer/platform/heap/heap.h"
 #include "third_party/blink/renderer/platform/loader/static_data_navigation_body_loader.h"
@@ -144,27 +143,83 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
 
   } else if (request.getUrl() == "mem://index.html") {
     std::string htmlText =
-        "<html style=\"background-color: blue\">"
+        "<html>"
         "<head>"
-        "<script>document.write(\"boo! \" + (3+2));</script>"
-        "</head>"
-        "<body style=\""
-        "display: block; "
-        "margin: 0px; "
-        "width: 100%; "
-        "height: 100%; "
-        "font-size: 10px; "
-        "font-family: Arial, Helvetica, sans-serif; "
-        "color: #cccccc "
+        "<title>Welcome to LightningUI</title>"
+        "<link rel=\"stylesheet\" href=\"mem://root.css\" />"
+        "<style>"
 
-        "\">"
-        "Hello, losers! <div style=\"background-color: #1100ff; "
-        "display: "
-        "block\">[<img style=\"width: 20mm; height: 20mm\" "
-        "src=\"mem://logo.svg\"></img>]blah blah blah blah blah</div> "
-        "blah blah"
+    "    ::-webkit-scrollbar { width: 10px; }"
+    "    ::-webkit-scrollbar-thumb { background: #666; border-radius: 20px; }"
+    "    ::-webkit-scrollbar-track { background: #ddd; border-radius: 20px; }"
+    "    @keyframes show {"
+    "        0%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
+    "        1%   { max-height: 0pt; opacity: 0; visibility: visible; }"
+    "        100% { max-height: 1000pt; opacity: 1; visibility: visible; }"
+    "    }"
+    "    @keyframes hide {"
+    "        0% { max-height: 500pt; opacity: 1; visibility: visible; }"
+    "        99%   { max-height: 0pt; opacity: 0; visibility: visible; }"
+    "        100%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
+    "    }"
+            ".hidden { animation: hide 0.3s ease; animation-fill-mode: forwards; }"
+            ".shown { animation: show 0.3s ease; animation-fill-mode: forwards; }"
+            ":hover { background: #dddddd; }"
+        "</style>"
+        "</head>"
+        "<body style=\"margin: 20pt\">"
+            "<div style=\"max-width: 600pt; margin: auto; margin-top: 20vh; margin-bottom: 200pt \">"
+            "<div style=\"font-size: 25pt; text-align: center; margin-bottom: 50pt\">"
+                "<img style=\"width: 80pt; height: 80pt; text-align: center\" src=\"mem://logo.svg\"></img>"
+                "<p>This is LightningUI</p>"
+            "</div>"
+            
+            "<p style=\"font-size: 120%\" onclick=\"toggle('description')\"><b>&#x25B8; Description</b></p>"
+            "<div id=\"description\" class=\"shown\">"
+            "<p><b>LightningUI</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>LightningUI</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
+            "<p><b>LightningUI</b> is a framework, that provides <b>the user</b> with modern-looking and fast-paced application interaction.</p>" 
+            "<p><b>LightningUI</b> is the fastest among all the HTML-based UI frameworks such as Electron, NW.js, "
+            "CEF and everything else Chromium-based. If you don't believe that, just start resizing this window by dragging it's corner randomly with the mouse and compare the visual sense to any application built upon another framework ;)</p>"
+            "</div>"
+            
+            "<p style=\"font-size: 120%\" onclick=\"toggle('tests')\"><b>&#x25B8; Basic tests</b></p>"
+            "<div id=\"tests\" class=\"hidden\">"
+            "<p id=\"jsout\">Message from JavaScript: </p>"
+            "<script>document.getElementById(\"jsout\").innerHTML += \"<span> 3 + 2 = \" + (3+2) + \"</span>\";</script>"
+            "</div>"
+        "</div>"
+        "<script>"
+            "function toggle(elementId) {"
+                "var element = document.getElementById(elementId);"
+                "if (element.classList.contains(\"hidden\")) {"
+                    "element.classList.remove(\"hidden\");"
+                    "element.classList.add(\"shown\");"
+                "} else {"
+                    "element.classList.remove(\"shown\");"
+                    "element.classList.add(\"hidden\");"
+                "}"
+            "}"
+        "</script>"
         "</body>"
         "</html>";
+
+    std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
+    response.setData(data);
+  } else if (request.getUrl() == "mem://root.css") {
+    std::string htmlText = 
+        "style, head, script { display: none }"
+        "div, body, p { display: block; }"
+        "span { display: inline; }"
+        "b { font-weight: bold; }"
+        "i { font-style: italic; }"
+        "p { margin: 10pt 0 5pt 0; }"
+        "h1 { font-size: 200% }"
+        "h2 { font-size: 170% }"
+        "h3 { font-size: 140% }"
+        "h4 { font-size: 120% }"
+        "html { "
+            "background: #eeeeee; margin: 0; font-size: 15pt; font-name: \"sans-serif\" "
+        "}";
 
     std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
     response.setData(data);
@@ -425,8 +480,7 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
                                WebMouseEvent::Button button,
                                const IntPoint& point,
                                int modifiers) {
-  WebMouseEvent result(type, modifiers,
-                       WebInputEvent::GetStaticTimeStampForTests());
+  WebMouseEvent result(type, modifiers, base::TimeTicks());
   result.pointer_type = WebPointerProperties::PointerType::kMouse;
   result.SetPositionInWidget(point.X(), point.Y());
   result.SetPositionInScreen(point.X(), point.Y());
@@ -434,6 +488,18 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
   result.click_count = 1;
   return result;
 }
+
+WebMouseWheelEvent CreateMouseWheelEvent(int delta_x,
+    int delta_y,
+    int modifiers) {
+
+  auto type = WebInputEvent::Type::kMouseWheel;
+  WebMouseWheelEvent result(type, modifiers, base::TimeTicks());
+  result.delta_x = delta_x;
+  result.delta_y = delta_y;
+  return result;
+}
+
 
 WebKeyboardEvent CreateKeyboardEvent(char key_code,
                                      int modifiers,

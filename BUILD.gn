@@ -1,0 +1,201 @@
+import("//skia/features.gni")
+
+static_library("app_base") {
+  configs -= [ "//build/config/clang:find_bad_constructs" ]
+  include_dirs = [ "." ]
+  configs += [
+    "//skia:skia_config",
+    "//skia:skia_library_config",
+    "//build/config/compiler:no_chromium_code",
+  ]
+  public_configs = [ "//skia:skia_config" ]
+
+  public_deps = [
+    "//skia:gpu_tool_utils",
+    "//skia:skia",
+  ]
+  sources = [
+    "app_base/CommandSet.cpp",
+    "app_base/GLWindowContext.cpp",
+    "app_base/Window.cpp",
+    "app_base/Application.cpp",
+  ]
+  libs = []
+
+  if (skia_use_dawn) {
+    sources += [ "app_base/DawnWindowContext.cpp" ]
+  }
+
+  if (is_android) {
+    sources += [
+      "app_base/android/GLWindowContext_android.cpp",
+      "app_base/android/RasterWindowContext_android.cpp",
+      "app_base/android/Window_android.cpp",
+      "app_base/android/main_android.cpp",
+      "app_base/android/surface_glue_android.cpp",
+    ]
+    libs += [ "android" ]
+  } else if (is_linux) {
+    sources += [
+      "app_base/unix/GLWindowContext_unix.cpp",
+      "app_base/unix/RasterWindowContext_unix.cpp",
+      "app_base/unix/Window_unix.cpp",
+      "app_base/unix/keysym2ucs.c",
+      "app_base/unix/main_unix.cpp",
+    ]
+    if (skia_use_dawn) {
+      if (dawn_enable_vulkan) {
+        sources += [ "app_base/unix/DawnVulkanWindowContext_unix.cpp" ]
+        defines = [ "VK_USE_PLATFORM_XCB_KHR" ]
+        libs += [ "X11-xcb" ]
+      }
+    }
+    libs += [
+      "GL",
+      "X11",
+    ]
+  } else if (is_win) {
+    sources += [
+      "app_base/win/GLWindowContext_win.cpp",
+      "app_base/win/RasterWindowContext_win.cpp",
+      "app_base/win/Window_win.cpp",
+      "app_base/win/main_win.cpp",
+    ]
+    if (skia_use_angle) {
+      sources += [ "app_base/win/ANGLEWindowContext_win.cpp" ]
+    }
+    if (skia_use_dawn) {
+      if (dawn_enable_d3d12) {
+        sources += [ "app_base/win/DawnD3D12WindowContext_win.cpp" ]
+      }
+    }
+  } else if (is_mac) {
+    sources += [
+      "app_base/mac/GLWindowContext_mac.mm",
+      "app_base/mac/RasterWindowContext_mac.mm",
+      "app_base/mac/Window_mac.mm",
+      "app_base/mac/main_mac.mm",
+    ]
+    if (skia_use_dawn) {
+      if (dawn_enable_metal) {
+        sources += [ "app_base/mac/DawnMTLWindowContext_mac.mm" ]
+      }
+    }
+    libs += [
+      "QuartzCore.framework",
+      "Cocoa.framework",
+      "Foundation.framework",
+    ]
+  } else if (is_ios) {
+    sources += [
+      "app_base/ios/GLWindowContext_ios.mm",
+      "app_base/ios/RasterWindowContext_ios.mm",
+      "app_base/ios/Window_ios.mm",
+      "app_base/ios/main_ios.mm",
+    ]
+    libs += [ "QuartzCore.framework" ]
+  }
+
+  if (skia_use_vulkan) {
+    sources += [ "app_base/VulkanWindowContext.cpp" ]
+    if (is_android) {
+      sources += [ "app_base/android/VulkanWindowContext_android.cpp" ]
+    } else if (is_linux) {
+      sources += [ "app_base/unix/VulkanWindowContext_unix.cpp" ]
+      libs += [ "X11-xcb" ]
+    } else if (is_win) {
+      sources += [ "app_base/win/VulkanWindowContext_win.cpp" ]
+    }
+  }
+
+  if (skia_use_metal) {
+    sources += [ "app_base/MetalWindowContext.mm" ]
+    if (is_mac) {
+      sources += [ "app_base/mac/MetalWindowContext_mac.mm" ]
+    } else if (is_ios) {
+      sources += [ "app_base/ios/MetalWindowContext_ios.mm" ]
+    }
+  }
+
+  deps = [
+    "//skia:tool_utils",
+  ]
+  if (is_android) {
+    deps += [ "//third_party/native_app_glue" ]
+  }
+  if (skia_use_angle) {
+    deps += [ "//third_party/angle2" ]
+  }
+
+  if (is_win) {
+    sources += [ 
+      "//third_party/skia/src/utils/win/SkWGL_win.cpp",
+    ]
+  }
+  
+  sources += [ "//third_party/skia/src/gpu/gl/GrGLUtil.cpp" ]
+}
+
+
+
+executable("HelloWorld") {
+   configs -= [ "//build/config/clang:find_bad_constructs" ]
+     sources = [
+        "HelloWorld.cpp",
+        "HelloWorld.h",
+        "my_frame_test_helpers.cc",
+        "my_frame_test_helpers.h",
+
+        "../content/renderer/compositor/layer_tree_view.cc",
+        "../content/renderer/compositor/layer_tree_view.h",
+        "../content/renderer/compositor/layer_tree_view_delegate.h",
+
+        "../third_party/skia/third_party/icu/SkLoadICU.cpp",
+      ]
+
+      cflags_cc = [ "/std:c++17"]
+
+      libs = []
+      include_dirs = [
+        "//third_party/icu/source/common",
+        "//third_party/boringssl/src/include",
+      ]
+
+      defines = []
+      if (is_component_build) {
+        defines = [ "COMPONENT_BUILD" ]
+      }
+      defines += [ "CONTENT_IMPLEMENTATION",
+                   "SK_USING_THIRD_PARTY_ICU" ]
+
+      deps = [
+        "//skia:flags",
+        "//skia:gpu_tool_utils",
+        "//skia:skia",
+        "//skia:tool_utils",
+        "//skia:pathkit",
+
+        ":app_base",
+
+        "//cc:cc",
+        "//components/ukm:ukm",
+        "//components/discardable_memory/service:service",
+
+        "//ui/events:events",
+        #"//ui/events/blink:blink",
+
+        "//third_party/blink/public:blink",
+        "//third_party/blink/public:image_resources",
+        "//third_party/blink/public:resources",
+        "//third_party/blink/public/strings",
+        "//third_party/blink/renderer/core:core",
+        "//third_party/blink/renderer/platform:platform",
+        "//third_party/blink/renderer/modules:modules",
+        "//third_party/blink/renderer/bindings:generate_v8_bindings",
+
+        "//mojo/core/embedder:embedder",
+        
+        #"//content/public/common:interfaces",
+        #"//content/common:mojo_bindings",
+      ]
+}

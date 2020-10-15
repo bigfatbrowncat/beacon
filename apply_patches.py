@@ -21,6 +21,6 @@ patch_path = os.path.join(cur_dir, "chromium_patches")
 target_path = os.path.join(cur_dir, "..")
 
 apply(patch_path, target_path)
-apply(os.path.join(patch_path, "third_party/skia"), os.path.join(target_path, "third_party/skia"))
+#apply(os.path.join(patch_path, "third_party/skia"), os.path.join(target_path, "third_party/skia"))
 
 #os.system('ls -l')
