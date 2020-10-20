@@ -147,6 +147,8 @@ public:
     // Returns null if there is not a GPU backend or if the backend is not yet created.
     GrContext* getGrContext() const;
 
+    virtual uint32_t getDPI();
+
 protected:
     Window();
 

@@ -149,9 +149,6 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
         "<link rel=\"stylesheet\" href=\"mem://root.css\" />"
         "<style>"
 
-    "    ::-webkit-scrollbar { width: 10px; }"
-    "    ::-webkit-scrollbar-thumb { background: #666; border-radius: 20px; }"
-    "    ::-webkit-scrollbar-track { background: #ddd; border-radius: 20px; }"
     "    @keyframes show {"
     "        0%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
     "        1%   { max-height: 0pt; opacity: 0; visibility: visible; }"
@@ -173,7 +170,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
                 "<img style=\"width: 80pt; height: 80pt; text-align: center\" src=\"mem://logo.svg\"></img>"
                 "<p>This is LightningUI</p>"
             "</div>"
-            
+        "<button>I am a button!</button><input type=\"text\" value=\"Hello!\"></input>"
             "<p style=\"font-size: 120%\" onclick=\"toggle('description')\"><b>&#x25B8; Description</b></p>"
             "<div id=\"description\" class=\"shown\">"
             "<p><b>LightningUI</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>LightningUI</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
@@ -206,20 +203,41 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
     response.setData(data);
   } else if (request.getUrl() == "mem://root.css") {
-    std::string htmlText = 
-        "style, head, script { display: none }"
-        "div, body, p { display: block; }"
-        "span { display: inline; }"
-        "b { font-weight: bold; }"
-        "i { font-style: italic; }"
-        "p { margin: 10pt 0 5pt 0; }"
-        "h1 { font-size: 200% }"
-        "h2 { font-size: 170% }"
-        "h3 { font-size: 140% }"
-        "h4 { font-size: 120% }"
+    std::string htmlText =
         "html { "
-            "background: #eeeeee; margin: 0; font-size: 15pt; font-name: \"sans-serif\" "
-        "}";
+        "background: #eeeeee; margin: 0; font-size: 10pt; font-name: "
+        "\"sans-serif\" "
+        "}"
+
+        "    ::-webkit-scrollbar { width: 10px; }"
+        "    ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }"
+        "    ::-webkit-scrollbar-track { background: #ddd; border-radius: 0px; }";
+
+        //"        /* Buttons */"
+        //"::-webkit-scrollbar-button:single-button {"
+        //"  background-color: #bbbbbb;"
+        //"  display: block;"
+        //"  border-style: solid;"
+        //"  height: 20px;"
+        //"  width: 20px;"
+        //"}"
+        //"/* Up */"
+        //"::-webkit-scrollbar-button:single-button:vertical:decrement {"
+        //"  content: \"@\";"
+        //"}"
+        //""
+        //"::-webkit-scrollbar-button:single-button:vertical:decrement:hover {"
+        //"  border-color: transparent transparent #777777 transparent;"
+        //"}"
+        //"/* Down */"
+        //"::-webkit-scrollbar-button:single-button:vertical:increment {"
+        //"  border-width: 8px 8px 0 8px;"
+        //"  border-color: #555555 transparent transparent transparent;"
+        //"}"
+        //""
+        //"::-webkit-scrollbar-button:vertical:single-button:increment:hover {"
+        //"  border-color: #777777 transparent transparent transparent;"
+        //"}";
 
     std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
     response.setData(data);
@@ -489,14 +507,15 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
   return result;
 }
 
-WebMouseWheelEvent CreateMouseWheelEvent(int delta_x,
+WebMouseWheelEvent CreateMouseWheelEvent(WebMouseWheelEvent::Phase phase, int delta_x,
     int delta_y,
     int modifiers) {
 
   auto type = WebInputEvent::Type::kMouseWheel;
-  WebMouseWheelEvent result(type, modifiers, base::TimeTicks());
+  WebMouseWheelEvent result(type, modifiers, base::TimeTicks::Now());
   result.delta_x = delta_x;
   result.delta_y = delta_y;
+  result.phase = phase;
   return result;
 }
 

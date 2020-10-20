@@ -190,9 +190,10 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
                                const IntPoint& point,
                                int modifiers);
 
-WebMouseWheelEvent CreateMouseWheelEvent(int delta_x,
-                               int delta_y,
-                               int modifiers);
+WebMouseWheelEvent CreateMouseWheelEvent(WebMouseWheelEvent::Phase phase,
+                                         int delta_x,
+                                         int delta_y,
+                                         int modifiers);
 
 WebKeyboardEvent CreateKeyboardEvent(char key_code,
                                      int modifiers,

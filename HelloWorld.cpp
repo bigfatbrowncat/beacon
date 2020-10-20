@@ -6,6 +6,7 @@
  */
 
 #include "HelloWorld.h"
+#include "my_blink_platform_impl.h"
 
 #include <fstream>
 #include <iostream>
@@ -46,11 +47,14 @@
 #include "third_party/blink/renderer/platform/scheduler/main_thread/main_thread_scheduler_impl.h"
 #include "third_party/blink/renderer/platform/scheduler/public/dummy_schedulers.h"
 
+#include "third_party/blink/public/resources/grit/blink_resources.h"
+
 #include "base/memory/discardable_memory_allocator.h"
 #include "base/task/post_task.h"
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_impl.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
+#include "base/files/file_path.h"
 #include "cc/paint/skia_paint_canvas.h"
 #include "my_frame_test_helpers.h"
 #include "third_party/blink/renderer/platform/geometry/int_point.h"
@@ -60,91 +64,11 @@
 #include "third_party/skia/third_party/icu/SkLoadICU.h"
 
 #include "ui/events/blink/blink_event_util.h"
-
+#include "ui/events/blink/web_input_event_builders_win.h"
+#include "ui/base/resource/resource_bundle.h"
 
 using namespace sk_app;
 using namespace blink;
-
-// A simple SingleThreadTaskRunner that just queues undelayed tasks (and ignores
-// delayed tasks). Tasks can then be processed one by one by ProcessTask() which
-// will return true if it processed a task and false otherwise.
-class SimpleSingleThreadTaskRunner : public base::SingleThreadTaskRunner {
- public:
-  SimpleSingleThreadTaskRunner() = default;
-
-  bool PostDelayedTask(const base::Location& from_here,
-                       base::OnceClosure task,
-                       base::TimeDelta delay) override {
-    if (delay > base::TimeDelta())
-      return false;
-    base::AutoLock auto_lock(tasks_lock_);
-    pending_tasks_.push(std::move(task));
-    return true;
-  }
-
-  bool PostNonNestableDelayedTask(const base::Location& from_here,
-                                  base::OnceClosure task,
-                                  base::TimeDelta delay) override {
-    return PostDelayedTask(from_here, std::move(task), delay);
-  }
-
-  bool RunsTasksInCurrentSequence() const override {
-    return origin_thread_checker_.CalledOnValidThread();
-  }
-
-  bool ProcessSingleTask() {
-    base::OnceClosure task;
-    {
-      base::AutoLock auto_lock(tasks_lock_);
-      if (pending_tasks_.empty())
-        return false;
-      task = std::move(pending_tasks_.front());
-      pending_tasks_.pop();
-    }
-    // It's important to Run() after pop() and outside the lock as |task| may
-    // run a nested loop which will re-enter ProcessSingleTask().
-    std::move(task).Run();
-    return true;
-  }
-
- private:
-  ~SimpleSingleThreadTaskRunner() override = default;
-
-  base::Lock tasks_lock_;
-  base::queue<base::OnceClosure> pending_tasks_;
-
-  // RunLoop relies on RunsTasksInCurrentSequence() signal. Use a
-  // ThreadCheckerImpl to be able to reliably provide that signal even in
-  // non-dcheck builds.
-  base::ThreadCheckerImpl origin_thread_checker_;
-
-  DISALLOW_COPY_AND_ASSIGN(SimpleSingleThreadTaskRunner);
-};
-
-// The basis of all TestDelegates, allows safely injecting a OnceClosure to be
-// run in the next idle phase of this delegate's Run() implementation. This can
-// be used to have code run on a thread that is otherwise livelocked in an idle
-// phase (sometimes a simple PostTask() won't do it -- e.g. when processing
-// application tasks is disallowed).
-class InjectableTestDelegate : public base::RunLoop::Delegate {
- public:
-  void InjectClosureOnDelegate(base::OnceClosure closure) {
-    base::AutoLock auto_lock(closure_lock_);
-    closure_ = std::move(closure);
-  }
-
-  bool RunInjectedClosure() {
-    base::AutoLock auto_lock(closure_lock_);
-    if (closure_.is_null())
-      return false;
-    std::move(closure_).Run();
-    return true;
-  }
-
- private:
-  base::Lock closure_lock_;
-  base::OnceClosure closure_;
-};
 
 Application* Application::Create(
     int argc,
@@ -153,10 +77,14 @@ Application* Application::Create(
   return new HelloWorld(argc, argv, platformData);
 }
 
-class MyPlatform : public blink::Platform {
-  WebData UncompressDataResource(int resource_id) override {
+extern "C" uint8_t blink_resources_pak[]; /* binary data         */
+extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
+
+class MyPlatform : public content::BlinkPlatformImpl {
+  /*WebData UncompressDataResource(int resource_id) override {
+    if (resource_id == IDR_UASTYLE_HTML_CSS)
     return WebData("");
-  }
+  }*/
 
   WebString DefaultLocale() override { return WebString("en-US"); }
 };
@@ -167,6 +95,9 @@ HelloWorld::HelloWorld(int argc,
     : fBackendType(Window::kRaster_BackendType),
       platformData(platformData),
       platform(std::make_unique<MyPlatform>()) {
+
+  exit_manager = std::make_shared<base::AtExitManager>();
+
   base::CommandLine::Init(argc, argv);
   base::CommandLine::StringVector parsedArgs =
       base::CommandLine::ForCurrentProcess()->GetArgs();
@@ -178,6 +109,23 @@ HelloWorld::HelloWorld(int argc,
   SkLoadICU();
 
   mojo::core::Init();
+
+  if (!ui::ResourceBundle::HasSharedInstance()) {
+    ui::ResourceBundle::InitSharedInstanceWithLocale(
+        "", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
+    
+    // Adding the blink_resources.pak embeded into the binary
+    base::StringPiece blink_pak_memory((char*) blink_resources_pak,
+                                       blink_resources_pak_size);
+
+    ui::ResourceBundle::GetSharedInstance().AddDataPackFromBuffer(
+        blink_pak_memory, ui::SCALE_FACTOR_100P);     
+
+
+    /*ui::ResourceBundle::GetSharedInstance().AddDataPackFromPath(
+        base::FilePath(L"D:/Projects/google-toolchain/chromium/src/out/Debug/gen/third_party/blink/public/resources/blink_image_resources_100_percent.pak"),
+        ui::ScaleFactor::SCALE_FACTOR_100P);*/  // TODO Add this as well
+  }
 
   // Creating a thread pool
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
@@ -193,7 +141,6 @@ HelloWorld::HelloWorld(int argc,
           base::Optional<base::Time>());
 
 
-  exit_manager = std::make_shared<base::AtExitManager>();
 
   binder_map = std::make_unique<mojo::BinderMap>();
 
@@ -208,13 +155,15 @@ HelloWorld::HelloWorld(int argc,
 
   blink::InitializePlatformLanguage();
 
-  /*
-  blink::WebFontRenderStyle::SetAutoHint(true);
+  // Tuin
+  /*blink::WebFontRenderStyle::SetAutoHint(true);
   blink::WebFontRenderStyle::SetAntiAlias(true);
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
-  blink::WebFontRenderStyle::SetSubpixelPositioning(true);
-  */
-
+  blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
+  
+  //blink::WebFontRenderStyle::SetSkiaFontManager()
+  blink::FontCache::SetAntialiasedTextEnabled(true);
+      
   backend = std::make_shared<SDK::Backend>();
 
   webViewHelper =
@@ -240,6 +189,10 @@ HelloWorld::HelloWorld(int argc,
   // register callbacks
   fWindow->pushLayer(this);
   fWindow->attach(fBackendType);
+
+  // Setting the WebView scaling factor according to the screen DPI
+  double scaleFactor = (double)fWindow->getDPI() / 96;
+  webView->SetZoomLevel(scaleFactor);
 }
 
 HelloWorld::~HelloWorld() {
@@ -349,6 +302,12 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
 
   // Handling events
 
+  blink::WebLocalFrameImpl& frm = *webView->MainFrameImpl();
+  frm.SetCaretVisible(true);
+  
+  LocalFrameView* frame_view =
+      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+
   for (auto& p : collectedInputEvents) {
 
     WebInputEvent& theEvent = *p;
@@ -359,7 +318,6 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
             ->HandleMouseDown(*webView->MainFrameImpl()->GetFrame(),
                             (WebMouseEvent&)theEvent);
         break;
-
     case WebInputEvent::Type::kMouseUp:
         ((PageWidgetEventHandler*)webView)
             ->HandleMouseUp(*webView->MainFrameImpl()->GetFrame(),
@@ -375,30 +333,40 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
         break;
 
     case WebInputEvent::Type::kMouseWheel:
-        ((PageWidgetEventHandler*)webView)
+      ((PageWidgetEventHandler*)webView)
             ->HandleMouseWheel(*webView->MainFrameImpl()->GetFrame(),
                                 (WebMouseWheelEvent&)theEvent);
-        break;
+      break;
+
+    case WebInputEvent::Type::kGestureScrollBegin:
+      ((WebGestureEvent&)theEvent).data.scroll_begin.scrollable_area_element_id =
+              frame_view->GetScrollableArea()
+                  ->GetScrollElementId()
+                  .GetStableId();
+      U_FALLTHROUGH;
+    case WebInputEvent::Type::kGestureScrollUpdate:
+    case WebInputEvent::Type::kGestureScrollEnd:
+      ((PageWidgetEventHandler*)webView)
+          ->HandleGestureEvent((WebGestureEvent&)theEvent);
+
+      break;
 
     case WebInputEvent::Type::kKeyDown:
     case WebInputEvent::Type::kKeyUp:
-        ((PageWidgetEventHandler*)webView)
+      ((PageWidgetEventHandler*)webView)
             ->HandleKeyEvent((WebKeyboardEvent&)theEvent);
-        break;
+      break;
 
     case WebInputEvent::Type::kChar:
-        ((PageWidgetEventHandler*)webView)
+      ((PageWidgetEventHandler*)webView)
             ->HandleCharEvent((WebKeyboardEvent&)theEvent);
-        break;
+      break;
 
     default:
-        break;
+      break;
     }
   }
   collectedInputEvents.clear();
-
-  LocalFrameView* frame_view =
-      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
 
   webView->MainFrameWidget()->UpdateAllLifecyclePhases(
       WebWidget::LifecycleUpdateReason::kBeginMainFrame);
@@ -507,57 +475,198 @@ void HelloWorld::onPaint(SkSurface* surface) {
 }
 
 bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
-                         int x,
-                         int y,
-                         skui::InputState inState,
-                         skui::ModifierKey modKey) {
-  WebInputEvent::Type mtp;
-  switch (inState) {
-    case skui::InputState::kDown:
-      mtp = WebInputEvent::Type::kMouseDown;
-      std::cout << "HelloWorld::onMouse [down]" << std::endl;
-      break;
-    case skui::InputState::kUp:
-      mtp = WebInputEvent::Type::kMouseUp;
-      std::cout << "HelloWorld::onMouse [up]" << std::endl;
-      break;
-    case skui::InputState::kMove:
-      mtp = WebInputEvent::Type::kMouseMove;
-      break;
-    default:
-      return false;
+                         int, int, skui::InputState, skui::ModifierKey) {
+  std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
+  if (evt == nullptr)
+    return false;
+
+  std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
+  if (evt->IsMouseEvent()) {
+    ui::MouseEvent* mseEvt = evt->AsMouseEvent();
+    std::shared_ptr<blink::WebMouseEvent> bMseEvent;
+    WebInputEvent::Type mtp;
+
+    switch (mseEvt->type()) {
+      case ui::ET_MOUSE_PRESSED:
+        mtp = WebInputEvent::Type::kMouseDown;
+        break;
+      case ui::ET_MOUSE_RELEASED:
+        mtp = WebInputEvent::Type::kMouseUp;
+        break;
+      case ui::ET_MOUSE_MOVED:
+      case ui::ET_MOUSE_DRAGGED:
+        mtp = WebInputEvent::Type::kMouseMove;
+        break;
+      case ui::ET_MOUSE_ENTERED:
+        mtp = WebInputEvent::Type::kMouseEnter;
+        break;
+      case ui::ET_MOUSE_EXITED:
+        mtp = WebInputEvent::Type::kMouseLeave;
+        break;
+
+      default:
+        return false;
+    }
+
+    WebPointerProperties::Button button;
+    switch (mseEvt->button_flags()) { 
+      case ui::EF_LEFT_MOUSE_BUTTON:
+        button = WebPointerProperties::Button::kLeft;
+        break;
+      case ui::EF_MIDDLE_MOUSE_BUTTON:
+        button = WebPointerProperties::Button::kMiddle;
+        break;
+      case ui::EF_RIGHT_MOUSE_BUTTON:
+        button = WebPointerProperties::Button::kRight;
+        break;
+      default:
+        button = WebPointerProperties::Button::kNoButton;
+    }
+
+    int modifiers = 0;
+    if (evt->IsShiftDown())
+      modifiers |= WebInputEvent::kShiftKey;
+    if (evt->IsControlDown())
+      modifiers |= WebInputEvent::kControlKey;
+    if (evt->IsAltDown() || evt->IsAltGrDown())
+      modifiers |= WebInputEvent::kAltKey;
+    if (evt->IsCommandDown())
+      modifiers |= WebInputEvent::kMetaKey;
+
+    int click_count_param = 1;
+    WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0, base::TimeTicks());
+    bMseEvent = std::make_shared<blink::WebMouseEvent>(
+        mtp, std::move(ge), button, click_count_param, modifiers, base::TimeTicks());
+    bMseEvent->SetPositionInWidget(mseEvt->location_f());
+
+    bEvent = bMseEvent;
   }
 
-  IntPoint pos(x, y);
-
-  int mods = 0;
-
-  auto mouseEvent = my_frame_test_helpers::CreateMouseEvent(
-      mtp, WebMouseEvent::Button::kLeft, pos, mods);
-
-  collectedInputEvents.push_back(
-          std::make_shared<WebMouseEvent>(mouseEvent));
-
-  return true;
+  if (evt->IsMouseEvent()) {
+    collectedInputEvents.push_back(bEvent);
+    return true;
+  }
+  return false;
 }
 
 bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
     float delta,
     skui::ModifierKey modKey) {
 
-    std::cout << "HelloWorld::onMouseWheel [delta = " << delta << "]"
-            << std::endl;
-    int mods = 0;
+    std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
+    if (evt == nullptr)
+      return false;
 
-    auto mouseEvent = my_frame_test_helpers::CreateMouseWheelEvent(0, delta * 10, mods);
-    mouseEvent.SetFrameTranslate(gfx::Vector2dF(0, 10 * delta));
-    mouseEvent.event_action =
-        blink::WebMouseWheelEvent::EventAction::kScrollVertical;
+    int modifiers = 0;
+    if (evt->IsShiftDown())
+      modifiers |= WebInputEvent::kShiftKey;
+    if (evt->IsControlDown())
+      modifiers |= WebInputEvent::kControlKey;
+    if (evt->IsAltDown() || evt->IsAltGrDown())
+      modifiers |= WebInputEvent::kAltKey;
+    if (evt->IsCommandDown())
+      modifiers |= WebInputEvent::kMetaKey;
 
-    collectedInputEvents.push_back(
-        std::make_shared<WebMouseWheelEvent>(mouseEvent));
+    if (evt->IsScrollEvent()) {
+      ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
+      std::shared_ptr<blink::WebGestureEvent> bGstEvent;
+      WebInputEvent::Type mtp;
 
-    return true;
+      switch (scrlEvt->type()) {
+        case ui::ET_SCROLL:
+          mtp = WebInputEvent::Type::kGestureScrollUpdate;
+          break;
+        case ui::ET_SCROLL_FLING_START:
+          mtp = WebInputEvent::Type::kGestureScrollBegin;
+          break;
+        case ui::ET_SCROLL_FLING_CANCEL:
+          mtp = WebInputEvent::Type::kGestureScrollEnd;
+          break;
+
+        default:
+          return false;
+      }
+
+      bGstEvent = std::make_shared<blink::WebGestureEvent>(mtp, modifiers, base::TimeTicks());
+     
+      bGstEvent->SetPositionInWidget(scrlEvt->location_f() /*gfx::PointF(x, y)*/);
+      bGstEvent->SetFrameScale(1.0);
+
+      collectedInputEvents.push_back(bGstEvent);
+    }
+
+    if (evt->IsMouseWheelEvent()) {
+      ui::MouseWheelEvent* scrlEvt = evt->AsMouseWheelEvent();
+      std::shared_ptr<blink::WebGestureEvent> bGstEvent;
+
+      switch (scrlEvt->type()) {
+        case ui::ET_MOUSEWHEEL:
+          break;
+
+        default:
+          return false;
+      }
+
+      // Setting up begin+update+end sequence
+      {
+        // Begin
+        bGstEvent = std::make_shared<blink::WebGestureEvent>(
+            WebInputEvent::Type::kGestureScrollBegin, modifiers,
+                                                             base::TimeTicks());
+
+        bGstEvent->SetPositionInWidget(
+            scrlEvt->location_f() /*gfx::PointF(x, y)*/);
+
+        bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
+        bGstEvent->SetFrameScale(1.0);
+        /*bGstEvent->data.scroll_update.inertial_phase =
+            WebGestureEvent::InertialPhaseState::kMomentum;*/
+        bGstEvent->data.scroll_begin.scrollable_area_element_id = 0;
+        bGstEvent->data.scroll_begin.delta_y_hint = 0.0;
+
+        collectedInputEvents.push_back(bGstEvent);
+      }
+      {
+        // Update
+        bGstEvent = std::make_shared<blink::WebGestureEvent>(
+            WebInputEvent::Type::kGestureScrollUpdate, modifiers,
+            base::TimeTicks());
+
+        bGstEvent->SetPositionInWidget(
+            scrlEvt->location_f() /*gfx::PointF(x, y)*/);
+
+        bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
+        bGstEvent->SetFrameScale(1.0);
+        bGstEvent->data.scroll_update.inertial_phase =
+            WebGestureEvent::InertialPhaseState::kMomentum;
+        bGstEvent->data.scroll_update.delta_x = scrlEvt->x_offset();
+        bGstEvent->data.scroll_update.delta_y = scrlEvt->y_offset();
+
+        collectedInputEvents.push_back(bGstEvent);
+      }
+      {
+        // End
+        bGstEvent = std::make_shared<blink::WebGestureEvent>(
+            WebInputEvent::Type::kGestureScrollEnd, modifiers,
+            base::TimeTicks());
+
+        bGstEvent->SetPositionInWidget(
+            scrlEvt->location_f() /*gfx::PointF(x, y)*/);
+
+        bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
+        bGstEvent->SetFrameScale(1.0);
+        // bGstEvent->data.scroll_update.inertial_phase =
+        //    WebGestureEvent::InertialPhaseState::kMomentum;
+        // bGstEvent->data.scroll_update.delta_y = 1;
+
+        collectedInputEvents.push_back(bGstEvent);
+      }
+
+      return true;
+    }
+
+    return false;
+
 }
 
 bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,

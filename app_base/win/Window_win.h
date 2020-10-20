@@ -34,6 +34,8 @@ public:
     void setRequestedDisplayParams(const DisplayParams&, bool allowReattach) override;
     PlatformData& getPlatformData() { return *platformData; }
 
+    uint32_t getDPI() override;
+
 private:
     void closeWindow();
 

@@ -12,6 +12,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <windowsx.h>
+#include <WinUser.h>
 
 #include "src/core/SkUtils.h"
 #include "app_base/WindowContext.h"
@@ -120,43 +121,6 @@ bool Window_win::init() {
 
     return true;
 }
-
-/*static skui::Key get_key(WPARAM vk) {
-    static const struct {
-        WPARAM      fVK;
-        skui::Key fKey;
-    } gPair[] = {
-        { VK_BACK,    skui::Key::kBack     },
-        { VK_CLEAR,   skui::Key::kBack     },
-        { VK_RETURN,  skui::Key::kOK       },
-        { VK_UP,      skui::Key::kUp       },
-        { VK_DOWN,    skui::Key::kDown     },
-        { VK_LEFT,    skui::Key::kLeft     },
-        { VK_RIGHT,   skui::Key::kRight    },
-        { VK_TAB,     skui::Key::kTab      },
-        { VK_PRIOR,   skui::Key::kPageUp   },
-        { VK_NEXT,    skui::Key::kPageDown },
-        { VK_HOME,    skui::Key::kHome     },
-        { VK_END,     skui::Key::kEnd      },
-        { VK_DELETE,  skui::Key::kDelete   },
-        { VK_ESCAPE,  skui::Key::kEscape   },
-        { VK_SHIFT,   skui::Key::kShift    },
-        { VK_CONTROL, skui::Key::kCtrl     },
-        { VK_MENU,    skui::Key::kOption   },
-        { 'A',        skui::Key::kA        },
-        { 'C',        skui::Key::kC        },
-        { 'V',        skui::Key::kV        },
-        { 'X',        skui::Key::kX        },
-        { 'Y',        skui::Key::kY        },
-        { 'Z',        skui::Key::kZ        },
-    };
-    for (size_t i = 0; i < SK_ARRAY_COUNT(gPair); i++) {
-        if (gPair[i].fVK == vk) {
-            return gPair[i].fKey;
-        }
-    }
-    return skui::Key::kNONE;
-}*/
 
 static skui::ModifierKey get_modifiers(UINT message, WPARAM wParam, LPARAM lParam) {
     skui::ModifierKey modifiers = skui::ModifierKey::kNone;
@@ -291,6 +255,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             skui::InputState istate = ((wParam & MK_LBUTTON) != 0) ? skui::InputState::kDown
                                                                     : skui::InputState::kUp;
+            /*
+            
+            DWORD dwClickTime = GetMessageTime();
+    POINT ptClickPos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+
+    if (dwLastClickTime + GetDoubleClickTime() > dwClickTime
+    &&  abs(ptLastClickPos.x - ptClickPos.x) < GetSystemMetrics(SM_CXDOUBLECLK)
+    &&  abs(ptLastClickPos.y - ptClickPos.y) < GetSystemMetrics(SM_CYDOUBLECLK))
+    {
+        // double-click!
+    }
+            */
+
 
             eventHandled = window->onMouse(msg, xPos, yPos, istate,
                                             get_modifiers(message, wParam, lParam));
@@ -418,6 +395,10 @@ void Window_win::setRequestedDisplayParams(const DisplayParams& params, bool all
     }
 
     INHERITED::setRequestedDisplayParams(params, allowReattach);
+}
+
+uint32_t Window_win::getDPI() {
+    return ::GetDpiForWindow(this->fHWnd);
 }
 
 }   // namespace sk_app
