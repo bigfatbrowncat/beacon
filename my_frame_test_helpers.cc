@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <utility>
+#include <iostream>
 
 #include "base/bind.h"
 #include "cc/raster/single_thread_task_graph_runner.h"
@@ -69,6 +70,7 @@
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 #include "ui/events/keycodes/dom/dom_key.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
+#include "ui/events/blink/blink_event_util.h"
 
 namespace SDK {
 
@@ -143,76 +145,146 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
 
   } else if (request.getUrl() == "mem://index.html") {
     std::string htmlText =
-        "<html>"
-        "<head>"
-        "<title>Welcome to LightningUI</title>"
-        "<link rel=\"stylesheet\" href=\"mem://root.css\" />"
-        "<style>"
-
-    "    @keyframes show {"
-    "        0%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
-    "        1%   { max-height: 0pt; opacity: 0; visibility: visible; }"
-    "        100% { max-height: 1000pt; opacity: 1; visibility: visible; }"
-    "    }"
-    "    @keyframes hide {"
-    "        0% { max-height: 500pt; opacity: 1; visibility: visible; }"
-    "        99%   { max-height: 0pt; opacity: 0; visibility: visible; }"
-    "        100%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
-    "    }"
-            ".hidden { animation: hide 0.3s ease; animation-fill-mode: forwards; }"
-            ".shown { animation: show 0.3s ease; animation-fill-mode: forwards; }"
-            ":hover { background: #dddddd; }"
-        "</style>"
-        "</head>"
-        "<body style=\"margin: 20pt\">"
-            "<div style=\"max-width: 600pt; margin: auto; margin-top: 20vh; margin-bottom: 200pt \">"
-            "<div style=\"font-size: 25pt; text-align: center; margin-bottom: 50pt\">"
-                "<img style=\"width: 80pt; height: 80pt; text-align: center\" src=\"mem://logo.svg\"></img>"
-                "<p>This is LightningUI</p>"
-            "</div>"
-        "<button>I am a button!</button><input type=\"text\" value=\"Hello!\"></input>"
-            "<p style=\"font-size: 120%\" onclick=\"toggle('description')\"><b>&#x25B8; Description</b></p>"
-            "<div id=\"description\" class=\"shown\">"
-            "<p><b>LightningUI</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>LightningUI</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
-            "<p><b>LightningUI</b> is a framework, that provides <b>the user</b> with modern-looking and fast-paced application interaction.</p>" 
-            "<p><b>LightningUI</b> is the fastest among all the HTML-based UI frameworks such as Electron, NW.js, "
-            "CEF and everything else Chromium-based. If you don't believe that, just start resizing this window by dragging it's corner randomly with the mouse and compare the visual sense to any application built upon another framework ;)</p>"
-            "</div>"
-            
-            "<p style=\"font-size: 120%\" onclick=\"toggle('tests')\"><b>&#x25B8; Basic tests</b></p>"
-            "<div id=\"tests\" class=\"hidden\">"
-            "<p id=\"jsout\">Message from JavaScript: </p>"
-            "<script>document.getElementById(\"jsout\").innerHTML += \"<span> 3 + 2 = \" + (3+2) + \"</span>\";</script>"
-            "</div>"
-        "</div>"
-        "<script>"
-            "function toggle(elementId) {"
-                "var element = document.getElementById(elementId);"
-                "if (element.classList.contains(\"hidden\")) {"
-                    "element.classList.remove(\"hidden\");"
-                    "element.classList.add(\"shown\");"
-                "} else {"
-                    "element.classList.remove(\"shown\");"
-                    "element.classList.add(\"hidden\");"
-                "}"
-            "}"
-        "</script>"
-        "</body>"
-        "</html>";
+    "    <html>"
+    "    <head>"
+    "        <title>Welcome to LightningUI</title>"
+    "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+    "        <link rel=\"stylesheet\" href=\"mem://root.css\" />"
+    "        <style>"
+    "            @keyframes show {"
+    "                0%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
+    "                1%   { max-height: 0pt; opacity: 0; visibility: visible; }"
+    "                100% { max-height: 1000pt; opacity: 1; visibility: visible; }"
+    "            }"
+    "            @keyframes hide {"
+    "                0% { max-height: 500pt; opacity: 1; visibility: visible; }"
+    "                99%   { max-height: 0pt; opacity: 0; visibility: visible; }"
+    "                100%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
+    "            }"
+    "            .hidden { animation: hide 0.3s ease; animation-fill-mode: forwards; }"
+    "            .shown { animation: show 0.3s ease; animation-fill-mode: forwards; }"
+    "        </style>"
+    "    </head>"
+    "    <body>"
+    "        <div class=\"logo\">"
+    "            <img class=\"logo\" src=\"mem://logo.svg\"></img>"
+    "            <div class=\"logo-title\">This is LightningUI</div>"
+    "        </div>"
+    "        <div class=\"content-frame\">"
+    "            <div class=\"content-page\">"
+    "                <div class=\"content-page-margins\">"
+//    "                    <button>I am a button!</button><input type=\"text\" value=\"Hello!\"></input>"
+    "                    <p class=\"title-item\" onclick=\"toggle('description')\"><b>Description</b></p>"
+    "                    <div id=\"description\" class=\"shown\">"
+    "                        <p><b>LightningUI</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>LightningUI</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
+    "                        <p><b>LightningUI</b> is a framework, that provides <b>the end-user</b> with a modern-looking and fast-paced application interaction experience.</p>" 
+    "                        <p><b>LightningUI</b> is the fastest among all the HTML-based UI frameworks such as Electron, NW.js, "
+    "                            CEF and everything else Chromium-based. If you don't believe that, just start resizing this window by dragging its corner randomly with the mouse and compare the visual sense to any application built upon another framework ;)"
+    "                        </p>"
+    "                    </div>"
+    "                    <p class=\"title-item\" onclick=\"toggle('tests')\"><b>Basic tests</b></p>"
+    "                    <div id=\"tests\" class=\"hidden\">"
+    "                        <p id=\"jsout\">Message from JavaScript: </p>"
+    "                        <script>document.getElementById(\"jsout\").innerHTML += \"<span> 3 + 2 = \" + (3+2) + \"</span>\";</script>"
+    "                    </div>"
+    "                </div>"
+    "            </div>"
+    "        </div>"
+    "        <script>"
+    "            function toggle(elementId) {"
+    "                var element = document.getElementById(elementId);"
+    "                if (element.classList.contains(\"hidden\")) {"
+    "                    element.classList.remove(\"hidden\");"
+    "                    element.classList.add(\"shown\");"
+    "                } else {"
+    "                    element.classList.remove(\"shown\");"
+    "                    element.classList.add(\"hidden\");"
+    "                }"
+    "            }"
+    "        </script>"
+    "    </body>"
+    "    </html>";
 
     std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
     response.setData(data);
   } else if (request.getUrl() == "mem://root.css") {
     std::string htmlText =
-        "html { "
-        "background: #eeeeee; margin: 0; font-size: 10pt; font-name: "
-        "\"sans-serif\" "
-        "}"
+    "html { "
+    "    background: #eeeeee; "
+    "    margin: 0; "
+    "    font-size: 10pt; "
+    "    font-name: \"sans-serif\" "
+    "}"
 
-        "    ::-webkit-scrollbar { width: 10px; }"
-        "    ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }"
-        "    ::-webkit-scrollbar-track { background: #ddd; border-radius: 0px; }";
+    "div.logo {"
+    "    font-size: 25pt; "
+    "    text-align: center; "
+    "    margin-top: 10vh;"
+    "}"
 
+    "img.logo {"
+    "    width: 80pt; "
+    "    height: 80pt; "
+    "    vertical-align: middle;"
+    "}"
+
+    "div.logo-title {"
+    "    display: block;"
+    "}"
+
+    "div.content-frame {"
+    "    overflow: auto;"
+    "    position: absolute;"
+    "    left: 0; right: 0; bottom: 0; top: calc(10vh + 120pt);"
+    "}"
+
+    "div.content-page {"
+    "    max-width: 600pt; "
+    "    margin: auto; "
+    "    margin-top: 10pt;"
+    "}"
+
+    "div.content-page-margins {"
+    "    margin: 0 10pt;"
+    "}"
+
+    "p.title-item {"
+    "    margin-top: 5pt;"
+    "    margin-bottom: 5pt;"
+    "    font-size: 150%;"
+    "}"
+
+    "p.title-item::before {"
+    "    content: '\\25B8 ';"
+    "}"
+
+    "@media only screen and (max-width: 400px) {"
+    "    html { "
+    "    }"
+    "    div.logo {"
+    "        font-size: 15pt; "
+    "        margin-top: 0;"
+    "    }"
+    "    img.logo {"
+    "        width: 45pt; "
+    "        height: 45pt; "
+    "        vertical-align: middle;"
+    "    }"
+    "    div.logo-title {"
+    "        display: inline-block;"
+    "    }"
+    "    div.content-frame {"
+    "        overflow: auto;"
+    "        position: absolute;"
+    "        left: 0; right: 0; bottom: 0; top: calc(60pt);"
+    "    }"
+    "}"
+
+    "::-webkit-scrollbar { width: 10px; }"
+    "::-webkit-scrollbar:hover { width: 15px; }"
+    "::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }"
+    "::-webkit-scrollbar-track { width: 15px; background: #ddd; border-radius: 0px; }";
+        
         //"        /* Buttons */"
         //"::-webkit-scrollbar-button:single-button {"
         //"  background-color: #bbbbbb;"
@@ -936,7 +1008,12 @@ void TestWebFrameClient::DidAddMessageToConsole(
     const WebString& source_name,
     unsigned source_line,
     const WebString& stack_trace) {
-  console_messages_.push_back(message.text);
+
+    std::cout << message.url.Utf8() << " (ln " << message.line_number << ", col "
+            << message.column_number << "): " << message.text.Utf8()
+            << std::endl;
+
+  //console_messages_.push_back(message.text);
 }
 
 WebPlugin* TestWebFrameClient::CreatePlugin(const WebPluginParams& params) {
@@ -1029,7 +1106,29 @@ void TestWebWidgetClient::InjectGestureScrollEvent(
   InjectedScrollGestureData data{delta, granularity, scrollable_area_element_id,
                                  injected_type};
   injected_scroll_gesture_data_.push_back(data);
+
 }
+
+void TestWebWidgetClient::HandleScrollEvents(WebWidget* widget) {
+  // Scrolling by pulling the scrollbar by hand
+  for (auto& data : injected_scroll_gesture_data_) {
+    base::TimeTicks now = base::TimeTicks::Now();
+    std::unique_ptr<WebGestureEvent> gesture_event =
+        ui::GenerateInjectedScrollGesture(
+            data.type, now, WebGestureDevice::kSyntheticAutoscroll,
+            gfx::PointF(0, 0),
+            gfx::Vector2dF(data.delta.width, data.delta.height),
+            data.granularity);
+    if (data.type == WebInputEvent::Type::kGestureScrollBegin) {
+      gesture_event->data.scroll_begin.scrollable_area_element_id =
+          data.scrollable_area_element_id.GetStableId();
+    }
+
+    widget->HandleInputEvent(WebCoalescedInputEvent(*gesture_event));
+  }
+  injected_scroll_gesture_data_.clear();
+}
+
 
 void TestWebWidgetClient::SetHaveScrollEventHandlers(bool have_handlers) {
   have_scroll_event_handlers_ = have_handlers;

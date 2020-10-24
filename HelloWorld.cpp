@@ -35,8 +35,10 @@
 #include "mojo/core/embedder/embedder.h"
 #include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
 #include "third_party/blink/public/platform/web_font_render_style.h"
+#include "third_party/blink/public/platform/web_coalesced_input_event.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
+#include "third_party/blink/renderer/core/frame/web_frame_widget_base.h"
 #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
 #include "third_party/blink/renderer/core/html/html_head_element.h"
 #include "third_party/blink/renderer/core/html/html_collection.h"
@@ -308,63 +310,21 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   LocalFrameView* frame_view =
       webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
 
+
+  webViewHelper->GetWebWidgetClient()->HandleScrollEvents(webView->MainFrameWidget());
+
   for (auto& p : collectedInputEvents) {
 
     WebInputEvent& theEvent = *p;
     auto mtp = theEvent.GetType();
-    switch (mtp) {
-    case WebInputEvent::Type::kMouseDown:
-        ((PageWidgetEventHandler*)webView)
-            ->HandleMouseDown(*webView->MainFrameImpl()->GetFrame(),
-                            (WebMouseEvent&)theEvent);
-        break;
-    case WebInputEvent::Type::kMouseUp:
-        ((PageWidgetEventHandler*)webView)
-            ->HandleMouseUp(*webView->MainFrameImpl()->GetFrame(),
-                            (WebMouseEvent&)theEvent);
-        break;
 
-    case WebInputEvent::Type::kMouseMove:
-        ((PageWidgetEventHandler*)webView)
-            ->HandleMouseMove(*webView->MainFrameImpl()->GetFrame(),
-                            (WebMouseEvent&)theEvent,
-                            WebVector<const WebInputEvent*>(),
-                            WebVector<const WebInputEvent*>());
-        break;
-
-    case WebInputEvent::Type::kMouseWheel:
-      ((PageWidgetEventHandler*)webView)
-            ->HandleMouseWheel(*webView->MainFrameImpl()->GetFrame(),
-                                (WebMouseWheelEvent&)theEvent);
-      break;
-
-    case WebInputEvent::Type::kGestureScrollBegin:
-      ((WebGestureEvent&)theEvent).data.scroll_begin.scrollable_area_element_id =
-              frame_view->GetScrollableArea()
-                  ->GetScrollElementId()
-                  .GetStableId();
-      U_FALLTHROUGH;
-    case WebInputEvent::Type::kGestureScrollUpdate:
-    case WebInputEvent::Type::kGestureScrollEnd:
-      ((PageWidgetEventHandler*)webView)
-          ->HandleGestureEvent((WebGestureEvent&)theEvent);
-
-      break;
-
-    case WebInputEvent::Type::kKeyDown:
-    case WebInputEvent::Type::kKeyUp:
-      ((PageWidgetEventHandler*)webView)
-            ->HandleKeyEvent((WebKeyboardEvent&)theEvent);
-      break;
-
-    case WebInputEvent::Type::kChar:
-      ((PageWidgetEventHandler*)webView)
-            ->HandleCharEvent((WebKeyboardEvent&)theEvent);
-      break;
-
-    default:
-      break;
+    if (mtp == WebInputEvent::Type::kMouseUp) {
+      // Ending drag on mouse up event. That prevents input disabling
+      ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget())->DragSourceSystemDragEnded();
     }
+
+    webView->MainFrameWidget()->HandleInputEvent(WebCoalescedInputEvent(theEvent));
+
   }
   collectedInputEvents.clear();
 
@@ -621,7 +581,9 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
         bGstEvent->SetFrameScale(1.0);
         /*bGstEvent->data.scroll_update.inertial_phase =
             WebGestureEvent::InertialPhaseState::kMomentum;*/
+        
         bGstEvent->data.scroll_begin.scrollable_area_element_id = 0;
+        
         bGstEvent->data.scroll_begin.delta_y_hint = 0.0;
 
         collectedInputEvents.push_back(bGstEvent);

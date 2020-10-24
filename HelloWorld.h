@@ -114,6 +114,11 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   std::shared_ptr<base::AtExitManager> exit_manager;
   std::shared_ptr<mojo::BinderMap> binder_map;
+
+  std::map<uint64_t, std::shared_ptr<blink::WebGestureEvent>>
+      scrollBarScrollingEvents;
+  std::map<uint64_t, std::shared_ptr<blink::WebGestureEvent>>
+      prevScrollBarScrollingEvents;
 };
 
 #endif

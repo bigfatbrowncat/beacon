@@ -240,18 +240,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                             get_modifiers(message, wParam, lParam));
             break;
 
-        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDOWN: {
+          SetCapture(hWnd);
+
+          int xPos = GET_X_LPARAM(lParam);
+          int yPos = GET_Y_LPARAM(lParam);
+
+          skui::InputState istate = ((wParam & MK_LBUTTON) != 0)
+                                        ? skui::InputState::kDown
+                                        : skui::InputState::kUp;
+
+          eventHandled = window->onMouse(
+              msg, xPos, yPos, istate, get_modifiers(message, wParam, lParam));
+        } break;
+
         case WM_LBUTTONUP: {
+          ReleaseCapture();
+
             int xPos = GET_X_LPARAM(lParam);
             int yPos = GET_Y_LPARAM(lParam);
-
-            //if (!gIsFullscreen)
-            //{
-            //    RECT rc = { 0, 0, 640, 480 };
-            //    AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-            //    xPos -= rc.left;
-            //    yPos -= rc.top;
-            //}
 
             skui::InputState istate = ((wParam & MK_LBUTTON) != 0) ? skui::InputState::kDown
                                                                     : skui::InputState::kUp;

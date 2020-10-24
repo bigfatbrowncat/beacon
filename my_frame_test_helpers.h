@@ -328,6 +328,9 @@ class TestWebWidgetClient : public WebWidgetClient {
   void SetBrowserControlsParams(cc::BrowserControlsParams) override;
   viz::FrameSinkId GetFrameSinkId() override;
 
+  // This function is called to send the collected scroll events to a WebWidget
+  void HandleScrollEvents(WebWidget* widget);
+
   cc::LayerTreeHost* layer_tree_host() {
     return layer_tree_view_->layer_tree_host();
   }
@@ -351,10 +354,7 @@ class TestWebWidgetClient : public WebWidgetClient {
   int FinishedLoadingLayoutCount() const {
     return finished_loading_layout_count_;
   }
-  const Vector<InjectedScrollGestureData>& GetInjectedScrollGestureData()
-      const {
-    return injected_scroll_gesture_data_;
-  }
+  
 
  private:
   std::unique_ptr<content::LayerTreeView> layer_tree_view_ = nullptr;
