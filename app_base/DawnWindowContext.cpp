@@ -9,7 +9,7 @@
 #include "include/gpu/GrBackendSurface.h"
 #include "include/gpu/GrContext.h"
 #include "src/core/SkAutoMalloc.h"
-#include "tools/sk_app/DawnWindowContext.h"
+#include "app_base/DawnWindowContext.h"
 
 #include "dawn/dawn_proc.h"
 

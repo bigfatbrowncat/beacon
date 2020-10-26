@@ -3,14 +3,6 @@
 
 #include "SkLoadICU.h"
 
-#if defined(_WIN32) && defined(SK_USING_THIRD_PARTY_ICU)
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <io.h>
-
 #include <cstdio>
 #include <cstring>
 #include <mutex>
@@ -79,8 +71,8 @@ static bool init_icu(void* addr) {
 }
 */
 
-extern "C" uint8_t icudtl_dat[];     /* binary data         */
-extern "C" uint32_t icudtl_dat_size; /* size of binary data */
+extern "C" uint8_t* icudtl_dat_begin;     /* binary data         */
+extern "C" uint8_t* icudtl_dat_end; /* size of binary data */
 
 bool SkLoadICU() {
     static bool good = false;
@@ -94,11 +86,14 @@ bool SkLoadICU() {
             }
         }*/
 
+#ifndef WIN32
+    uint8_t* icudtl_dat = icudtl_dat_begin; /* binary data         */
+    size_t icudtl_dat_size = icudtl_dat_end - icudtl_dat_begin; /* size of binary data */
+#endif
+
         if (init_icu(icudtl_dat)) {
             good = true;
         }
     });
     return good;
 }
-
-#endif  // defined(_WIN32) && defined(SK_USING_THIRD_PARTY_ICU)

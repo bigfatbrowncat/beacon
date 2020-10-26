@@ -16,7 +16,7 @@
 #include "src/gpu/gl/GrGLDefines.h"
 #include "src/gpu/gl/GrGLUtil.h"
 #include "src/image/SkImage_Base.h"
-#include "tools/sk_app/GLWindowContext.h"
+#include "app_base/GLWindowContext.h"
 
 namespace sk_app {
 

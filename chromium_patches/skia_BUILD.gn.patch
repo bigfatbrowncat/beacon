@@ -1,5 +1,5 @@
 diff --git a/skia/BUILD.gn b/skia/BUILD.gn
-index a22d1dd026..ff5340f34a 100644
+index a22d1dd026..586085686b 100644
 --- a/skia/BUILD.gn
 +++ b/skia/BUILD.gn
 @@ -26,6 +26,7 @@ skia_support_gpu = !is_ios
@@ -414,12 +414,12 @@ index a22d1dd026..ff5340f34a 100644
 +      sources += [ "//third_party/skia/ios_utils.m" ]
 +      sources += [ "//third_party/skia/ios_utils.h" ]
 +      if (skia_use_metal) {
-+        sources += [ "//third_party/skia/AutoreleasePool.mm" ]
++        sources += [ "//third_party/skia/tools/AutoreleasePool.mm" ]
 +      }
 +      libs += [ "Foundation.framework" ]
 +    } else if (is_mac) {
 +      if (skia_use_metal) {
-+        sources += [ "//third_party/skia/AutoreleasePool.mm" ]
++        sources += [ "//third_party/skia/tools/AutoreleasePool.mm" ]
 +        libs += [ "Foundation.framework" ]
 +      }
 +    } else if (is_win) {

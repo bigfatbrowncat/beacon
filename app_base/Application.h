@@ -16,14 +16,23 @@
 
 namespace sk_app {
 
-#ifdef WIN32
+#if defined(WIN32)
+
 struct PlatformData {
     HINSTANCE hInstance;
     std::shared_ptr<MSG> msg;
 
     PlatformData(HINSTANCE hInstance, std::shared_ptr<MSG> msg);
 };
+
+#elif defined(__APPLE__)
+
+struct PlatformData {
+};
+
 #endif
+
+
 
 class Application {
 public:

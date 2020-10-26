@@ -6,8 +6,9 @@
 */
 
 #include "src/core/SkUtils.h"
-#include "tools/sk_app/mac/WindowContextFactory_mac.h"
-#include "tools/sk_app/mac/Window_mac.h"
+#include "app_base/Application.h"
+#include "app_base/mac/WindowContextFactory_mac.h"
+#include "app_base/mac/Window_mac.h"
 #include "tools/skui/ModifierKey.h"
 
 @interface WindowDelegate : NSObject<NSWindowDelegate>
@@ -30,7 +31,7 @@ namespace sk_app {
 
 SkTDynamicHash<Window_mac, NSInteger> Window_mac::gWindowMap;
 
-Window* Window::CreateNativeWindow(void*) {
+Window* Window::CreateNativeWindow(const std::shared_ptr<PlatformData>& platformData) {
     Window_mac* window = new Window_mac();
     if (!window->initWindow()) {
         delete window;
@@ -315,7 +316,7 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
 - (void)keyDown:(NSEvent *)event {
     skui::Key key = get_key([event keyCode]);
     if (key != skui::Key::kNONE) {
-        if (!fWindow->onKey(key, skui::InputState::kDown, get_modifiers(event))) {
+        if (!fWindow->onKey(event, [event keyCode], skui::InputState::kDown, get_modifiers(event))) {
             if (skui::Key::kEscape == key) {
                 [NSApp terminate:fWindow->window()];
             }
@@ -328,7 +329,7 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
         unichar* charBuffer = new unichar[len+1];
         [characters getCharacters:charBuffer range:NSMakeRange(0, len)];
         for (NSUInteger i = 0; i < len; ++i) {
-            (void) fWindow->onChar((SkUnichar) charBuffer[i], get_modifiers(event));
+            (void) fWindow->onChar(event, (SkUnichar) charBuffer[i], get_modifiers(event));
         }
         delete [] charBuffer;
     }
@@ -337,21 +338,21 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
 - (void)keyUp:(NSEvent *)event {
     skui::Key key = get_key([event keyCode]);
     if (key != skui::Key::kNONE) {
-        (void) fWindow->onKey(key, skui::InputState::kUp, get_modifiers(event));
+        (void) fWindow->onKey(event, [event keyCode], skui::InputState::kUp, get_modifiers(event));
     }
 }
 
 - (void)mouseDown:(NSEvent *)event {
     const NSPoint pos = [event locationInWindow];
     const NSRect rect = [fWindow->window().contentView frame];
-    fWindow->onMouse(pos.x, rect.size.height - pos.y, skui::InputState::kDown,
+    fWindow->onMouse(event, pos.x, rect.size.height - pos.y, skui::InputState::kDown,
                     get_modifiers(event));
 }
 
 - (void)mouseUp:(NSEvent *)event {
     const NSPoint pos = [event locationInWindow];
     const NSRect rect = [fWindow->window().contentView frame];
-    fWindow->onMouse(pos.x, rect.size.height - pos.y, skui::InputState::kUp,
+    fWindow->onMouse(event, pos.x, rect.size.height - pos.y, skui::InputState::kUp,
                      get_modifiers(event));
 }
 
@@ -362,13 +363,13 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
 - (void)mouseMoved:(NSEvent *)event {
     const NSPoint pos = [event locationInWindow];
     const NSRect rect = [fWindow->window().contentView frame];
-    fWindow->onMouse(pos.x, rect.size.height - pos.y, skui::InputState::kMove,
+    fWindow->onMouse(event, pos.x, rect.size.height - pos.y, skui::InputState::kMove,
                      get_modifiers(event));
 }
 
 - (void)scrollWheel:(NSEvent *)event {
     // TODO: support hasPreciseScrollingDeltas?
-    fWindow->onMouseWheel([event scrollingDeltaY], get_modifiers(event));
+    fWindow->onMouseWheel(event, [event scrollingDeltaY], get_modifiers(event));
 }
 
 - (void)drawRect:(NSRect)rect {

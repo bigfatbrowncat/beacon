@@ -1,5 +1,5 @@
 diff --git a/skia/features.gni b/skia/features.gni
-index 2a94ac2765..6139a84554 100644
+index 2a94ac2765..1c85a609e7 100644
 --- a/skia/features.gni
 +++ b/skia/features.gni
 @@ -6,4 +6,11 @@ declare_args() {
@@ -9,7 +9,7 @@ index 2a94ac2765..6139a84554 100644
 +  skia_use_egl = false
 +  skia_use_angle = false
 +  skia_use_vulkan = false
-+  skia_use_metal = false
++  skia_use_metal = true
 +  skia_tools_require_resources = false
 +  skia_use_expat = false
 +  skia_enable_discrete_gpu = false

@@ -7,8 +7,8 @@
  */
 
 #include "include/gpu/gl/GrGLInterface.h"
-#include "tools/sk_app/GLWindowContext.h"
-#include "tools/sk_app/mac/WindowContextFactory_mac.h"
+#include "app_base/GLWindowContext.h"
+#include "app_base/mac/WindowContextFactory_mac.h"
 
 #include <OpenGL/gl.h>
 #include <Cocoa/Cocoa.h>

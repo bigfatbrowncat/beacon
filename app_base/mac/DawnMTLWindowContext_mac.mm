@@ -5,8 +5,8 @@
  * found in the LICENSE file.
  */
 
-#include "tools/sk_app/DawnWindowContext.h"
-#include "tools/sk_app/mac/WindowContextFactory_mac.h"
+#include "app_base/DawnWindowContext.h"
+#include "app_base/mac/WindowContextFactory_mac.h"
 #include "common/SwapChainUtils.h"
 #include "dawn/webgpu_cpp.h"
 #include "dawn/dawn_wsi.h"

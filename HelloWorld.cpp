@@ -66,8 +66,11 @@
 #include "third_party/skia/third_party/icu/SkLoadICU.h"
 
 #include "ui/events/blink/blink_event_util.h"
-#include "ui/events/blink/web_input_event_builders_win.h"
 #include "ui/base/resource/resource_bundle.h"
+
+#ifdef WIN32
+#include "ui/events/blink/web_input_event_builders_win.h"
+#endif
 
 using namespace sk_app;
 using namespace blink;
@@ -79,8 +82,13 @@ Application* Application::Create(
   return new HelloWorld(argc, argv, platformData);
 }
 
+#ifdef WIN32
 extern "C" uint8_t blink_resources_pak[]; /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
+#else
+extern "C" uint8_t* blink_resources_pak_begin;
+extern "C" uint8_t* blink_resources_pak_end;
+#endif
 
 class MyPlatform : public content::BlinkPlatformImpl {
   /*WebData UncompressDataResource(int resource_id) override {
@@ -108,13 +116,20 @@ HelloWorld::HelloWorld(int argc,
     htmlFilename = parsedArgs[0];
   }
 
-  SkLoadICU();
+  if (!SkLoadICU()) {
+  	std::cerr << "Can't load ICU4C data" << std::endl;
+  }
 
   mojo::core::Init();
 
   if (!ui::ResourceBundle::HasSharedInstance()) {
     ui::ResourceBundle::InitSharedInstanceWithLocale(
         "", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
+
+#ifndef WIN32
+    uint8_t* blink_resources_pak = blink_resources_pak_begin; /* binary data         */
+    size_t blink_resources_pak_size = blink_resources_pak_end - blink_resources_pak_begin; /* size of binary data */
+#endif
     
     // Adding the blink_resources.pak embeded into the binary
     base::StringPiece blink_pak_memory((char*) blink_resources_pak,
@@ -164,7 +179,10 @@ HelloWorld::HelloWorld(int argc,
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
   
   //blink::WebFontRenderStyle::SetSkiaFontManager()
+
+#ifdef WIN32
   blink::FontCache::SetAntialiasedTextEnabled(true);
+#endif
       
   backend = std::make_shared<SDK::Backend>();
 

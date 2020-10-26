@@ -150,85 +150,126 @@ executable("bin2coff") {
 action("icudtl_object") {
   deps = [ 
     "//third_party/icu:icudata", 
-    ":bin2coff" 
   ]
-
-  script = "scripts/bin2coff.py"
-
+  
   icudtl_input = "$root_build_dir/icudtl.dat"
-  icudtl_output = "$root_build_dir/icudtl.dat.obj"
   symbol_name = "icudtl_dat"
   
-  bin2coff="$root_build_dir/bin2coff.exe"
-
   inputs = [ "$icudtl_input" ]
 
-  outputs = [ "$icudtl_output" ]
+  if (is_win) {
+    icudtl_output = "$root_build_dir/icudtl.dat.obj"
+   
+    deps += [ 
+      ":bin2coff" 
+    ]
 
-  args = [
-    "--bin2coff",     rebase_path(bin2coff),
-    "--input",        rebase_path(icudtl_input),
-    "--output",       rebase_path(icudtl_output),
-    "--symbol_name",  symbol_name,
-  ]
+    script = "scripts/bin2coff.py"
+  
+    bin2coff="$root_build_dir/bin2coff.exe"
+
+    args = [
+      "--bin2coff",     rebase_path(bin2coff),
+      "--input",        rebase_path(icudtl_input),
+      "--output",       rebase_path(icudtl_output),
+      "--symbol_name",  symbol_name,
+    ]
+  } else {
+    icudtl_output = "$root_build_dir/icudtl.dat.S"
+
+    script = "scripts/asm_embed.py"
+    args = [
+      "--input",        rebase_path(icudtl_input),
+      "--output",       rebase_path(icudtl_output),
+      "--symbol_name",  symbol_name,
+    ]  
+  }
+  
+  outputs = [ "$icudtl_output" ]
 }
 
 action("blink_resources_object") {
   deps = [
     "//third_party/blink/public:resources",
+  ]
+
+  deps += [
     ":bin2coff",
   ]
 
-  script = "scripts/bin2coff.py"
-
   blinkres_input = "$root_build_dir/gen/third_party/blink/public/resources/blink_resources.pak"
-  blinkres_output = "$root_build_dir/blink_resources.pak.obj"
   symbol_name = "blink_resources_pak"
-  
-  bin2coff="$root_build_dir/bin2coff.exe"
 
   inputs = [ "$blinkres_input" ]
 
-  outputs = [ "$blinkres_output" ]
+  if (is_win) {
+    script = "scripts/bin2coff.py"
 
-  args = [
-    "--bin2coff",     rebase_path(bin2coff),
-    "--input",        rebase_path(blinkres_input),
-    "--output",       rebase_path(blinkres_output),
-    "--symbol_name",  symbol_name,
-  ]
+    blinkres_output = "$root_build_dir/blink_resources.pak.obj"
+  
+    bin2coff="$root_build_dir/bin2coff.exe"
+
+    args = [
+      "--bin2coff",     rebase_path(bin2coff),
+      "--input",        rebase_path(blinkres_input),
+      "--output",       rebase_path(blinkres_output),
+      "--symbol_name",  symbol_name,
+    ]
+  } else {
+    blinkres_output = "$root_build_dir/blink_resources.pak.S"
+    script = "scripts/asm_embed.py"
+    args = [
+      "--input",        rebase_path(blinkres_input),
+      "--output",       rebase_path(blinkres_output),
+      "--symbol_name",  symbol_name,
+    ]  
+  }
+
+  outputs = [ "$blinkres_output" ]
 }
 
 # Main project
 
 executable("HelloWorld") {
-    configs -= [ "//build/config/clang:find_bad_constructs" ]
-    sources = [
+  configs -= [ "//build/config/clang:find_bad_constructs" ]
+  sources = [
+    "HelloWorld.cpp",
+    "HelloWorld.h",
+    "my_frame_test_helpers.cc",
+    "my_frame_test_helpers.h",
+    "my_blink_platform_impl.cc",
+    "my_blink_platform_impl.h",
+    "my_webthemeengine_impl_default.cc",
+    "my_webthemeengine_impl_default.h",
+    "my_webthemeengine_impl_conversions.cc",
+    "my_webthemeengine_impl_conversions.h",
+    "my_webthemeengine_impl_mac.cc",
+    "my_webthemeengine_impl_mac.h",
+    "SkLoadICU.cpp",
+    "SkLoadICU.h",
+
+    "../content/renderer/compositor/layer_tree_view.cc",
+    "../content/renderer/compositor/layer_tree_view.h",
+    "../content/renderer/compositor/layer_tree_view_delegate.h",
+  ]
+  if (is_win) {
+    sources += [
         "$root_build_dir/icudtl.dat.obj",
         "$root_build_dir/blink_resources.pak.obj",
+    ]  
+  } else {
+    sources += [
+        "$root_build_dir/icudtl.dat.S",
+        "$root_build_dir/blink_resources.pak.S",
+    ]   
+  }
 
-
-        "HelloWorld.cpp",
-        "HelloWorld.h",
-        "my_frame_test_helpers.cc",
-        "my_frame_test_helpers.h",
-        "my_blink_platform_impl.cc",
-        "my_blink_platform_impl.h",
-        "my_webthemeengine_impl_default.cc",
-        "my_webthemeengine_impl_default.h",
-        "my_webthemeengine_impl_conversions.cc",
-        "my_webthemeengine_impl_conversions.h",
-        "SkLoadICU.cpp",
-        "SkLoadICU.h",
-
-        "../content/renderer/compositor/layer_tree_view.cc",
-        "../content/renderer/compositor/layer_tree_view.h",
-        "../content/renderer/compositor/layer_tree_view_delegate.h",
-
-        #"../third_party/skia/third_party/icu/SkLoadICU.cpp",
-      ]
-
-      cflags_cc = [ "/std:c++17"]
+  if (is_win) {
+    cflags_cc = [ "/std:c++17"]
+  } else {
+    cflags_cc = [ "-std=c++17"]
+  }
+  
 
       libs = []
       include_dirs = [

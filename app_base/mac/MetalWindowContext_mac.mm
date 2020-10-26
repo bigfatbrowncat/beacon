@@ -5,8 +5,8 @@
  * found in the LICENSE file.
  */
 
-#include "tools/sk_app/MetalWindowContext.h"
-#include "tools/sk_app/mac/WindowContextFactory_mac.h"
+#include "app_base/MetalWindowContext.h"
+#include "app_base/mac/WindowContextFactory_mac.h"
 
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAConstraintLayoutManager.h>

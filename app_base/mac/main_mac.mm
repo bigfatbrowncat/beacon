@@ -7,8 +7,8 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "tools/sk_app/Application.h"
-#include "tools/sk_app/mac/Window_mac.h"
+#include "app_base/Application.h"
+#include "app_base/mac/Window_mac.h"
 
 @interface AppDelegate : NSObject<NSApplicationDelegate, NSWindowDelegate>
 
@@ -74,7 +74,10 @@ int main(int argc, char * argv[]) {
     AppDelegate* appDelegate = [[AppDelegate alloc] init];
     [NSApp setDelegate:appDelegate];
 
-    Application* app = Application::Create(argc, argv, nullptr);
+    std::shared_ptr<sk_app::PlatformData> platformData =
+        std::make_shared<sk_app::PlatformData>();
+
+    Application* app = Application::Create(argc, argv, platformData);
 
     // This will run until the application finishes launching, then lets us take over
     [NSApp run];

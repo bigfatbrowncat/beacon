@@ -14,7 +14,7 @@
 #include "src/gpu/GrCaps.h"
 #include "src/gpu/GrContextPriv.h"
 #include "src/image/SkImage_Base.h"
-#include "tools/sk_app/MetalWindowContext.h"
+#include "app_base/MetalWindowContext.h"
 
 using sk_app::DisplayParams;
 using sk_app::MetalWindowContext;
