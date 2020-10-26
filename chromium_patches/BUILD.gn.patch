@@ -1,5 +1,5 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index b309339416..628954f4ea 100644
+index b309339416..860021b10c 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -828,6 +828,10 @@ group("gn_all") {
@@ -7,7 +7,7 @@ index b309339416..628954f4ea 100644
      "//third_party/pffft:pffft_unittest",
    ]
 +
-+  if (is_win) {
++  if (is_win || is_mac) {
 +      deps += [ "//my_example:HelloWorld" ]
 +  }
  }
