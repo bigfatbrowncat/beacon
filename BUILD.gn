@@ -158,33 +158,15 @@ action("icudtl_object") {
   
   inputs = [ "$icudtl_input" ]
 
-  if (is_win) {
-    icudtl_output = "$root_build_dir/icudtl.dat.c"
+  icudtl_output = "$root_build_dir/icudtl.dat.c"
    
-#    deps += [ 
-#      ":bin2coff" 
-#    ]
-
-    script = "scripts/bin2c.py"
+  script = "scripts/bin2c.py"
   
-#    bin2coff="$root_build_dir/bin2coff.exe"
-
-    args = [
-#      "--bin2coff",     rebase_path(bin2coff),
-      "--input",        rebase_path(icudtl_input),
-      "--output",       rebase_path(icudtl_output),
-      "--symbol_name",  symbol_name,
-    ]
-  } else {
-    icudtl_output = "$root_build_dir/icudtl.dat.S"
-
-    script = "scripts/asm_embed.py"
-    args = [
-      "--input",        rebase_path(icudtl_input),
-      "--output",       rebase_path(icudtl_output),
-      "--symbol_name",  symbol_name,
-    ]  
-  }
+  args = [
+    "--input",        rebase_path(icudtl_input),
+    "--output",       rebase_path(icudtl_output),
+    "--symbol_name",  symbol_name,
+  ]
   
   outputs = [ "$icudtl_output" ]
 }
@@ -199,31 +181,16 @@ action("blink_resources_object") {
 
   inputs = [ "$blinkres_input" ]
 
-  if (is_win) {
-#    deps += [
-#      ":bin2coff",
-#    ]
-    script = "scripts/bin2c.py"
+  script = "scripts/bin2c.py"
 
-    blinkres_output = "$root_build_dir/blink_resources.pak.c"
+  blinkres_output = "$root_build_dir/blink_resources.pak.c"
   
-#    bin2coff="$root_build_dir/bin2coff.exe"
-
-    args = [
-#      "--bin2coff",     rebase_path(bin2coff),
-      "--input",        rebase_path(blinkres_input),
-      "--output",       rebase_path(blinkres_output),
-      "--symbol_name",  symbol_name,
-    ]
-  } else {
-    blinkres_output = "$root_build_dir/blink_resources.pak.S"
-    script = "scripts/asm_embed.py"
-    args = [
-      "--input",        rebase_path(blinkres_input),
-      "--output",       rebase_path(blinkres_output),
-      "--symbol_name",  symbol_name,
-    ]  
-  }
+  args = [
+    "--input",        rebase_path(blinkres_input),
+    "--output",       rebase_path(blinkres_output),
+    "--symbol_name",  symbol_name,
+  ]
+  
 
   outputs = [ "$blinkres_output" ]
 }
@@ -253,17 +220,10 @@ executable("HelloWorld") {
     "../content/renderer/compositor/layer_tree_view.h",
     "../content/renderer/compositor/layer_tree_view_delegate.h",
   ]
-  if (is_win) {
-    sources += [
-        "$root_build_dir/icudtl.dat.c",
-        "$root_build_dir/blink_resources.pak.c",
-    ]  
-  } else {
-    sources += [
-        "$root_build_dir/icudtl.dat.S",
-        "$root_build_dir/blink_resources.pak.S",
-    ]   
-  }
+  sources += [
+    "$root_build_dir/icudtl.dat.c",
+    "$root_build_dir/blink_resources.pak.c",
+  ]  
 
   if (is_win) {
     cflags_cc = [ "/std:c++17"]

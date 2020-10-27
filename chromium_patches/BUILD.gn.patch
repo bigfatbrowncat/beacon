@@ -1,7 +1,16 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index b309339416..860021b10c 100644
+index b309339416..288eb36ca6 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
+@@ -66,7 +66,7 @@ group("gn_all") {
+   deps = [
+     ":gn_visibility",
+     "//base:base_perftests",
+-    "//base:base_unittests",
++#    "//base:base_unittests",
+     "//base/util:base_util_unittests",
+     "//chrome/installer",
+     "//chrome/updater",
 @@ -828,6 +828,10 @@ group("gn_all") {
      "//third_party/pffft:pffft_benchmark",
      "//third_party/pffft:pffft_unittest",

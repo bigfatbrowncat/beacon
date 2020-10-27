@@ -83,13 +83,8 @@ Application* Application::Create(
   return new HelloWorld(argc, argv, platformData);
 }
 
-#ifdef WIN32
 extern "C" uint8_t blink_resources_pak[]; /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
-#else
-extern "C" uint8_t blink_resources_pak_begin;
-extern "C" uint8_t blink_resources_pak_end;
-#endif
 
 class MyPlatform : public content::BlinkPlatformImpl {
   /*WebData UncompressDataResource(int resource_id) override {
@@ -128,11 +123,6 @@ HelloWorld::HelloWorld(int argc,
     ui::ResourceBundle::InitSharedInstanceWithLocale(
         "en-US", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
 
-#ifndef WIN32
-    uint8_t* blink_resources_pak = &blink_resources_pak_begin; /* binary data         */
-    size_t blink_resources_pak_size = &blink_resources_pak_end - &blink_resources_pak_begin; /* size of binary data */
-#endif
-    
     // Adding the blink_resources.pak embeded into the binary
     base::StringPiece blink_pak_memory((char*) blink_resources_pak,
                                        blink_resources_pak_size);
