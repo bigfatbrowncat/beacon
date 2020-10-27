@@ -70,7 +70,7 @@ bool Window_win::init() {
     if (!wcexInit) {
         wcex.cbSize = sizeof(WNDCLASSEX);
 
-        wcex.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+        wcex.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_DBLCLKS;
         wcex.lpfnWndProc = WndProc;
         wcex.cbClsExtra = 0;
         wcex.cbWndExtra = 0;
@@ -110,7 +110,8 @@ bool Window_win::init() {
     //   gIsFullscreen = fullscreen;
 
     fHWnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW | WS_EX_COMPOSITED, gSZWindowClass, nullptr,
-                           WS_OVERLAPPEDWINDOW, gWindowX, gWindowY, gWindowWidth, gWindowHeight,
+        WS_OVERLAPPEDWINDOW, gWindowX, gWindowY, gWindowWidth,
+        gWindowHeight,
                            nullptr, nullptr, fHInstance, nullptr);
     if (!fHWnd) {
         return false;
@@ -157,6 +158,7 @@ static skui::ModifierKey get_modifiers(UINT message, WPARAM wParam, LPARAM lPara
         case WM_LBUTTONUP:
         case WM_MOUSEMOVE:
         case WM_MOUSEWHEEL:
+        case WM_LBUTTONDBLCLK:
             if (wParam & MK_CONTROL) {
                 modifiers |= skui::ModifierKey::kControl;
             }
@@ -240,7 +242,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                             get_modifiers(message, wParam, lParam));
             break;
 
-        case WM_LBUTTONDOWN: {
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK: {
           SetCapture(hWnd);
 
           int xPos = GET_X_LPARAM(lParam);
@@ -262,20 +265,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             skui::InputState istate = ((wParam & MK_LBUTTON) != 0) ? skui::InputState::kDown
                                                                     : skui::InputState::kUp;
-            /*
-            
-            DWORD dwClickTime = GetMessageTime();
-    POINT ptClickPos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-
-    if (dwLastClickTime + GetDoubleClickTime() > dwClickTime
-    &&  abs(ptLastClickPos.x - ptClickPos.x) < GetSystemMetrics(SM_CXDOUBLECLK)
-    &&  abs(ptLastClickPos.y - ptClickPos.y) < GetSystemMetrics(SM_CYDOUBLECLK))
-    {
-        // double-click!
-    }
-            */
-
-
             eventHandled = window->onMouse(msg, xPos, yPos, istate,
                                             get_modifiers(message, wParam, lParam));
         } break;

@@ -173,7 +173,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "        <div class=\"content-frame\">"
     "            <div class=\"content-page\">"
     "                <div class=\"content-page-margins\">"
-//    "                    <button>I am a button!</button><input type=\"text\" value=\"Hello!\"></input>"
+    "                    <button>I am a button!</button><input type=\"text\" value=\"Hello!\"></input>"
     "                    <p class=\"title-item\" onclick=\"toggle('description')\"><b>Description</b></p>"
     "                    <div id=\"description\" class=\"shown\">"
     "                        <p><b>LightningUI</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>LightningUI</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
@@ -215,6 +215,8 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "    font-size: 10pt; "
     "    font-name: \"sans-serif\" "
     "}"
+
+    "::selection { background: rgba(0, 0, 0, 0.1); }"
 
     "div.logo {"
     "    font-size: 25pt; "

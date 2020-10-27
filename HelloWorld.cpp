@@ -503,7 +503,7 @@ bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
     if (evt->IsCommandDown())
       modifiers |= WebInputEvent::kMetaKey;
 
-    int click_count_param = 1;
+    int click_count_param = mseEvt->GetClickCount();
     WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0, base::TimeTicks());
     bMseEvent = std::make_shared<blink::WebMouseEvent>(
         mtp, std::move(ge), button, click_count_param, modifiers, base::TimeTicks());
