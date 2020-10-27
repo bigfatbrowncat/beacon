@@ -71,8 +71,13 @@ static bool init_icu(void* addr) {
 }
 */
 
-extern "C" uint8_t* icudtl_dat_begin;     /* binary data         */
-extern "C" uint8_t* icudtl_dat_end; /* size of binary data */
+#ifdef WIN32
+extern "C" uint8_t* icudtl_dat;     /* binary data         */
+extern "C" uint32_t icudtl_dat_size; /* size of binary data */
+#else
+extern "C" uint8_t icudtl_dat_begin;     /* binary data         */
+extern "C" uint8_t icudtl_dat_end; /* size of binary data */
+#endif
 
 bool SkLoadICU() {
     static bool good = false;
@@ -87,8 +92,11 @@ bool SkLoadICU() {
         }*/
 
 #ifndef WIN32
-    uint8_t* icudtl_dat = icudtl_dat_begin; /* binary data         */
-    size_t icudtl_dat_size = icudtl_dat_end - icudtl_dat_begin; /* size of binary data */
+    uint8_t* icudtl_dat = &icudtl_dat_begin; /* binary data         */
+    size_t icudtl_dat_size = &icudtl_dat_end - &icudtl_dat_begin; /* size of binary data */
+    printf("Begin: %ld.\n", &icudtl_dat_begin);fflush(stdout);
+    printf("End: %ld.\n", &icudtl_dat_end);fflush(stdout);
+    printf("Length: %d.\n", (int)icudtl_dat_size);fflush(stdout);
 #endif
 
         if (init_icu(icudtl_dat)) {

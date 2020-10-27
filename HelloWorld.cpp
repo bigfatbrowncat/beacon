@@ -63,7 +63,8 @@
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/skia/include/core/SkCanvas.h"
-#include "third_party/skia/third_party/icu/SkLoadICU.h"
+
+#include "SkLoadICU.h"
 
 #include "ui/events/blink/blink_event_util.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -86,8 +87,8 @@ Application* Application::Create(
 extern "C" uint8_t blink_resources_pak[]; /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
 #else
-extern "C" uint8_t* blink_resources_pak_begin;
-extern "C" uint8_t* blink_resources_pak_end;
+extern "C" uint8_t blink_resources_pak_begin;
+extern "C" uint8_t blink_resources_pak_end;
 #endif
 
 class MyPlatform : public content::BlinkPlatformImpl {
@@ -116,6 +117,7 @@ HelloWorld::HelloWorld(int argc,
     htmlFilename = parsedArgs[0];
   }
 
+  std::cerr << "Calling SkLoadICU()" << std::endl;
   if (!SkLoadICU()) {
   	std::cerr << "Can't load ICU4C data" << std::endl;
   }
@@ -124,11 +126,11 @@ HelloWorld::HelloWorld(int argc,
 
   if (!ui::ResourceBundle::HasSharedInstance()) {
     ui::ResourceBundle::InitSharedInstanceWithLocale(
-        "", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
+        "en-US", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
 
 #ifndef WIN32
-    uint8_t* blink_resources_pak = blink_resources_pak_begin; /* binary data         */
-    size_t blink_resources_pak_size = blink_resources_pak_end - blink_resources_pak_begin; /* size of binary data */
+    uint8_t* blink_resources_pak = &blink_resources_pak_begin; /* binary data         */
+    size_t blink_resources_pak_size = &blink_resources_pak_end - &blink_resources_pak_begin; /* size of binary data */
 #endif
     
     // Adding the blink_resources.pak embeded into the binary

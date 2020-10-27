@@ -140,11 +140,12 @@ static_library("app_base") {
 
 # Resource embedding tasks
 
+if (is_win) {
 executable("bin2coff") {
     sources = [
         "toolchain-addons/bin2coff.c",
     ]
-    
+}
 }
 
 action("icudtl_object") {
@@ -193,16 +194,15 @@ action("blink_resources_object") {
     "//third_party/blink/public:resources",
   ]
 
-  deps += [
-    ":bin2coff",
-  ]
-
   blinkres_input = "$root_build_dir/gen/third_party/blink/public/resources/blink_resources.pak"
   symbol_name = "blink_resources_pak"
 
   inputs = [ "$blinkres_input" ]
 
   if (is_win) {
+    deps += [
+      ":bin2coff",
+    ]
     script = "scripts/bin2coff.py"
 
     blinkres_output = "$root_build_dir/blink_resources.pak.obj"
@@ -231,6 +231,7 @@ action("blink_resources_object") {
 # Main project
 
 executable("HelloWorld") {
+  libs = []
   configs -= [ "//build/config/clang:find_bad_constructs" ]
   sources = [
     "HelloWorld.cpp",
@@ -270,8 +271,18 @@ executable("HelloWorld") {
     cflags_cc = [ "-std=c++17"]
   }
   
-
-      libs = []
+  if (is_mac) {
+    libs += [
+      "AppKit.framework",
+      "CoreFoundation.framework",
+      "CoreGraphics.framework",
+      "CoreText.framework",
+      "Metal.framework",
+      "Foundation.framework",
+      "OpenGL.framework",
+    ]
+  }
+  
       include_dirs = [
         "//third_party/icu/source/common",
         "//third_party/boringssl/src/include",
