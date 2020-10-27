@@ -140,13 +140,13 @@ static_library("app_base") {
 
 # Resource embedding tasks
 
-if (is_win) {
-executable("bin2coff") {
-    sources = [
-        "toolchain-addons/bin2coff.c",
-    ]
-}
-}
+#if (is_win) {
+#executable("bin2coff") {
+#    sources = [
+#        "toolchain-addons/bin2coff.c",
+#    ]
+#}
+#}
 
 action("icudtl_object") {
   deps = [ 
@@ -159,18 +159,18 @@ action("icudtl_object") {
   inputs = [ "$icudtl_input" ]
 
   if (is_win) {
-    icudtl_output = "$root_build_dir/icudtl.dat.obj"
+    icudtl_output = "$root_build_dir/icudtl.dat.c"
    
-    deps += [ 
-      ":bin2coff" 
-    ]
+#    deps += [ 
+#      ":bin2coff" 
+#    ]
 
-    script = "scripts/bin2coff.py"
+    script = "scripts/bin2c.py"
   
-    bin2coff="$root_build_dir/bin2coff.exe"
+#    bin2coff="$root_build_dir/bin2coff.exe"
 
     args = [
-      "--bin2coff",     rebase_path(bin2coff),
+#      "--bin2coff",     rebase_path(bin2coff),
       "--input",        rebase_path(icudtl_input),
       "--output",       rebase_path(icudtl_output),
       "--symbol_name",  symbol_name,
@@ -200,17 +200,17 @@ action("blink_resources_object") {
   inputs = [ "$blinkres_input" ]
 
   if (is_win) {
-    deps += [
-      ":bin2coff",
-    ]
-    script = "scripts/bin2coff.py"
+#    deps += [
+#      ":bin2coff",
+#    ]
+    script = "scripts/bin2c.py"
 
-    blinkres_output = "$root_build_dir/blink_resources.pak.obj"
+    blinkres_output = "$root_build_dir/blink_resources.pak.c"
   
-    bin2coff="$root_build_dir/bin2coff.exe"
+#    bin2coff="$root_build_dir/bin2coff.exe"
 
     args = [
-      "--bin2coff",     rebase_path(bin2coff),
+#      "--bin2coff",     rebase_path(bin2coff),
       "--input",        rebase_path(blinkres_input),
       "--output",       rebase_path(blinkres_output),
       "--symbol_name",  symbol_name,
@@ -255,8 +255,8 @@ executable("HelloWorld") {
   ]
   if (is_win) {
     sources += [
-        "$root_build_dir/icudtl.dat.obj",
-        "$root_build_dir/blink_resources.pak.obj",
+        "$root_build_dir/icudtl.dat.c",
+        "$root_build_dir/blink_resources.pak.c",
     ]  
   } else {
     sources += [

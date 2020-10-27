@@ -72,7 +72,7 @@ static bool init_icu(void* addr) {
 */
 
 #ifdef WIN32
-extern "C" uint8_t* icudtl_dat;     /* binary data         */
+extern "C" uint8_t icudtl_dat[];     /* binary data         */
 extern "C" uint32_t icudtl_dat_size; /* size of binary data */
 #else
 extern "C" uint8_t icudtl_dat_begin;     /* binary data         */
