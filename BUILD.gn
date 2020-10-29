@@ -289,6 +289,8 @@ executable("HelloWorld") {
         "//third_party/blink/renderer/bindings:generate_v8_bindings",
 
         "//mojo/core/embedder:embedder",
+
+        "//ui/native_theme:native_theme_browser",
         
         #"//content/public/common:interfaces",
         #"//content/common:mojo_bindings",

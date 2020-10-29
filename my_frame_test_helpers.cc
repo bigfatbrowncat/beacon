@@ -282,10 +282,11 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "    }"
     "}"
 
-    "::-webkit-scrollbar { width: 10px; }"
-    "::-webkit-scrollbar:hover { width: 15px; }"
-    "::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }"
-    "::-webkit-scrollbar-track { width: 15px; background: #ddd; border-radius: 0px; }";
+//    "::-webkit-scrollbar { width: 10px; }"
+//    "::-webkit-scrollbar:hover { width: 15px; }"
+//    "::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }"
+//    "::-webkit-scrollbar-track { width: 15px; background: #ddd; border-radius: 0px; }"
+;
         
         //"        /* Buttons */"
         //"::-webkit-scrollbar-button:single-button {"

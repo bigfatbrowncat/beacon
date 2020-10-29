@@ -15,6 +15,7 @@ namespace content {
 class WebThemeEngineDefault : public blink::WebThemeEngine {
  public:
   // WebThemeEngine methods:
+  WebThemeEngineDefault();
   ~WebThemeEngineDefault() override;
   blink::WebSize GetSize(blink::WebThemeEngine::Part) override;
   void Paint(cc::PaintCanvas* canvas,

@@ -394,7 +394,7 @@ class TestWebViewClient : public WebViewClient {
 
 // Convenience class for handling the lifetime of a WebView and its associated
 // mainframe in tests.
-class WebViewHelper : public ScopedMockOverlayScrollbars {
+class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
   USING_FAST_MALLOC(WebViewHelper);
 
  public:

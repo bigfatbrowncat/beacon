@@ -12,6 +12,11 @@
 #include "ui/native_theme/native_theme.h"
 #include "ui/native_theme/overlay_scrollbar_constants_aura.h"
 
+#if defined(OS_WIN)
+#include <windows.h>   // For the scrollbar metrics
+#endif
+
+
 using blink::WebColorScheme;
 using blink::WebRect;
 using blink::WebScrollbarOverlayColorTheme;
@@ -149,6 +154,19 @@ static void GetNativeThemeExtraParams(
   }
 }
 
+WebThemeEngineDefault::WebThemeEngineDefault() {
+#if defined(OS_WIN)
+  cacheScrollBarMetrics(
+      GetSystemMetrics(SM_CYVTHUMB), GetSystemMetrics(SM_CXHTHUMB),
+      GetSystemMetrics(SM_CYVSCROLL), GetSystemMetrics(SM_CXHSCROLL));
+
+  /*vertical_scroll_bar_width, int32_t horizontal_scroll_bar_height,
+      int32_t vertical_arrow_bitmap_height,
+      int32_t horizontal_arrow_bitmap_width*/
+
+#endif
+}
+
 WebThemeEngineDefault::~WebThemeEngineDefault() = default;
 
 blink::WebSize WebThemeEngineDefault::GetSize(WebThemeEngine::Part part) {
@@ -172,7 +190,7 @@ blink::WebSize WebThemeEngineDefault::GetSize(WebThemeEngine::Part part) {
       break;
   }
 #endif
-  return blink::WebSize(ui::NativeTheme::GetInstanceForWeb()->GetPartSize(
+  return blink::WebSize(ui::NativeTheme::GetInstanceForNativeUi()->GetPartSize(
       native_theme_part, ui::NativeTheme::kNormal, extra));
 }
 
@@ -186,7 +204,7 @@ void WebThemeEngineDefault::Paint(
   ui::NativeTheme::ExtraParams native_theme_extra_params;
   GetNativeThemeExtraParams(
       part, state, extra_params, &native_theme_extra_params);
-  ui::NativeTheme::GetInstanceForWeb()->Paint(
+  ui::NativeTheme::GetInstanceForNativeUi()->Paint(
       canvas, NativeThemePart(part), NativeThemeState(state), gfx::Rect(rect),
       native_theme_extra_params, NativeColorScheme(color_scheme));
 }
@@ -200,23 +218,23 @@ void WebThemeEngineDefault::GetOverlayScrollbarStyle(ScrollbarStyle* style) {
 }
 
 bool WebThemeEngineDefault::SupportsNinePatch(Part part) const {
-  return ui::NativeTheme::GetInstanceForWeb()->SupportsNinePatch(
+  return ui::NativeTheme::GetInstanceForNativeUi()->SupportsNinePatch(
       NativeThemePart(part));
 }
 
 blink::WebSize WebThemeEngineDefault::NinePatchCanvasSize(Part part) const {
-  return blink::WebSize(ui::NativeTheme::GetInstanceForWeb()->GetNinePatchCanvasSize(
+  return blink::WebSize(ui::NativeTheme::GetInstanceForNativeUi()->GetNinePatchCanvasSize(
       NativeThemePart(part)));
 }
 
 blink::WebRect WebThemeEngineDefault::NinePatchAperture(Part part) const {
-  return blink::WebRect(ui::NativeTheme::GetInstanceForWeb()->GetNinePatchAperture(
+  return blink::WebRect(ui::NativeTheme::GetInstanceForNativeUi()->GetNinePatchAperture(
       NativeThemePart(part)));
 }
 
 base::Optional<SkColor> WebThemeEngineDefault::GetSystemColor(
     blink::WebThemeEngine::SystemThemeColor system_theme_color) const {
-  return ui::NativeTheme::GetInstanceForWeb()->GetSystemThemeColor(
+  return ui::NativeTheme::GetInstanceForNativeUi()->GetSystemThemeColor(
       NativeSystemThemeColor(system_theme_color));
 }
 
@@ -235,27 +253,27 @@ void WebThemeEngineDefault::cacheScrollBarMetrics(
 #endif
 
 blink::ForcedColors WebThemeEngineDefault::GetForcedColors() const {
-  return ui::NativeTheme::GetInstanceForWeb()->UsesHighContrastColors()
+  return ui::NativeTheme::GetInstanceForNativeUi()->UsesHighContrastColors()
              ? blink::ForcedColors::kActive
              : blink::ForcedColors::kNone;
 }
 
 void WebThemeEngineDefault::SetForcedColors(
     const blink::ForcedColors forced_colors) {
-  ui::NativeTheme::GetInstanceForWeb()->set_high_contrast(
+  ui::NativeTheme::GetInstanceForNativeUi()->set_high_contrast(
       forced_colors == blink::ForcedColors::kActive);
 }
 
 blink::PreferredColorScheme WebThemeEngineDefault::PreferredColorScheme()
     const {
   ui::NativeTheme::PreferredColorScheme preferred_color_scheme =
-      ui::NativeTheme::GetInstanceForWeb()->GetPreferredColorScheme();
+      ui::NativeTheme::GetInstanceForNativeUi()->GetPreferredColorScheme();
   return WebPreferredColorScheme(preferred_color_scheme);
 }
 
 void WebThemeEngineDefault::SetPreferredColorScheme(
     const blink::PreferredColorScheme preferred_color_scheme) {
-  ui::NativeTheme::GetInstanceForWeb()->set_preferred_color_scheme(
+  ui::NativeTheme::GetInstanceForNativeUi()->set_preferred_color_scheme(
       NativePreferredColorScheme(preferred_color_scheme));
 }
 
