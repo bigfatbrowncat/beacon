@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2017 Google Inc.
  *
  * Use of this source code is governed by a BSD-style license that can be
@@ -537,41 +537,64 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
     if (evt->IsCommandDown())
       modifiers |= WebInputEvent::kMetaKey;
 
-    if (evt->IsScrollEvent()) {
-      ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
+//    if (evt->IsScrollEvent()) {
+//      ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
+//      std::shared_ptr<blink::WebGestureEvent> bGstEvent;
+//      WebInputEvent::Type mtp;
+//
+//      switch (scrlEvt->type()) {
+//        case ui::ET_SCROLL:
+//          mtp = WebInputEvent::Type::kGestureScrollUpdate;
+//          break;
+//        case ui::ET_SCROLL_FLING_START:
+//          mtp = WebInputEvent::Type::kGestureScrollBegin;
+//          break;
+//        case ui::ET_SCROLL_FLING_CANCEL:
+//          mtp = WebInputEvent::Type::kGestureScrollEnd;
+//          break;
+//
+//        default:
+//          return false;
+//      }
+//
+//      bGstEvent = std::make_shared<blink::WebGestureEvent>(mtp, modifiers, base::TimeTicks());
+//
+//      bGstEvent->SetPositionInWidget(scrlEvt->location_f() /*gfx::PointF(x, y)*/);
+//      bGstEvent->SetFrameScale(1.0);
+//      bGstEvent->SetSourceDevice(blink::WebGestureDevice::kSyntheticAutoscroll);
+//
+//      if (mtp == WebInputEvent::Type::kGestureScrollUpdate) {
+//        bGstEvent->data.scroll_update.inertial_phase = WebGestureEvent::InertialPhaseState::kMomentum;
+//        bGstEvent->data.scroll_update.delta_x = scrlEvt->x_offset();
+//        bGstEvent->data.scroll_update.delta_y = scrlEvt->y_offset();
+//      }
+//
+//      collectedInputEvents.push_back(bGstEvent);
+//    }
+
+    if (evt->IsMouseWheelEvent() || evt->IsScrollEvent()) {
       std::shared_ptr<blink::WebGestureEvent> bGstEvent;
-      WebInputEvent::Type mtp;
 
-      switch (scrlEvt->type()) {
-        case ui::ET_SCROLL:
-          mtp = WebInputEvent::Type::kGestureScrollUpdate;
-          break;
-        case ui::ET_SCROLL_FLING_START:
-          mtp = WebInputEvent::Type::kGestureScrollBegin;
-          break;
-        case ui::ET_SCROLL_FLING_CANCEL:
-          mtp = WebInputEvent::Type::kGestureScrollEnd;
-          break;
+      int x_offset, y_offset;
+      gfx::PointF location_f;
 
-        default:
-          return false;
-      }
-
-      bGstEvent = std::make_shared<blink::WebGestureEvent>(mtp, modifiers, base::TimeTicks());
-     
-      bGstEvent->SetPositionInWidget(scrlEvt->location_f() /*gfx::PointF(x, y)*/);
-      bGstEvent->SetFrameScale(1.0);
-
-      collectedInputEvents.push_back(bGstEvent);
-    }
-
-    if (evt->IsMouseWheelEvent()) {
-      ui::MouseWheelEvent* scrlEvt = evt->AsMouseWheelEvent();
-      std::shared_ptr<blink::WebGestureEvent> bGstEvent;
-
-      switch (scrlEvt->type()) {
-        case ui::ET_MOUSEWHEEL:
-          break;
+      switch (evt->type()) {
+        case ui::ET_MOUSEWHEEL:     // This one is generated for mouse wheel on Windows
+        {
+          ui::MouseWheelEvent* scrlEvt = evt->AsMouseWheelEvent();
+          x_offset = scrlEvt->x_offset();
+          y_offset = scrlEvt->y_offset();
+          location_f = scrlEvt->location_f();
+        }
+        break;
+        case ui::ET_SCROLL:         // This one is generated for mouse wheel on macOS
+        {
+          ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
+          x_offset = scrlEvt->x_offset();
+          y_offset = scrlEvt->y_offset();
+          location_f = scrlEvt->location_f();
+        }
+        break;
 
         default:
           return false;
@@ -584,18 +607,11 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
             WebInputEvent::Type::kGestureScrollBegin, modifiers,
                                                              base::TimeTicks());
 
-        bGstEvent->SetPositionInWidget(
-            scrlEvt->location_f() /*gfx::PointF(x, y)*/);
-
+        bGstEvent->SetPositionInWidget(location_f);
         bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
         bGstEvent->SetFrameScale(1.0);
-        /*bGstEvent->data.scroll_update.inertial_phase =
-            WebGestureEvent::InertialPhaseState::kMomentum;*/
-        
         bGstEvent->data.scroll_begin.scrollable_area_element_id = 0;
-        
         bGstEvent->data.scroll_begin.delta_y_hint = 0.0;
-
         collectedInputEvents.push_back(bGstEvent);
       }
       {
@@ -604,16 +620,14 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
             WebInputEvent::Type::kGestureScrollUpdate, modifiers,
             base::TimeTicks());
 
-        bGstEvent->SetPositionInWidget(
-            scrlEvt->location_f() /*gfx::PointF(x, y)*/);
+        bGstEvent->SetPositionInWidget(location_f);
 
         bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
         bGstEvent->SetFrameScale(1.0);
         bGstEvent->data.scroll_update.inertial_phase =
             WebGestureEvent::InertialPhaseState::kMomentum;
-        bGstEvent->data.scroll_update.delta_x = scrlEvt->x_offset();
-        bGstEvent->data.scroll_update.delta_y = scrlEvt->y_offset();
-
+        bGstEvent->data.scroll_update.delta_x = x_offset;
+        bGstEvent->data.scroll_update.delta_y = y_offset;
         collectedInputEvents.push_back(bGstEvent);
       }
       {
@@ -621,16 +635,9 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
         bGstEvent = std::make_shared<blink::WebGestureEvent>(
             WebInputEvent::Type::kGestureScrollEnd, modifiers,
             base::TimeTicks());
-
-        bGstEvent->SetPositionInWidget(
-            scrlEvt->location_f() /*gfx::PointF(x, y)*/);
-
+        bGstEvent->SetPositionInWidget(location_f);
         bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
         bGstEvent->SetFrameScale(1.0);
-        // bGstEvent->data.scroll_update.inertial_phase =
-        //    WebGestureEvent::InertialPhaseState::kMomentum;
-        // bGstEvent->data.scroll_update.delta_y = 1;
-
         collectedInputEvents.push_back(bGstEvent);
       }
 
