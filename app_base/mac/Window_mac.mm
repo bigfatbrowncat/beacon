@@ -315,7 +315,7 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
 
 - (void)keyDown:(NSEvent *)event {
     skui::Key key = get_key([event keyCode]);
-    if (key != skui::Key::kNONE) {
+    /*if (key != skui::Key::kNONE)*/ {
         if (!fWindow->onKey(event, [event keyCode], skui::InputState::kDown, get_modifiers(event))) {
             if (skui::Key::kEscape == key) {
                 [NSApp terminate:fWindow->window()];
@@ -337,7 +337,7 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
 
 - (void)keyUp:(NSEvent *)event {
     skui::Key key = get_key([event keyCode]);
-    if (key != skui::Key::kNONE) {
+    /*if (key != skui::Key::kNONE)*/ {
         (void) fWindow->onKey(event, [event keyCode], skui::InputState::kUp, get_modifiers(event));
     }
 }

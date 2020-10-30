@@ -537,40 +537,6 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
     if (evt->IsCommandDown())
       modifiers |= WebInputEvent::kMetaKey;
 
-//    if (evt->IsScrollEvent()) {
-//      ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
-//      std::shared_ptr<blink::WebGestureEvent> bGstEvent;
-//      WebInputEvent::Type mtp;
-//
-//      switch (scrlEvt->type()) {
-//        case ui::ET_SCROLL:
-//          mtp = WebInputEvent::Type::kGestureScrollUpdate;
-//          break;
-//        case ui::ET_SCROLL_FLING_START:
-//          mtp = WebInputEvent::Type::kGestureScrollBegin;
-//          break;
-//        case ui::ET_SCROLL_FLING_CANCEL:
-//          mtp = WebInputEvent::Type::kGestureScrollEnd;
-//          break;
-//
-//        default:
-//          return false;
-//      }
-//
-//      bGstEvent = std::make_shared<blink::WebGestureEvent>(mtp, modifiers, base::TimeTicks());
-//
-//      bGstEvent->SetPositionInWidget(scrlEvt->location_f() /*gfx::PointF(x, y)*/);
-//      bGstEvent->SetFrameScale(1.0);
-//      bGstEvent->SetSourceDevice(blink::WebGestureDevice::kSyntheticAutoscroll);
-//
-//      if (mtp == WebInputEvent::Type::kGestureScrollUpdate) {
-//        bGstEvent->data.scroll_update.inertial_phase = WebGestureEvent::InertialPhaseState::kMomentum;
-//        bGstEvent->data.scroll_update.delta_x = scrlEvt->x_offset();
-//        bGstEvent->data.scroll_update.delta_y = scrlEvt->y_offset();
-//      }
-//
-//      collectedInputEvents.push_back(bGstEvent);
-//    }
 
     if (evt->IsMouseWheelEvent() || evt->IsScrollEvent()) {
       std::shared_ptr<blink::WebGestureEvent> bGstEvent;
@@ -656,6 +622,16 @@ bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
   if (evt == nullptr)
     return false;
 
+  int modifiers = 0;
+  if (evt->IsShiftDown())
+    modifiers |= WebInputEvent::kShiftKey;
+  if (evt->IsControlDown())
+    modifiers |= WebInputEvent::kControlKey;
+  if (evt->IsAltDown() || evt->IsAltGrDown())
+    modifiers |= WebInputEvent::kAltKey;
+  if (evt->IsCommandDown())
+    modifiers |= WebInputEvent::kMetaKey;
+  
   std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
   if (evt->IsKeyEvent()) {
     auto* keyEvt = evt->AsKeyEvent();
@@ -674,7 +650,7 @@ bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
     }
 
     bKbdEvent =
-        std::make_shared<blink::WebKeyboardEvent>(mtp, 0, base::TimeTicks());
+        std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers, base::TimeTicks());
     bKbdEvent->text[0] = keyEvt->GetText();
     bKbdEvent->windows_key_code = keyEvt->key_code();
     bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
