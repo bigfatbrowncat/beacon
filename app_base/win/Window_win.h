@@ -34,9 +34,14 @@ public:
     void setRequestedDisplayParams(const DisplayParams&, bool allowReattach) override;
     PlatformData& getPlatformData() { return *platformData; }
 
-    uint32_t getDPI() override;
+    float getScale() override;
 
-private:
+
+    bool GetDefaultUIFont(PlatformFont& result) override;
+
+   private:
+    int GetFontSize(const LOGFONT& font);
+
     void closeWindow();
 
     std::shared_ptr<PlatformData> platformData;

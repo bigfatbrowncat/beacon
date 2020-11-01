@@ -70,8 +70,10 @@
 #include "ui/events/blink/blink_event_util.h"
 #include "ui/base/resource/resource_bundle.h"
 
-#ifdef WIN32
+#if defined(OS_WIN)
 #include "ui/events/blink/web_input_event_builders_win.h"
+#include "base/strings/utf_string_conversions.h"
+#include "third_party/blink/public/web/win/web_font_rendering.h"
 #endif
 
 
@@ -172,15 +174,6 @@ HelloWorld::HelloWorld(int argc,
   blink::WebFontRenderStyle::SetAntiAlias(true);
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
-  
-  //blink::WebFontRenderStyle::SetSkiaFontManager(fmgr);
-
-  //sk_sp<SkFontMgr> font_mgr = blink::WebFontTypefaceFactory::FontManagerForVariations();
-  //FontCache::SetFontManager(std::move(font_mgr));
-        
-#ifdef WIN32
-  blink::FontCache::SetAntialiasedTextEnabled(true);
-#endif
       
   backend = std::make_shared<SDK::Backend>();
 
@@ -211,6 +204,26 @@ HelloWorld::HelloWorld(int argc,
   // Setting the WebView scaling factor according to the screen DPI
   float scaleFactor = fWindow->getScale();
   webView->SetZoomFactorOverride(scaleFactor);
+
+#if defined(OS_WIN)
+  blink::FontCache::SetAntialiasedTextEnabled(true);
+
+  if (!this->fWindow->GetDefaultUIFont(defaultUIFont)) {
+    // Fallback. I don't know which disaster should happen to Windows
+    // that makes it fail to determine the system metrics, but we are prepared
+    // here.
+    defaultUIFont.typeface = L"Arial";
+    defaultUIFont.heightPt = 10;
+  }
+
+  // On Windows blink determines the UI font as the default Menu font (no idea why not Message font).
+  // So, if we want "system-ui" typeface to work properly, we need to set it here
+  blink::WebFontRendering::SetMenuFontMetrics(defaultUIFont.typeface.c_str(),
+                                              defaultUIFont.heightPt);
+#else
+  // On other platforms we just load the default UI font
+  this->fWindow->GetDefaultUIFont(defaultUIFont);
+#endif
 }
 
 HelloWorld::~HelloWorld() {
@@ -344,6 +357,7 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   }
   collectedInputEvents.clear();
 
+  // Updating the state machine
   webView->MainFrameWidget()->UpdateAllLifecyclePhases(
       WebWidget::LifecycleUpdateReason::kBeginMainFrame);
 

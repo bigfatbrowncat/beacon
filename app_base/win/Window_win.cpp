@@ -395,7 +395,43 @@ void Window_win::setRequestedDisplayParams(const DisplayParams& params, bool all
 
 float Window_win::getScale() {
 	// Windows UI should be scaled proportionally based on the screen DPI
-    return ::GetDpiForWindow(this->fHWnd) / 96;
+    return (float)::GetDpiForWindow(this->fHWnd) / 96;
+}
+
+ bool Window_win::GetDefaultUIFont(PlatformFont& result) {
+  // Getting the default UI font
+  NONCLIENTMETRICS ncm;
+  ncm.cbSize = sizeof(NONCLIENTMETRICS);
+  bool res = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 
+      sizeof(NONCLIENTMETRICS), &ncm, 0);
+
+  if (res) {
+    result.typeface = ncm.lfMenuFont.lfFaceName;
+    result.heightPt = GetFontSize(ncm.lfMenuFont);
+  }
+
+  return res;
+ }
+
+int Window_win::GetFontSize(const LOGFONT& font) {
+  int nFontSize = 0;
+
+  HDC hDC = ::GetWindowDC(this->fHWnd);
+
+  if (font.lfHeight < 0) {
+    nFontSize = -::MulDiv(font.lfHeight, 72, ::GetDeviceCaps(hDC, LOGPIXELSY));
+  } else {
+    TEXTMETRIC tm;
+    ::ZeroMemory(&tm, sizeof(TEXTMETRIC));
+    ::GetTextMetrics(hDC, &tm);
+
+    nFontSize = ::MulDiv(font.lfHeight - tm.tmInternalLeading, 72,
+                         ::GetDeviceCaps(hDC, LOGPIXELSY));
+  }
+
+  ::ReleaseDC(this->fHWnd, hDC);
+
+  return nFontSize;
 }
 
 }   // namespace sk_app

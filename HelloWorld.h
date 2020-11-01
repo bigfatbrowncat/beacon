@@ -75,6 +75,8 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
  private:
   void updateTitle();
 
+  sk_app::PlatformFont defaultUIFont;
+
   sk_app::Window* fWindow;
   sk_app::Window::BackendType fBackendType;
   std::shared_ptr<sk_app::PlatformData> platformData;

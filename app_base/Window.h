@@ -8,6 +8,8 @@
 #ifndef Window_DEFINED
 #define Window_DEFINED
 
+#include <string>
+
 #include "include/core/SkRect.h"
 #include "include/core/SkTypes.h"
 #include "include/private/SkTDArray.h"
@@ -28,6 +30,11 @@ namespace sk_app {
 
 class WindowContext;
 
+struct PlatformFont {
+  std::wstring typeface;
+  int heightPt;
+};
+    
 class Window {
 public:
     static Window* CreateNativeWindow(const std::shared_ptr<PlatformData>& platformData);
@@ -148,8 +155,9 @@ public:
     GrContext* getGrContext() const;
 
     virtual float getScale();
+    virtual bool GetDefaultUIFont(PlatformFont& result) = 0;
 
-protected:
+   protected:
     Window();
 
     SkTDArray<Layer*>      fLayers;
