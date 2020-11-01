@@ -150,6 +150,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "        <title>Welcome to LightningUI</title>"
     "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
     "        <link rel=\"stylesheet\" href=\"mem://root.css\" />"
+    "        <link rel=\"stylesheet\" href=\"mem://root.css\" />"
     "        <style>"
     "            @keyframes show {"
     "                0%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
@@ -212,8 +213,17 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "html { "
     "    background: #eeeeee; "
     "    margin: 0; "
-    "    font-size: 10pt; "
-    "    font-name: \"sans-serif\" "
+    "    font-size: 9pt; "
+    "    font-family: system-ui;"
+    "}"
+    
+    "button {"
+    "    appearance: push-button; "
+    "    color: black;"
+    "}"
+    
+    "button:active {"
+    "    color: white;"
     "}"
 
     "::selection { background: rgba(0, 0, 0, 0.1); }"

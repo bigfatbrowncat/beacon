@@ -35,6 +35,7 @@
 #include "mojo/core/embedder/embedder.h"
 #include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
 #include "third_party/blink/public/platform/web_font_render_style.h"
+#include "third_party/blink/renderer/platform/fonts/web_font_typeface_factory.h"
 #include "third_party/blink/public/platform/web_coalesced_input_event.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
@@ -72,6 +73,7 @@
 #ifdef WIN32
 #include "ui/events/blink/web_input_event_builders_win.h"
 #endif
+
 
 using namespace sk_app;
 using namespace blink;
@@ -136,6 +138,7 @@ HelloWorld::HelloWorld(int argc,
         ui::ScaleFactor::SCALE_FACTOR_100P);*/  // TODO Add this as well
   }
 
+       
   // Creating a thread pool
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
 
@@ -170,8 +173,11 @@ HelloWorld::HelloWorld(int argc,
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
   
-  //blink::WebFontRenderStyle::SetSkiaFontManager()
+  //blink::WebFontRenderStyle::SetSkiaFontManager(fmgr);
 
+  //sk_sp<SkFontMgr> font_mgr = blink::WebFontTypefaceFactory::FontManagerForVariations();
+  //FontCache::SetFontManager(std::move(font_mgr));
+        
 #ifdef WIN32
   blink::FontCache::SetAntialiasedTextEnabled(true);
 #endif
@@ -203,8 +209,8 @@ HelloWorld::HelloWorld(int argc,
   fWindow->attach(fBackendType);
 
   // Setting the WebView scaling factor according to the screen DPI
-  double scaleFactor = (double)fWindow->getDPI() / 96;
-  webView->SetZoomLevel(scaleFactor);
+  float scaleFactor = fWindow->getScale();
+  webView->SetZoomFactorOverride(scaleFactor);
 }
 
 HelloWorld::~HelloWorld() {

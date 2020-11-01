@@ -181,8 +181,8 @@ void Window::markInvalProcessed() {
     fIsContentInvalidated = false;
 }
 
-uint32_t Window::getDPI() {
-  return 96;    // Default screen DPI value
+float Window::getScale() {
+  return 1;    // Default scaling value
 }
 
 }   // namespace sk_app

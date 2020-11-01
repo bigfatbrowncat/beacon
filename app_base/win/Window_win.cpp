@@ -393,8 +393,9 @@ void Window_win::setRequestedDisplayParams(const DisplayParams& params, bool all
     INHERITED::setRequestedDisplayParams(params, allowReattach);
 }
 
-uint32_t Window_win::getDPI() {
-    return ::GetDpiForWindow(this->fHWnd);
+float Window_win::getScale() {
+	// Windows UI should be scaled proportionally based on the screen DPI
+    return ::GetDpiForWindow(this->fHWnd) / 96;
 }
 
 }   // namespace sk_app
