@@ -157,7 +157,23 @@ void Window_mac::PaintWindows() {
         ++iter;
     }
 }
+  
+bool Window_mac::GetDefaultUIFont(PlatformFont& result) {
+    NSFont* defaultFont = [NSFont systemFontOfSize: 0];
+    result.typeface = std::string([defaultFont.familyName UTF8String]);
+    result.heightPt = [NSFont smallSystemFontSize];  //int(defaultFont.pointSize);
+    //CGFloat scaleFactor = [[NSScreen mainScreen] backingScaleFactor];
+    return true;
+}
 
+SkColor Window_mac::GetFocusRingColor() const {
+    NSColor* acc = NSColor.keyboardFocusIndicatorColor;
+    const CGFloat* rgb = CGColorGetComponents(acc.CGColor);
+
+    return SkColorSetRGB((uint8_t)(rgb[0] * 255), (uint8_t)(rgb[1] * 255), (uint8_t)(rgb[2] * 255));
+}
+
+  
 }   // namespace sk_app
 
 ///////////////////////////////////////////////////////////////////////////////

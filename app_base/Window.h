@@ -31,7 +31,7 @@ namespace sk_app {
 class WindowContext;
 
 struct PlatformFont {
-  std::wstring typeface;
+  std::string typeface;
   int heightPt;
 };
     
@@ -156,6 +156,7 @@ public:
 
     virtual float getScale();
     virtual bool GetDefaultUIFont(PlatformFont& result) = 0;
+	virtual SkColor GetFocusRingColor() const = 0;
 
    protected:
     Window();

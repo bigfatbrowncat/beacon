@@ -38,6 +38,7 @@
 #include "third_party/blink/renderer/platform/fonts/web_font_typeface_factory.h"
 #include "third_party/blink/public/platform/web_coalesced_input_event.h"
 #include "third_party/blink/public/web/blink.h"
+#include "third_party/blink/public/web/web_render_theme.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
 #include "third_party/blink/renderer/core/frame/web_frame_widget_base.h"
 #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
@@ -218,8 +219,9 @@ HelloWorld::HelloWorld(int argc,
 
   // On Windows blink determines the UI font as the default Menu font (no idea why not Message font).
   // So, if we want "system-ui" typeface to work properly, we need to set it here
-  blink::WebFontRendering::SetMenuFontMetrics(defaultUIFont.typeface.c_str(),
-                                              defaultUIFont.heightPt);
+  std::wstring wsTypeface;
+  base::UTF8ToWide(defaultUIFont.typeface.c_str(), defaultUIFont.typeface.size(), &wsTypeface)
+  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface, defaultUIFont.heightPt);
 #else
   // On other platforms we just load the default UI font
   this->fWindow->GetDefaultUIFont(defaultUIFont);
@@ -329,7 +331,18 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   IntRect page_rect(0, 0, kPageWidth, kPageHeight);
   IntSize page_size(kPageWidth, kPageHeight);
 
+  webView->SetIsActive(true);
+  webView->SetFocusedFrame(webView->MainFrame());
+  
+  blink::SetFocusRingColor(this->fWindow->GetFocusRingColor());
+  
+  //element.GetDocument()
+  //.GetFrame()
+  //->Selection()
+  GetDocument().GetFrame()->Selection().SetFrameIsFocused(true);
+  
   webView->Resize(WebSize(page_size));
+
 
   // Handling events
 
