@@ -38,6 +38,7 @@ public:
 
 
     bool GetDefaultUIFont(PlatformFont& result) override;
+    SkColor GetFocusRingColor() const override;
 
    private:
     int GetFontSize(const LOGFONT& font);

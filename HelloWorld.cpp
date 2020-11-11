@@ -213,19 +213,25 @@ HelloWorld::HelloWorld(int argc,
     // Fallback. I don't know which disaster should happen to Windows
     // that makes it fail to determine the system metrics, but we are prepared
     // here.
-    defaultUIFont.typeface = L"Arial";
+    defaultUIFont.typeface = "Arial";
     defaultUIFont.heightPt = 10;
   }
 
   // On Windows blink determines the UI font as the default Menu font (no idea why not Message font).
   // So, if we want "system-ui" typeface to work properly, we need to set it here
   std::wstring wsTypeface;
-  base::UTF8ToWide(defaultUIFont.typeface.c_str(), defaultUIFont.typeface.size(), &wsTypeface)
-  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface, defaultUIFont.heightPt);
+  base::UTF8ToWide(defaultUIFont.typeface.c_str(),
+                   defaultUIFont.typeface.size(), &wsTypeface);
+  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface.c_str(), defaultUIFont.heightPt);
 #else
   // On other platforms we just load the default UI font
   this->fWindow->GetDefaultUIFont(defaultUIFont);
 #endif
+
+
+  webView->SetIsActive(true);
+  webView->SetFocusedFrame(webView->MainFrame());
+  blink::SetFocusRingColor(this->fWindow->GetFocusRingColor());
 }
 
 HelloWorld::~HelloWorld() {
@@ -330,11 +336,6 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   int kPageHeight = height;
   IntRect page_rect(0, 0, kPageWidth, kPageHeight);
   IntSize page_size(kPageWidth, kPageHeight);
-
-  webView->SetIsActive(true);
-  webView->SetFocusedFrame(webView->MainFrame());
-  
-  blink::SetFocusRingColor(this->fWindow->GetFocusRingColor());
   
   //element.GetDocument()
   //.GetFrame()

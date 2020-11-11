@@ -398,20 +398,41 @@ float Window_win::getScale() {
     return (float)::GetDpiForWindow(this->fHWnd) / 96;
 }
 
- bool Window_win::GetDefaultUIFont(PlatformFont& result) {
-  // Getting the default UI font
-  NONCLIENTMETRICS ncm;
-  ncm.cbSize = sizeof(NONCLIENTMETRICS);
-  bool res = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 
-      sizeof(NONCLIENTMETRICS), &ncm, 0);
+static std::string utf8_encode(const std::wstring& wstr) {
+  if (wstr.empty())
+    return std::string();
+  int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(),
+                                        NULL, 0, NULL, NULL);
+  std::string strTo(size_needed, 0);
+  WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0],
+                      size_needed, NULL, NULL);
+  return strTo;
+}
 
-  if (res) {
-    result.typeface = ncm.lfMenuFont.lfFaceName;
-    result.heightPt = GetFontSize(ncm.lfMenuFont);
-  }
+bool Window_win::GetDefaultUIFont(PlatformFont& result) {
+    // Getting the default UI font
+    NONCLIENTMETRICS ncm;
+    ncm.cbSize = sizeof(NONCLIENTMETRICS);
+    bool res = SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 
+                                    sizeof(NONCLIENTMETRICS), &ncm, 0);
+    
+    if (res) {
+      std::wstring wsFaceName(ncm.lfMenuFont.lfFaceName);
+      result.typeface = utf8_encode(wsFaceName);
+      result.heightPt = GetFontSize(ncm.lfMenuFont);
+    }
 
-  return res;
- }
+    return res;
+}
+
+SkColor Window_win::GetFocusRingColor() const {
+  DWORD color = ::GetSysColor(COLOR_MENUHILIGHT /*COLOR_HIGHLIGHT*/);
+    uint8_t r = GetRValue(color);
+    uint8_t g = GetRValue(color);
+    uint8_t b = GetBValue(color);
+    return SkColorSetRGB(r, g, b);
+}
+
 
 int Window_win::GetFontSize(const LOGFONT& font) {
   int nFontSize = 0;
