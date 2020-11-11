@@ -140,14 +140,6 @@ static_library("app_base") {
 
 # Resource embedding tasks
 
-#if (is_win) {
-#executable("bin2coff") {
-#    sources = [
-#        "toolchain-addons/bin2coff.c",
-#    ]
-#}
-#}
-
 action("icudtl_object") {
   deps = [ 
     "//third_party/icu:icudata", 
@@ -201,25 +193,28 @@ executable("HelloWorld") {
   libs = []
   configs -= [ "//build/config/clang:find_bad_constructs" ]
   sources = [
-    "HelloWorld.cpp",
-    "HelloWorld.h",
-    "my_frame_test_helpers.cc",
-    "my_frame_test_helpers.h",
-    "my_blink_platform_impl.cc",
-    "my_blink_platform_impl.h",
-    "my_webthemeengine_impl_default.cc",
-    "my_webthemeengine_impl_default.h",
-    "my_webthemeengine_impl_conversions.cc",
-    "my_webthemeengine_impl_conversions.h",
-    "my_webthemeengine_impl_mac.cc",
-    "my_webthemeengine_impl_mac.h",
-    "SkLoadICU.cpp",
-    "SkLoadICU.h",
+    "src/hell/HelloWorld.cpp",
+    "src/hell/HelloWorld.h",
+    "src/hell/my_frame_test_helpers.cc",
+    "src/hell/my_frame_test_helpers.h",
+    "src/hell/my_blink_platform_impl.cc",
+    "src/hell/my_blink_platform_impl.h",
+    "src/hell/my_webthemeengine_impl_default.cc",
+    "src/hell/my_webthemeengine_impl_default.h",
+    "src/hell/my_webthemeengine_impl_conversions.cc",
+    "src/hell/my_webthemeengine_impl_conversions.h",
+    "src/hell/my_webthemeengine_impl_mac.cc",
+    "src/hell/my_webthemeengine_impl_mac.h",
+    "src/hell/SkLoadICU.cpp",
+    "src/hell/SkLoadICU.h",
 
+    # We are borrowing some resources from the "content" library, 
+    # but trying to use it as few as possible
     "../content/renderer/compositor/layer_tree_view.cc",
     "../content/renderer/compositor/layer_tree_view.h",
     "../content/renderer/compositor/layer_tree_view_delegate.h",
   ]
+  
   sources += [
     "$root_build_dir/icudtl.dat.c",
     "$root_build_dir/blink_resources.pak.c",
@@ -243,58 +238,63 @@ executable("HelloWorld") {
     ]
   }
   
-      include_dirs = [
-        "//third_party/icu/source/common",
-        "//third_party/boringssl/src/include",
-      ]
+  include_dirs = [
+    ".",
+    "//third_party/icu/source/common",
+    "//third_party/boringssl/src/include",
+  ]
 
-      defines = [ "SK_USING_THIRD_PARTY_ICU" ]
-      if (is_component_build) {
-        defines += [ "COMPONENT_BUILD" ]
-      }
+  defines = [ "SK_USING_THIRD_PARTY_ICU" ]
+  if (is_component_build) {
+    defines += [ "COMPONENT_BUILD" ]
+  }
 
-      defines += [ "CONTENT_IMPLEMENTATION" ]
+  defines += [ "CONTENT_IMPLEMENTATION" ]
 #      defines += [ "BLINK_IMPLEMENTATION=1" ]
 #      defines += [ "BLINK_PLATFORM_IMPLEMENTATION=1" ]
 
 
-      deps = [
-        "//third_party/icu:icudata",
-        "//third_party/blink/public:resources",
-        ":icudtl_object",
-        ":blink_resources_object",
+  deps = [
+    # Our internal deps
+    ":app_base",
 
-        "//skia:flags",
-        "//skia:gpu_tool_utils",
-        "//skia:skia",
-        "//skia:tool_utils",
-        "//skia:pathkit",
+    # Embedding the resources into our binary
+    "//third_party/icu:icudata",
+    "//third_party/blink/public:resources",
+    ":icudtl_object",
+    ":blink_resources_object",
 
-        ":app_base",
+    # Skia deps
+    "//skia:flags",
+    "//skia:gpu_tool_utils",
+    "//skia:skia",
+    "//skia:tool_utils",
+    "//skia:pathkit",
 
-        "//cc:cc",
-        "//components/ukm:ukm",
-        "//components/discardable_memory/service:service",
+    # Blink
+    "//third_party/blink/public:blink",
+    "//third_party/blink/public:image_resources",
+    "//third_party/blink/public/strings",
+    "//third_party/blink/renderer/core:core",
+    "//third_party/blink/renderer/platform:platform",
+    "//third_party/blink/renderer/modules:modules",
+    "//third_party/blink/renderer/bindings:generate_v8_bindings",
 
-        "//ui/events:events",
-        "//ui/events/blink:blink",
+    # Other Chromium components
+    "//cc:cc",
+    "//components/ukm:ukm",
+    "//components/discardable_memory/service:service",
 
-        "//third_party/blink/public:blink",
-        "//third_party/blink/public:image_resources",
-        "//third_party/blink/public/strings",
-        "//third_party/blink/renderer/core:core",
-        "//third_party/blink/renderer/platform:platform",
-#        "//third_party/blink/renderer/platform/heap:heap",
-        "//third_party/blink/renderer/modules:modules",
-        "//third_party/blink/renderer/bindings:generate_v8_bindings",
+    "//ui/events:events",
+    "//ui/events/blink:blink",
+    "//ui/native_theme:native_theme_browser",
 
-        "//mojo/core/embedder:embedder",
+    "//mojo/core/embedder:embedder",
 
-        "//ui/native_theme:native_theme_browser",
         
         #"//content/public/common:interfaces",
         #"//content/common:mojo_bindings",
         #"//content/child:child",
 
-      ]
+  ]
 }
