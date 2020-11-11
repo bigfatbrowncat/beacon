@@ -193,8 +193,12 @@ executable("HelloWorld") {
   libs = []
   configs -= [ "//build/config/clang:find_bad_constructs" ]
   sources = [
-    "src/hell/HelloWorld.cpp",
-    "src/hell/HelloWorld.h",
+    "src/main.cpp",
+    "src/LgApp.cpp",
+    "src/LgApp.h",
+    "src/LgBlinkPlatformImpl.cpp",
+    "src/LgBlinkPlatformImpl.h",
+
     "src/hell/my_frame_test_helpers.cc",
     "src/hell/my_frame_test_helpers.h",
     "src/hell/my_blink_platform_impl.cc",
@@ -240,6 +244,7 @@ executable("HelloWorld") {
   
   include_dirs = [
     ".",
+    "src",
     "//third_party/icu/source/common",
     "//third_party/boringssl/src/include",
   ]

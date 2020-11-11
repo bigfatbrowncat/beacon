@@ -187,6 +187,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "                        <script>document.getElementById(\"jsout\").innerHTML += \"<span> 3 + 2 = \" + (3+2) + \"</span>\";</script>"
     "                        <p>UI controls:</p>"
     "                        <button>I am a button!</button> <input type=\"submit\" value=\"Submit\"></input> <input type=\"text\" class=\"growing\" value=\"Hello!\"></input>"
+    "                        <p>Link: <a href=\"mem://index.html\">I am a hyperref</a></p>"
     "                    </div>"
     "                </div>"
     "            </div>"

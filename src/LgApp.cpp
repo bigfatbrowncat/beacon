@@ -1,12 +1,9 @@
-/*
- * Copyright 2017 Google Inc.
- *
- * Use of this source code is governed by a BSD-style license that can be
- * found in the LICENSE file.
- */
+#include "LgApp.h"
+#include "LgBlinkPlatformImpl.h"
 
-#include "HelloWorld.h"
-#include "my_blink_platform_impl.h"
+#include "hell/SkLoadICU.h"
+#include "hell/my_blink_platform_impl.h"
+#include "hell/my_frame_test_helpers.h"
 
 #include <fstream>
 #include <iostream>
@@ -60,13 +57,11 @@
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "base/files/file_path.h"
 #include "cc/paint/skia_paint_canvas.h"
-#include "my_frame_test_helpers.h"
 #include "third_party/blink/renderer/platform/geometry/int_point.h"
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 
-#include "SkLoadICU.h"
 
 #include "ui/events/blink/blink_event_util.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -77,35 +72,17 @@
 #include "third_party/blink/public/web/win/web_font_rendering.h"
 #endif
 
-
 using namespace sk_app;
 using namespace blink;
-
-Application* Application::Create(
-    int argc,
-    char** argv,
-    const std::shared_ptr<PlatformData>& platformData) {
-  return new HelloWorld(argc, argv, platformData);
-}
 
 extern "C" uint8_t blink_resources_pak[]; /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
 
-class MyPlatform : public content::BlinkPlatformImpl {
-  /*WebData UncompressDataResource(int resource_id) override {
-    if (resource_id == IDR_UASTYLE_HTML_CSS)
-    return WebData("");
-  }*/
-
-  WebString DefaultLocale() override { return WebString("en-US"); }
-};
-
-HelloWorld::HelloWorld(int argc,
-                       char** argv,
+LgApp::LgApp(int argc, char** argv,
                        const std::shared_ptr<PlatformData>& platformData)
     : fBackendType(Window::kRaster_BackendType),
       platformData(platformData),
-      platform(std::make_unique<MyPlatform>()) {
+      platform(std::make_unique<LgBlinkPlatformImpl>()) {
 
   exit_manager = std::make_shared<base::AtExitManager>();
 
@@ -228,13 +205,12 @@ HelloWorld::HelloWorld(int argc,
   this->fWindow->GetDefaultUIFont(defaultUIFont);
 #endif
 
-
   webView->SetIsActive(true);
   webView->SetFocusedFrame(webView->MainFrame());
   blink::SetFocusRingColor(this->fWindow->GetFocusRingColor());
 }
 
-HelloWorld::~HelloWorld() {
+LgApp::~LgApp() {
   fWindow->detach();
   delete fWindow;
 
@@ -247,7 +223,7 @@ HelloWorld::~HelloWorld() {
   my_web_thread_sched = nullptr;
 }
 
-void HelloWorld::updateTitle() {
+void LgApp::updateTitle() {
   if (!fWindow /*|| fWindow->sampleCount() <= 1*/) {
     return;
   }
@@ -269,58 +245,17 @@ void HelloWorld::updateTitle() {
   fWindow->setTitle(skTitle.c_str());
 }
 
-void HelloWorld::onBackendCreated() {
-  std::cout << "HelloWorld::onBackendCreated" << std::endl;
+void LgApp::onBackendCreated() {
+  std::cout << "LgApp::onBackendCreated" << std::endl;
   this->updateTitle();
   fWindow->show();
   fWindow->inval();
 }
 
-Document& HelloWorld::GetDocument() {
+Document& LgApp::GetDocument() {
   return *((blink::Document*)webViewHelper->GetWebView()
                ->MainFrameImpl()
                ->GetDocument());
-}
-
-void HelloWorld::CollectLinkedDestinations(Node* node) {
-  for (Node* i = node->firstChild(); i; i = i->nextSibling())
-    CollectLinkedDestinations(i);
-
-  auto* element = DynamicTo<Element>(node);
-  if (!node->IsLink() || !element)
-    return;
-  const AtomicString& href = element->getAttribute(html_names::kHrefAttr);
-  if (href.IsNull())
-    return;
-  KURL url = node->GetDocument().CompleteURL(href);
-  if (!url.IsValid())
-    return;
-
-  if (url.HasFragmentIdentifier() &&
-      EqualIgnoringFragmentIdentifier(url, node->GetDocument().BaseURL())) {
-    String name = url.FragmentIdentifier();
-    if (Element* element = node->GetDocument().FindAnchor(name))
-      linked_destinations_.Set(name, element);
-  }
-}
-
-void HelloWorld::OutputLinkedDestinations(GraphicsContext& context,
-                                          const IntRect& page_rect) {
-  // if (!linked_destinations_valid_) {
-  // Collect anchors in the top-level frame only because our PrintContext
-  // supports only one namespace for the anchors.
-  CollectLinkedDestinations(&GetDocument());
-  // linked_destinations_valid_ = true;
-  //}
-
-  for (const auto& entry : linked_destinations_) {
-    LayoutObject* layout_object = entry.value->GetLayoutObject();
-    if (!layout_object || !layout_object->GetFrameView())
-      continue;
-    IntPoint anchor_point = layout_object->AbsoluteBoundingBoxRect().Location();
-    if (page_rect.Contains(anchor_point))
-      context.SetURLDestinationLocation(entry.key, anchor_point);
-  }
 }
 
 template <typename Function>
@@ -331,7 +266,7 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
     ForAllGraphicsLayers(*child, function);
 }
 
-void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
+void LgApp::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   int kPageWidth = width;
   int kPageHeight = height;
   IntRect page_rect(0, 0, kPageWidth, kPageHeight);
@@ -402,12 +337,7 @@ void HelloWorld::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   }
 }
 
-void HelloWorld::SetBodyInnerHTML(String body_content) {
-  GetDocument().body()->setAttribute(html_names::kStyleAttr, "margin: 0");
-  GetDocument().body()->SetInnerHTMLFromString(body_content);
-}
-
-void HelloWorld::UpdateBackend() {
+void LgApp::UpdateBackend() {
   // Checking if we need a fallback to Raster renderer.
   // Fallback is effective for small screens and weak videochips
   bool fallback = false;
@@ -439,7 +369,7 @@ void HelloWorld::UpdateBackend() {
   }
 
   if (fBackendType != newBackendType) {
-    std::cout << "HelloWorld::UpdateBackend: updating backend" << std::endl;
+    std::cout << "LgApp::UpdateBackend: updating backend" << std::endl;
     fBackendType = newBackendType;
     fWindow->detach();
     fWindow->attach(fBackendType);
@@ -447,24 +377,24 @@ void HelloWorld::UpdateBackend() {
   }
 }
 
-void HelloWorld::onResize(int width, int height) {
+void LgApp::onResize(int width, int height) {
   UpdateBackend();
   fWindow->inval();
 }
 
-void HelloWorld::onBeginResizing() {
-  std::cout << "HelloWorld::onBeginResizing" << std::endl;
+void LgApp::onBeginResizing() {
+  std::cout << "LgApp::onBeginResizing" << std::endl;
   resizing = true;
   UpdateBackend();
 }
 
-void HelloWorld::onEndResizing() {
-  std::cout << "HelloWorld::onEndResizing" << std::endl;
+void LgApp::onEndResizing() {
+  std::cout << "LgApp::onEndResizing" << std::endl;
   resizing = false;
   UpdateBackend();
 }
 
-void HelloWorld::onPaint(SkSurface* surface) {
+void LgApp::onPaint(SkSurface* surface) {
   auto* canvas = surface->getCanvas();
 
   int width = fWindow->width();
@@ -478,7 +408,7 @@ void HelloWorld::onPaint(SkSurface* surface) {
   canvas->restore();
 }
 
-bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
+bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
                          int, int, skui::InputState, skui::ModifierKey) {
   std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
   if (evt == nullptr)
@@ -553,7 +483,7 @@ bool HelloWorld::onMouse(const ui::PlatformEvent& platformEvent,
   return false;
 }
 
-bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
+bool LgApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
     float delta,
     skui::ModifierKey modKey) {
 
@@ -648,7 +578,7 @@ bool HelloWorld::onMouseWheel(const ui::PlatformEvent& platformEvent,
 
 }
 
-bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
+bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
                        uint64_t key,
                        skui::InputState inState,
                        skui::ModifierKey modKey) {
@@ -699,13 +629,13 @@ bool HelloWorld::onKey(const ui::PlatformEvent& platformEvent,
   return false;
 }
 
-bool HelloWorld::onChar(const ui::PlatformEvent& platformEvent,
+bool LgApp::onChar(const ui::PlatformEvent& platformEvent,
                         SkUnichar c,
                         skui::ModifierKey modifiers) {
   return false;
 }
 
-void HelloWorld::onIdle() {
+void LgApp::onIdle() {
   UpdateBackend();
 
   // Update contents if necessary
@@ -725,4 +655,4 @@ void HelloWorld::onIdle() {
   fWindow->inval();
 }
 
-void HelloWorld::onAttach(sk_app::Window* window) {}
+void LgApp::onAttach(sk_app::Window* window) {}

@@ -1,0 +1,1 @@
+#include "LgBlinkPlatformImpl.h"

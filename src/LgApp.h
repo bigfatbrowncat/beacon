@@ -1,12 +1,5 @@
-/*
- * Copyright 2017 Google Inc.
- *
- * Use of this source code is governed by a BSD-style license that can be
- * found in the LICENSE file.
- */
-
-#ifndef HelloWorld_DEFINED
-#define HelloWorld_DEFINED
+#ifndef LgApp_DEFINED
+#define LgApp_DEFINED
 
 #include <chrono>
 
@@ -15,29 +8,28 @@
 #include "base/task/sequence_manager/thread_controller_with_message_pump_impl.h"
 
 #include "mojo/public/cpp/bindings/binder_map.h"
-#include "my_frame_test_helpers.h"
 #include "third_party/blink/public/platform/platform.h"
 #include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
 #include "third_party/blink/public/platform/web_common.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
-#include "app_base/Application.h"
-#include "app_base/Window.h"
-
 #include "components/discardable_memory/service/discardable_shared_memory_manager.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
+
+#include "app_base/Application.h"
+#include "app_base/Window.h"
+#include "hell/my_frame_test_helpers.h"
 
 class SkCanvas;
 namespace blink {
 class Element;
 }  // namespace blink
 
-class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
+class LgApp : public sk_app::Application, sk_app::Window::Layer {
  public:
-  HelloWorld(int argc,
-             char** argv,
-             const std::shared_ptr<sk_app::PlatformData>& platformData);
-  ~HelloWorld() override;
+  LgApp(int argc, char** argv,
+        const std::shared_ptr<sk_app::PlatformData>& platformData);
+  ~LgApp() override;
 
   void onIdle() override;
   void onAttach(sk_app::Window* window) override;
@@ -65,12 +57,7 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   blink::Document& GetDocument();
   void PrintSinglePage(SkCanvas* canvas, int width, int height);
-  void SetBodyInnerHTML(String body_content);
   void UpdateBackend();
-
-  void OutputLinkedDestinations(blink::GraphicsContext& context,
-                                const blink::IntRect& page_rect);
-  void CollectLinkedDestinations(blink::Node* node);
 
  private:
   void updateTitle();
@@ -116,11 +103,6 @@ class HelloWorld : public sk_app::Application, sk_app::Window::Layer {
 
   std::shared_ptr<base::AtExitManager> exit_manager;
   std::shared_ptr<mojo::BinderMap> binder_map;
-
-  std::map<uint64_t, std::shared_ptr<blink::WebGestureEvent>>
-      scrollBarScrollingEvents;
-  std::map<uint64_t, std::shared_ptr<blink::WebGestureEvent>>
-      prevScrollBarScrollingEvents;
 };
 
-#endif
+#endif  /* LgApp_DEFINED */
