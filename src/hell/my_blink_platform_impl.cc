@@ -131,20 +131,20 @@ class NestedMessageLoopRunnerImpl
 
 }  // namespace
 
-BlinkPlatformImpl::BlinkPlatformImpl()
+/*BlinkPlatformImpl::BlinkPlatformImpl()
     : BlinkPlatformImpl(base::ThreadTaskRunnerHandle::IsSet()
                             ? base::ThreadTaskRunnerHandle::Get()
                             : nullptr,
-                        nullptr) {}
+                        nullptr) {}*/
 
 BlinkPlatformImpl::BlinkPlatformImpl(
     scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner)
+    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, sk_app::Window* window)
     : main_thread_task_runner_(std::move(main_thread_task_runner)),
       io_thread_task_runner_(std::move(io_thread_task_runner)),
       /*browser_interface_broker_proxy_(
           base::MakeRefCounted<ThreadSafeBrowserInterfaceBrokerProxyImpl>()),*/
-      native_theme_engine_(GetWebThemeEngine()) {}
+      native_theme_engine_(GetWebThemeEngine()), myWebSandboxSupport(new MyWebSandboxSupport(window)) {}
 
 BlinkPlatformImpl::~BlinkPlatformImpl() = default;
 

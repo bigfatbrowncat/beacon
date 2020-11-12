@@ -82,8 +82,7 @@ extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
 LgApp::LgApp(int argc, char** argv,
                        const std::shared_ptr<PlatformData>& platformData)
     : fBackendType(Window::kRaster_BackendType),
-      platformData(platformData),
-      platform(std::make_unique<LgBlinkPlatformImpl>()) {
+      platformData(platformData) {
 
   exit_manager = std::make_shared<base::AtExitManager>();
 
@@ -136,6 +135,17 @@ LgApp::LgApp(int argc, char** argv,
       std::make_shared<discardable_memory::DiscardableSharedMemoryManager>();
   base::DiscardableMemoryAllocator::SetInstance(discardableSharedMemoryManager.get());
 
+  SkGraphics::Init();
+  
+  fWindow = Window::CreateNativeWindow(platformData);
+  fWindow->setRequestedDisplayParams(DisplayParams());
+
+  platform = std::make_unique<LgBlinkPlatformImpl>(
+                                                   my_web_thread_sched->DefaultTaskRunner(),
+                                                   my_web_thread_sched->DefaultTaskRunner(),
+                                                   fWindow);
+        
+        
   blink::Initialize(platform.get(), binder_map.get(),
                     /*scheduler::WebThreadScheduler * main_thread_scheduler*/
                     my_web_thread_sched.get());
@@ -147,7 +157,7 @@ LgApp::LgApp(int argc, char** argv,
   blink::WebFontRenderStyle::SetAntiAlias(true);
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
-      
+ 
   backend = std::make_shared<SDK::Backend>();
 
   webViewHelper =
@@ -165,10 +175,6 @@ LgApp::LgApp(int argc, char** argv,
 
   webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(), wvc.get(), wwc.get());
 
-  SkGraphics::Init();
-
-  fWindow = Window::CreateNativeWindow(platformData);
-  fWindow->setRequestedDisplayParams(DisplayParams());
 
   // register callbacks
   fWindow->pushLayer(this);

@@ -183,7 +183,7 @@ PlatformColors Window_mac::GetPlatformColors() const {
   if ([NSColor respondsToSelector:@selector(unemphasizedSelectedTextBackgroundColor)]) {
     pc.selectionBackgroundColorInactive = NSColorToSkColor(NSColor.unemphasizedSelectedTextBackgroundColor);  // 10.14 or newer
   } else {
-    pc.selectionBackgroundColorInactive = NSColorToSkColor(NSColor.controlColor);
+    pc.selectionBackgroundColorInactive = NSColorToSkColor(NSColor.windowBackgroundColor);
   }
   
   pc.selectionTextColorActive = NSColorToSkColor(NSColor.selectedTextColor);

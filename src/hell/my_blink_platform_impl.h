@@ -21,16 +21,65 @@
 #include "third_party/blink/public/public_buildflags.h"
 #include "ui/base/layout.h"
 
+#include "app_base/Window.h"
+
+#if __APPLE__
+#import <CoreText/CoreText.h>
+#include "third_party/blink/public/platform/mac/web_sandbox_support.h"
+#endif
+
 namespace content {
 
 class WebCryptoImpl;
 
-class CONTENT_EXPORT BlinkPlatformImpl : public blink::Platform {
+class MyWebSandboxSupport : public blink::WebSandboxSupport {
+private:
+    sk_app::Window* window;
+public:
+  MyWebSandboxSupport(sk_app::Window* window) : window(window) { }
+    virtual ~MyWebSandboxSupport() override {}
+#ifdef __APPLE__
+    // Given an input font - |srcFont| [which can't be loaded due to sandbox
+    // restrictions]. Return a font belonging to an equivalent font file
+    // that can be used to access the font and a unique identifier corresponding
+    // to the on-disk font file.
+    //
+    // If this function succeeds, the caller assumes ownership of the |out|
+    // parameter and must call CGFontRelease() to unload it when done.
+    //
+    // Returns: true on success, false on error.
+    bool LoadFont(CTFontRef src_font,
+                          CGFontRef* out,
+                          uint32_t* font_id) override { return false; }
+  
+    // Returns the system's preferred value for a named color.
+  SkColor GetSystemColor(blink::MacSystemColorID colorId) override {
+    sk_app::PlatformColors pc = window->GetPlatformColors();
+      switch (colorId) {
+      case blink::MacSystemColorID::kSelectedText:
+          return pc.selectionTextColorActive;
+      case blink::MacSystemColorID::kSelectedTextBackground:
+          return pc.selectionBackgroundColorActive;
+      case blink::MacSystemColorID::kSecondarySelectedControl:
+          return pc.selectionBackgroundColorInactive;
+
+      default:
+          return SkColorSetRGB(128, 0, 0);
+      }
+    }
+#elif WIN32
+  // Nothing here
+#else // This is for linux
+  // TODO Implement this class for Linux
+#endif
+};
+  
+class BlinkPlatformImpl : public blink::Platform {
  public:
-  BlinkPlatformImpl();
+  //BlinkPlatformImpl();
   explicit BlinkPlatformImpl(
       scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner);
+      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, sk_app::Window* window);
   ~BlinkPlatformImpl() override;
 
   // Platform methods (partial implementation):
@@ -61,7 +110,8 @@ class CONTENT_EXPORT BlinkPlatformImpl : public blink::Platform {
   scoped_refptr<base::SingleThreadTaskRunner> GetIOTaskRunner() const override;
   std::unique_ptr<NestedMessageLoopRunner> CreateNestedMessageLoopRunner()
       const override;
-
+  
+  blink::WebSandboxSupport* GetSandboxSupport() override { return myWebSandboxSupport.get(); }
  private:
   scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner_;
   scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner_;
@@ -70,6 +120,7 @@ class CONTENT_EXPORT BlinkPlatformImpl : public blink::Platform {
   std::unique_ptr<blink::WebThemeEngine> native_theme_engine_;
 //  webcrypto::WebCryptoImpl web_crypto_;
   base::string16 GetLocalizedString(int message_id) { return base::string16(); }
+  std::unique_ptr<blink::WebSandboxSupport> myWebSandboxSupport;
 };
 
 }  // namespace content
