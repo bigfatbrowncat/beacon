@@ -22,6 +22,8 @@ https://chromium.googlesource.com/chromium/src/+/tags/81.0.4002.1/docs/mac_build
 
 We recommend use `fetch --no-history chromium` instead of just `fetch chromium` to economize drive space. This command will clone the main root 'src' repo.
 
+Note: it might be easier to install essential x86 tooling only by running `sudo ./install-build-deps.sh --syms --no-arm --no-nacl --no-backwards-compatible --no-chromeos-fonts`
+
 Then go into `src`
 ```
 cd src
