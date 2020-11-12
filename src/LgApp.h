@@ -71,10 +71,6 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
   std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
       discardableSharedMemoryManager;    
 
-  base::CommandLine::StringType htmlFilename;
-  std::string htmlContents;
-  std::chrono::steady_clock::time_point htmlContentsUpdateTime =
-      std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point lastGLInitAttempt =
       std::chrono::steady_clock::now();
 

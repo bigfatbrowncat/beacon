@@ -370,7 +370,7 @@ class TestWebWidgetClient : public WebWidgetClient {
 
 class TestWebViewClient : public WebViewClient {
  public:
-  TestWebViewClient();
+  TestWebViewClient(std::shared_ptr<WebViewHelper> parent);
   ~TestWebViewClient() override;
 
   void DestroyChildViews();
@@ -386,10 +386,13 @@ class TestWebViewClient : public WebViewClient {
                       WebSandboxFlags,
                       const FeaturePolicy::FeatureState&,
                       const SessionStorageNamespaceId&) override;
+  void FocusNext() override;
+  void FocusPrevious() override;
 
  private:
   // LayerTreeViewFactory layer_tree_view_factory_;
   WTF::Vector<std::unique_ptr<WebViewHelper>> child_web_views_;
+  std::shared_ptr<WebViewHelper> parent;
 };
 
 // Convenience class for handling the lifetime of a WebView and its associated
@@ -460,6 +463,8 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
   void Resize(WebSize);
 
   void Reset();
+
+  void SetFocused();
 
   WebViewImpl* GetWebView() const { return web_view_; }
   cc::LayerTreeHost* GetLayerTreeHost() const {

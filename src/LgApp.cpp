@@ -38,6 +38,7 @@
 #include "third_party/blink/public/web/web_render_theme.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
 #include "third_party/blink/renderer/core/frame/web_frame_widget_base.h"
+#include "third_party/blink/renderer/core/page/focus_controller.h"
 #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
 #include "third_party/blink/renderer/core/html/html_head_element.h"
 #include "third_party/blink/renderer/core/html/html_collection.h"
@@ -91,10 +92,9 @@ LgApp::LgApp(int argc, char** argv,
       base::CommandLine::ForCurrentProcess()->GetArgs();
 
   if (parsedArgs.size() > 0) {
-    htmlFilename = parsedArgs[0];
+      // Processing toe command line
   }
 
-  std::cerr << "Calling SkLoadICU()" << std::endl;
   if (!SkLoadICU()) {
   	std::cerr << "Can't load ICU4C data" << std::endl;
   }
@@ -111,11 +111,6 @@ LgApp::LgApp(int argc, char** argv,
 
     ui::ResourceBundle::GetSharedInstance().AddDataPackFromBuffer(
         blink_pak_memory, ui::SCALE_FACTOR_100P);     
-
-
-    /*ui::ResourceBundle::GetSharedInstance().AddDataPackFromPath(
-        base::FilePath(L"D:/Projects/google-toolchain/chromium/src/out/Debug/gen/third_party/blink/public/resources/blink_image_resources_100_percent.pak"),
-        ui::ScaleFactor::SCALE_FACTOR_100P);*/  // TODO Add this as well
   }
 
        
@@ -161,7 +156,7 @@ LgApp::LgApp(int argc, char** argv,
       backend);
   wfc->SetScheduler(my_web_thread_sched);
 
-  wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>();
+  wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>(webViewHelper);
   wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
       new my_frame_test_helpers::StubLayerTreeViewDelegate(),
       my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
@@ -205,9 +200,12 @@ LgApp::LgApp(int argc, char** argv,
   this->fWindow->GetDefaultUIFont(defaultUIFont);
 #endif
 
-  webView->SetIsActive(true);
-  webView->SetFocusedFrame(webView->MainFrame());
-  blink::SetFocusRingColor(this->fWindow->GetFocusRingColor());
+  // Setting the main view initially focused
+  webViewHelper->SetFocused();
+
+  // Setting caret visible
+  blink::WebLocalFrameImpl& frm = *webView->MainFrameImpl();
+  frm.SetCaretVisible(true);
 }
 
 LgApp::~LgApp() {
@@ -271,28 +269,30 @@ void LgApp::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   int kPageHeight = height;
   IntRect page_rect(0, 0, kPageWidth, kPageHeight);
   IntSize page_size(kPageWidth, kPageHeight);
-  
-  //element.GetDocument()
-  //.GetFrame()
-  //->Selection()
-  GetDocument().GetFrame()->Selection().SetFrameIsFocused(true);
-  
-  webView->Resize(WebSize(page_size));
 
+  PlatformColors pc = this->fWindow->GetPlatformColors();
+
+  // Updating the ring color
+  // TODO Set a callback on the system style changing function
+  blink::SetFocusRingColor(pc.GetFocusRingColor(this->fWindow->IsActive()));
+  
+  GetDocument().GetPage()->GetFocusController().SetActive(
+      this->fWindow->IsActive());
+  //GetDocument().GetPage()->GetFocusController().SetFocused(true);
+
+  blink::SetSelectionColors(pc.GetSelectionBackgroundColor(true),
+                            pc.GetSelectionTextColor(true),
+                            pc.GetSelectionBackgroundColor(false),
+                            pc.GetSelectionTextColor(false));
+  blink::ColorSchemeChanged();
 
   // Handling events
-
-  blink::WebLocalFrameImpl& frm = *webView->MainFrameImpl();
-  frm.SetCaretVisible(true);
-  
   LocalFrameView* frame_view =
       webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
-
 
   webViewHelper->GetWebWidgetClient()->HandleScrollEvents(webView->MainFrameWidget());
 
   for (auto& p : collectedInputEvents) {
-
     WebInputEvent& theEvent = *p;
     auto mtp = theEvent.GetType();
 
@@ -379,6 +379,15 @@ void LgApp::UpdateBackend() {
 
 void LgApp::onResize(int width, int height) {
   UpdateBackend();
+
+  int kPageWidth = width;
+  int kPageHeight = height;
+  IntRect page_rect(0, 0, kPageWidth, kPageHeight);
+  IntSize page_size(kPageWidth, kPageHeight);
+
+  webView->Resize(WebSize(page_size));
+
+
   fWindow->inval();
 }
 
@@ -637,15 +646,6 @@ bool LgApp::onChar(const ui::PlatformEvent& platformEvent,
 
 void LgApp::onIdle() {
   UpdateBackend();
-
-  // Update contents if necessary
-  std::chrono::steady_clock::time_point curTime =
-      std::chrono::steady_clock::now();
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(
-          curTime - htmlContentsUpdateTime)
-          .count() > 500) {
-    htmlContentsUpdateTime = curTime;
-  }
 
   // Processing the pending commands
   base::RunLoop run_loop;

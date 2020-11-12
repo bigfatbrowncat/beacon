@@ -14,6 +14,15 @@
 #include <windowsx.h>
 #include <WinUser.h>
 
+#ifdef USING_WINDOWS_APP_API
+#include <wrl.h>
+#include <Windows.UI.ViewManagement.h>
+
+namespace abi_vm = ABI::Windows::UI::ViewManagement;
+namespace wrl = Microsoft::WRL;
+namespace wf = Windows::Foundation;
+#endif
+
 #include "src/core/SkUtils.h"
 #include "app_base/WindowContext.h"
 #include "app_base/win/WindowContextFactory_win.h"
@@ -409,6 +418,33 @@ static std::string utf8_encode(const std::wstring& wstr) {
   return strTo;
 }
 
+static SkColor GetWinAPIColor(DWORD code) {
+  DWORD color = ::GetSysColor(code);
+  uint8_t r = GetRValue(color);
+  uint8_t g = GetRValue(color);
+  uint8_t b = GetBValue(color);
+  return SkColorSetRGB(r, g, b);
+}
+
+static SkColor GetHighlightColor() {
+    // On the new windows COLOR_HIGHLIGHT returns an invalid value. 
+    // So we have to use a new API to retrieve the "Accent" color
+#ifdef USING_WINDOWS_APP_API
+  // Error checking has been elided for expository purposes.
+  wrl::ComPtr<abi_vm::IUISettings3> settings;
+  wf::ActivateInstance(wrl::Wrappers::HStringReference(
+                           RuntimeClass_Windows_UI_ViewManagement_UISettings)
+                           .Get(),
+                       &settings);
+  ABI::Windows::UI::Color color;
+  settings->GetColorValue(abi_vm::UIColorType_Accent, &color);
+
+  return SkColorSetARGB(color.A, color.R, color.G, color.B);
+#else
+  return GetWinAPIColor(COLOR_HIGHLIGHT);
+#endif
+}
+
 bool Window_win::GetDefaultUIFont(PlatformFont& result) {
     // Getting the default UI font
     NONCLIENTMETRICS ncm;
@@ -425,14 +461,24 @@ bool Window_win::GetDefaultUIFont(PlatformFont& result) {
     return res;
 }
 
-SkColor Window_win::GetFocusRingColor() const {
-  DWORD color = ::GetSysColor(COLOR_MENUHILIGHT /*COLOR_HIGHLIGHT*/);
-    uint8_t r = GetRValue(color);
-    uint8_t g = GetRValue(color);
-    uint8_t b = GetBValue(color);
-    return SkColorSetRGB(r, g, b);
+PlatformColors Window_win::GetPlatformColors() const {
+    auto hlc = GetHighlightColor();
+
+    PlatformColors pc;
+    pc.selectionBackgroundColorActive = hlc;
+    pc.selectionBackgroundColorInactive = GetWinAPIColor(COLOR_WINDOW);
+
+    pc.selectionTextColorActive = GetWinAPIColor(COLOR_HIGHLIGHTTEXT);
+    pc.selectionTextColorInactive = GetWinAPIColor(COLOR_WINDOWTEXT);
+
+    pc.focusRingColorActive = hlc;
+    pc.focusRingColorInactive = GetWinAPIColor(COLOR_BTNFACE);
+    return pc;
 }
 
+bool Window_win::IsActive() const {
+  return GetActiveWindow() == this->fHWnd;
+}
 
 int Window_win::GetFontSize(const LOGFONT& font) {
   int nFontSize = 0;

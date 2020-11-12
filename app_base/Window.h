@@ -34,6 +34,38 @@ struct PlatformFont {
   std::string typeface;
   int heightPt;
 };
+
+struct PlatformColors {
+  SkColor selectionBackgroundColorActive;
+  SkColor selectionBackgroundColorInactive;
+
+  SkColor selectionTextColorActive;
+  SkColor selectionTextColorInactive;
+
+  SkColor focusRingColorActive;
+  SkColor focusRingColorInactive;
+
+  SkColor GetSelectionBackgroundColor(bool active) { 
+      if (active)
+        return selectionBackgroundColorActive;
+      else
+        return selectionBackgroundColorInactive;
+  }
+
+  SkColor GetSelectionTextColor(bool active) {
+    if (active)
+      return selectionTextColorActive;
+    else
+      return selectionTextColorInactive;
+  }
+
+  SkColor GetFocusRingColor(bool active) {
+    if (active)
+      return focusRingColorActive;
+    else
+      return focusRingColorInactive;
+  }
+};
     
 class Window {
 public:
@@ -156,7 +188,9 @@ public:
 
     virtual float getScale();
     virtual bool GetDefaultUIFont(PlatformFont& result) = 0;
-	virtual SkColor GetFocusRingColor() const = 0;
+
+    virtual PlatformColors GetPlatformColors() const = 0;
+    virtual bool IsActive() const = 0;
 
    protected:
     Window();

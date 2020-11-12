@@ -54,6 +54,7 @@
 #include "third_party/blink/public/web/web_settings.h"
 #include "third_party/blink/public/web/web_tree_scope_type.h"
 #include "third_party/blink/public/web/web_view_client.h"
+#include "third_party/blink/renderer/core/editing/frame_selection.h"
 #include "third_party/blink/renderer/core/exported/web_remote_frame_impl.h"
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
 #include "third_party/blink/renderer/core/loader/document_loader.h"
@@ -188,6 +189,13 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "                        <p>UI controls:</p>"
     "                        <button>I am a button!</button> <input type=\"submit\" value=\"Submit\"></input> <input type=\"text\" class=\"growing\" value=\"Hello!\"></input>"
     "                        <p>Link: <a href=\"mem://index.html\">I am a hyperref</a></p>"
+    "                        <label for=\"cars\">Choose a car:</label>"
+    "                        <select name=\"cars\" id=\"cars\">"
+    "                            <option value=\"volvo\">Volvo</option>"
+    "                            <option value=\"saab\">Saab</option>"
+    "                            <option value=\"opel\">Opel</option>"
+    "                            <option value=\"audi\">Audi</option>"
+    "                        </select>"
     "                    </div>"
     "                </div>"
     "            </div>"
@@ -232,7 +240,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "    outline-color: -webkit-focus-ring-color;"
     "} "
 
-    "::selection { background: rgba(0, 0, 128, 0.2); } "
+//    "::selection { background: rgba(0, 0, 128, 0.2); } "
 
     "input[type=text].growing {"
     "   width: 100px;"
@@ -515,6 +523,10 @@ void LoadFrameDontWait(WebLocalFrame* frame, const WebURL& url) {
     impl->CommitNavigation(
         std::move(params), nullptr /* extra_data */,
         base::DoNothing::Once() /* call_before_attaching_new_document */);
+    
+    //if (impl->SentDidFinishLoad()) {
+        // Setting the frame active to process the tabs correctly
+    //}
   }
 }
 
@@ -887,6 +899,15 @@ void WebViewHelper::Reset() {
   test_web_view_client_ = nullptr;
 }
 
+void WebViewHelper::SetFocused() {
+  GetWebView()->SetIsActive(true);
+  ((blink::Document*)GetWebView()->MainFrameImpl()
+               ->GetDocument())->GetFrame()->Selection().SetFrameIsFocused(true);
+   
+  //GetWebView()->SetFocusedFrame(GetWebView()->MainFrameImpl());
+}
+
+
 WebLocalFrameImpl* WebViewHelper::LocalMainFrame() const {
   return To<WebLocalFrameImpl>(web_view_->MainFrame());
 }
@@ -912,6 +933,9 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
   web_view_->GetSettings()->SetViewportEnabled(viewport_enabled_);
   web_view_->GetSettings()->SetJavaScriptEnabled(true);
   web_view_->GetSettings()->SetPluginsEnabled(true);
+  
+  //auto client = web_view_->Client();
+  //client->FocusNext();
 
   // Enable (mocked) network loads of image URLs, as this simplifies
   // the completion of resource loads upon test shutdown & helps avoid
@@ -1239,11 +1263,22 @@ WebView* TestWebViewClient::CreateView(WebLocalFrame* opener,
   return result;
 }
 
+void TestWebViewClient::FocusNext() {
+  // TODO Support more than one view
+  parent->SetFocused();
+}
+void TestWebViewClient::FocusPrevious() {
+  // TODO Support more than one view
+  parent->SetFocused();
+}
+
 TestWebWidgetClient::~TestWebWidgetClient() {}
 void TestWebWidgetClient::ScheduleAnimation() {
   animation_scheduled_ = true;
 }
-TestWebViewClient::TestWebViewClient() {}
+TestWebViewClient::TestWebViewClient(std::shared_ptr<WebViewHelper> parent) {
+  this->parent = parent;
+}
 TestWebViewClient::~TestWebViewClient() {}
 
 bool TestWebViewClient::CanHandleGestureEvent() {
