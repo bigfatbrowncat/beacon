@@ -47,7 +47,8 @@ public:
     void closeWindow();
   
     bool GetDefaultUIFont(PlatformFont& result) override;
-	SkColor GetFocusRingColor() const override;
+    PlatformColors GetPlatformColors() const override;
+    bool IsActive() const override;
 
 private:
     NSWindow*    fWindow;

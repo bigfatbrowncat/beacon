@@ -14,6 +14,7 @@
 @interface WindowDelegate : NSObject<NSWindowDelegate>
 
 - (WindowDelegate*)initWithWindow:(sk_app::Window_mac*)initWindow;
+- (void)windowDidResize:(NSNotification *)notification;
 
 @end
 
@@ -166,14 +167,43 @@ bool Window_mac::GetDefaultUIFont(PlatformFont& result) {
     return true;
 }
 
-SkColor Window_mac::GetFocusRingColor() const {
-    NSColor* acc = NSColor.keyboardFocusIndicatorColor;
-    const CGFloat* rgb = CGColorGetComponents(acc.CGColor);
-
-    return SkColorSetRGB((uint8_t)(rgb[0] * 255), (uint8_t)(rgb[1] * 255), (uint8_t)(rgb[2] * 255));
+static SkColor NSColorToSkColor(NSColor* acc) {
+  const CGFloat* rgb = CGColorGetComponents(acc.CGColor);
+  return SkColorSetRGB((uint8_t)(rgb[0] * 255), (uint8_t)(rgb[1] * 255), (uint8_t)(rgb[2] * 255));
 }
 
+PlatformColors Window_mac::GetPlatformColors() const {
+  PlatformColors pc;
   
+  pc.selectionBackgroundColorActive = NSColorToSkColor(NSColor.selectedTextBackgroundColor);
+  
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+  
+  if ([NSColor respondsToSelector:@selector(unemphasizedSelectedTextBackgroundColor)]) {
+    pc.selectionBackgroundColorInactive = NSColorToSkColor(NSColor.unemphasizedSelectedTextBackgroundColor);  // 10.14 or newer
+  } else {
+    pc.selectionBackgroundColorInactive = NSColorToSkColor(NSColor.controlColor);
+  }
+  
+  pc.selectionTextColorActive = NSColorToSkColor(NSColor.selectedTextColor);
+  
+  if ([NSColor respondsToSelector:@selector(unemphasizedSelectedTextColor)]) {
+    pc.selectionTextColorInactive = NSColorToSkColor(NSColor.unemphasizedSelectedTextColor);  // 10.14 or newer
+  } else {
+    pc.selectionTextColorInactive = NSColorToSkColor(NSColor.selectedTextColor);
+  }
+#pragma clang diagnostic pop
+  
+  pc.focusRingColorActive = NSColorToSkColor(NSColor.keyboardFocusIndicatorColor);
+  pc.focusRingColorInactive = NSColorToSkColor(NSColor.controlColor);
+  return pc;
+}
+
+bool Window_mac::IsActive() const {
+  return [fWindow isKeyWindow];
+}
+
 }   // namespace sk_app
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -185,7 +215,7 @@ SkColor Window_mac::GetFocusRingColor() const {
 - (WindowDelegate*)initWithWindow:(sk_app::Window_mac *)initWindow {
     fWindow = initWindow;
 
-    return self;
+  return self;
 }
 
 - (void)windowDidResize:(NSNotification *)notification {

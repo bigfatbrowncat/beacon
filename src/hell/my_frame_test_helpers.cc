@@ -901,10 +901,9 @@ void WebViewHelper::Reset() {
 
 void WebViewHelper::SetFocused() {
   GetWebView()->SetIsActive(true);
+  
   ((blink::Document*)GetWebView()->MainFrameImpl()
                ->GetDocument())->GetFrame()->Selection().SetFrameIsFocused(true);
-   
-  //GetWebView()->SetFocusedFrame(GetWebView()->MainFrameImpl());
 }
 
 

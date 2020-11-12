@@ -202,10 +202,15 @@ LgApp::LgApp(int argc, char** argv,
 
   // Setting the main view initially focused
   webViewHelper->SetFocused();
-
+  
   // Setting caret visible
   blink::WebLocalFrameImpl& frm = *webView->MainFrameImpl();
   frm.SetCaretVisible(true);
+        
+  // Setting the initial size
+  IntSize page_size(fWindow->width(), fWindow->height());
+  webView->Resize(WebSize(page_size));
+
 }
 
 LgApp::~LgApp() {
@@ -267,9 +272,9 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
 void LgApp::PrintSinglePage(SkCanvas* canvas, int width, int height) {
   int kPageWidth = width;
   int kPageHeight = height;
-  IntRect page_rect(0, 0, kPageWidth, kPageHeight);
   IntSize page_size(kPageWidth, kPageHeight);
-
+  webView->Resize(WebSize(page_size));
+  
   PlatformColors pc = this->fWindow->GetPlatformColors();
 
   // Updating the ring color
@@ -382,12 +387,9 @@ void LgApp::onResize(int width, int height) {
 
   int kPageWidth = width;
   int kPageHeight = height;
-  IntRect page_rect(0, 0, kPageWidth, kPageHeight);
   IntSize page_size(kPageWidth, kPageHeight);
 
   webView->Resize(WebSize(page_size));
-
-
   fWindow->inval();
 }
 

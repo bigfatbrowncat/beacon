@@ -2,8 +2,10 @@ import("//skia/features.gni")
 
 # Application base project
 
-# Set this to false if you want to support old Windows (that lacks Windows Store)
-using_win_app_api = true
+if (is_win) {
+  # Set this to false if you want to support old Windows (that lacks Windows Store)
+  using_win_app_api = true
+}
 
 static_library("app_base") {
   configs -= [ "//build/config/clang:find_bad_constructs" ]
@@ -22,9 +24,13 @@ static_library("app_base") {
   ]
   sources = [
     "app_base/CommandSet.cpp",
+    "app_base/CommandSet.h",
     "app_base/GLWindowContext.cpp",
+    "app_base/GLWindowContext.h",
     "app_base/Window.cpp",
+    "app_base/Window.h",
     "app_base/Application.cpp",
+    "app_base/Application.h",
   ]
   libs = []
 
@@ -46,6 +52,7 @@ static_library("app_base") {
       "app_base/unix/GLWindowContext_unix.cpp",
       "app_base/unix/RasterWindowContext_unix.cpp",
       "app_base/unix/Window_unix.cpp",
+      "app_base/unix/Window_unix.h",
       "app_base/unix/keysym2ucs.c",
       "app_base/unix/main_unix.cpp",
     ]
@@ -69,6 +76,7 @@ static_library("app_base") {
       "app_base/win/GLWindowContext_win.cpp",
       "app_base/win/RasterWindowContext_win.cpp",
       "app_base/win/Window_win.cpp",
+      "app_base/win/Window_win.h",
       "app_base/win/main_win.cpp",
     ]
     if (skia_use_angle) {
@@ -84,6 +92,7 @@ static_library("app_base") {
       "app_base/mac/GLWindowContext_mac.mm",
       "app_base/mac/RasterWindowContext_mac.mm",
       "app_base/mac/Window_mac.mm",
+      "app_base/mac/Window_mac.h",
       "app_base/mac/main_mac.mm",
     ]
     if (skia_use_dawn) {
