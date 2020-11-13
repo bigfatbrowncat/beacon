@@ -664,7 +664,7 @@ void LgApp::onIdle() {
   auto span =
       std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
   if (span > 1.0 / FPS) {
-    std::cout << "Span: " << span << std::endl;
+    //std::cout << "Span: " << span << std::endl;
     fWindow->inval();
     paintTime = now;
   }

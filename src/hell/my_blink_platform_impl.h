@@ -136,7 +136,7 @@ class BlinkPlatformImpl : public blink::Platform {
 //  webcrypto::WebCryptoImpl web_crypto_;
   base::string16 GetLocalizedString(int message_id) { return base::string16(); }
 
-#ifdef __APPLE__
+#if defined(OS_MACOSX)
   std::unique_ptr<blink::WebSandboxSupport> myWebSandboxSupport;
 #elif WIN32
   // Nothing here

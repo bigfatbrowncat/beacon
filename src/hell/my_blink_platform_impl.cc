@@ -146,7 +146,7 @@ BlinkPlatformImpl::BlinkPlatformImpl(
           base::MakeRefCounted<ThreadSafeBrowserInterfaceBrokerProxyImpl>()),*/
       native_theme_engine_(GetWebThemeEngine()) {
 #if !defined(OS_WIN)
-    myWebSandboxSupport = new MyWebSandboxSupport(window);
+        myWebSandboxSupport = std::make_unique<MyWebSandboxSupport>(window);
 #endif
 }
 
