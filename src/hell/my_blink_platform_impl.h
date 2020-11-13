@@ -23,22 +23,26 @@
 
 #include "app_base/Window.h"
 
-#if __APPLE__
+#if defined(OS_MACOSX)
 #import <CoreText/CoreText.h>
 #include "third_party/blink/public/platform/mac/web_sandbox_support.h"
+#elif defined(OS_WIN)
+// Nothing here
+#else
+#include "third_party/blink/public/platform/linux/web_sandbox_support.h"
 #endif
 
 namespace content {
 
 class WebCryptoImpl;
 
+#if defined(OS_MACOSX)
 class MyWebSandboxSupport : public blink::WebSandboxSupport {
-private:
+ private:
     sk_app::Window* window;
 public:
   MyWebSandboxSupport(sk_app::Window* window) : window(window) { }
     virtual ~MyWebSandboxSupport() override {}
-#ifdef __APPLE__
     // Given an input font - |srcFont| [which can't be loaded due to sandbox
     // restrictions]. Return a font belonging to an equivalent font file
     // that can be used to access the font and a unique identifier corresponding
@@ -67,13 +71,13 @@ public:
           return SkColorSetRGB(128, 0, 0);
       }
     }
-#elif WIN32
-  // Nothing here
-#else // This is for linux
-  // TODO Implement this class for Linux
-#endif
 };
-  
+#elif defined(OS_WIN)
+// Nothing here
+#else  // This is for linux
+// TODO Implement this class for Linux
+#endif
+
 class BlinkPlatformImpl : public blink::Platform {
  public:
   //BlinkPlatformImpl();
@@ -111,7 +115,18 @@ class BlinkPlatformImpl : public blink::Platform {
   std::unique_ptr<NestedMessageLoopRunner> CreateNestedMessageLoopRunner()
       const override;
   
-  blink::WebSandboxSupport* GetSandboxSupport() override { return myWebSandboxSupport.get(); }
+  blink::WebSandboxSupport* GetSandboxSupport() override { 
+#if defined(OS_MACOSX)
+    return myWebSandboxSupport.get();
+#elif defined(OS_WIN)
+    // Nothing here
+    return nullptr;
+#else  // This is for linux
+    // TODO Implement this class for Linux
+    return nullptr;
+#endif
+
+  }
  private:
   scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner_;
   scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner_;
@@ -120,7 +135,16 @@ class BlinkPlatformImpl : public blink::Platform {
   std::unique_ptr<blink::WebThemeEngine> native_theme_engine_;
 //  webcrypto::WebCryptoImpl web_crypto_;
   base::string16 GetLocalizedString(int message_id) { return base::string16(); }
+
+#ifdef __APPLE__
   std::unique_ptr<blink::WebSandboxSupport> myWebSandboxSupport;
+#elif WIN32
+  // Nothing here
+#else  // This is for linux
+  // TODO Implement this class for Linux
+  std::unique_ptr<blink::WebSandboxSupport> myWebSandboxSupport;
+#endif
+
 };
 
 }  // namespace content

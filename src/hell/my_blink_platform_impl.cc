@@ -144,7 +144,11 @@ BlinkPlatformImpl::BlinkPlatformImpl(
       io_thread_task_runner_(std::move(io_thread_task_runner)),
       /*browser_interface_broker_proxy_(
           base::MakeRefCounted<ThreadSafeBrowserInterfaceBrokerProxyImpl>()),*/
-      native_theme_engine_(GetWebThemeEngine()), myWebSandboxSupport(new MyWebSandboxSupport(window)) {}
+      native_theme_engine_(GetWebThemeEngine()) {
+#if !defined(OS_WIN)
+    myWebSandboxSupport = new MyWebSandboxSupport(window);
+#endif
+}
 
 BlinkPlatformImpl::~BlinkPlatformImpl() = default;
 
