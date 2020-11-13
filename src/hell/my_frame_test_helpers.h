@@ -426,6 +426,7 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
   void SetFocused();
 
   WebViewImpl* GetWebView() const { return web_view_; }
+
   cc::LayerTreeHost* GetLayerTreeHost() const {
     return test_web_widget_client_->layer_tree_host();
   }

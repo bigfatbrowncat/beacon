@@ -83,7 +83,8 @@ extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
 LgApp::LgApp(int argc, char** argv,
                        const std::shared_ptr<PlatformData>& platformData)
     : fBackendType(Window::kRaster_BackendType),
-      platformData(platformData) {
+      platformData(platformData),
+      paintTime(std::chrono::high_resolution_clock::now()) {
 
   exit_manager = std::make_shared<base::AtExitManager>();
 
@@ -183,27 +184,7 @@ LgApp::LgApp(int argc, char** argv,
   float scaleFactor = fWindow->getScale();
   webView->SetZoomFactorOverride(scaleFactor);
 
-#if defined(OS_WIN)
-  blink::FontCache::SetAntialiasedTextEnabled(true);
 
-  if (!this->fWindow->GetDefaultUIFont(defaultUIFont)) {
-    // Fallback. I don't know which disaster should happen to Windows
-    // that makes it fail to determine the system metrics, but we are prepared
-    // here.
-    defaultUIFont.typeface = "Arial";
-    defaultUIFont.heightPt = 10;
-  }
-
-  // On Windows blink determines the UI font as the default Menu font (no idea why not Message font).
-  // So, if we want "system-ui" typeface to work properly, we need to set it here
-  std::wstring wsTypeface;
-  base::UTF8ToWide(defaultUIFont.typeface.c_str(),
-                   defaultUIFont.typeface.size(), &wsTypeface);
-  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface.c_str(), defaultUIFont.heightPt);
-#else
-  // On other platforms we just load the default UI font
-  this->fWindow->GetDefaultUIFont(defaultUIFont);
-#endif
 
   // Setting the main view initially focused
   webViewHelper->SetFocused();
@@ -274,79 +255,6 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
     ForAllGraphicsLayers(*child, function);
 }
 
-void LgApp::PrintSinglePage(SkCanvas* canvas, int width, int height) {
-  int kPageWidth = width;
-  int kPageHeight = height;
-  IntSize page_size(kPageWidth, kPageHeight);
-  webView->Resize(WebSize(page_size));
-  
-  PlatformColors pc = this->fWindow->GetPlatformColors();
-
-  // Updating the ring color
-  // TODO Set a callback on the system style changing function
-  blink::SetFocusRingColor(pc.GetFocusRingColor(this->fWindow->IsActive()));
-  
-  GetDocument().GetPage()->GetFocusController().SetActive(
-      this->fWindow->IsActive());
-  //GetDocument().GetPage()->GetFocusController().SetFocused(true);
-
-  blink::SetSelectionColors(pc.GetSelectionBackgroundColor(true),
-                            pc.GetSelectionTextColor(true),
-                            pc.GetSelectionBackgroundColor(false),
-                            pc.GetSelectionTextColor(false));
-  blink::ColorSchemeChanged();
-
-  // Handling events
-  LocalFrameView* frame_view =
-      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
-
-  webViewHelper->GetWebWidgetClient()->HandleScrollEvents(webView->MainFrameWidget());
-
-  for (auto& p : collectedInputEvents) {
-    WebInputEvent& theEvent = *p;
-    auto mtp = theEvent.GetType();
-
-    if (mtp == WebInputEvent::Type::kMouseUp) {
-      // Ending drag on mouse up event. That prevents input disabling
-      ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget())->DragSourceSystemDragEnded();
-    }
-
-    webView->MainFrameWidget()->HandleInputEvent(WebCoalescedInputEvent(theEvent));
-
-  }
-  collectedInputEvents.clear();
-
-  // Updating the state machine
-  webView->MainFrameWidget()->UpdateAllLifecyclePhases(
-      WebWidget::LifecycleUpdateReason::kBeginMainFrame);
-
-  /*if (!resizing)*/ {
-    // We don't update CSS animations during the window resizing because it
-    // is significantly reducing the resizing process
-    webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
-  } /*else {
-  }*/
-
-  PropertyTreeState property_tree_state =
-      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
-
-  std::shared_ptr<cc::SkiaPaintCanvas> spc =
-      std::make_shared<cc::SkiaPaintCanvas>(canvas);
-
-  {
-    blink::DisableCompositingQueryAsserts disabler;
-    root_graphics_layer =
-        GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
-
-    ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
-      if (layer.PaintsContentOrHitTest()) {
-        layer.GetPaintController().GetPaintArtifact().Replay(
-            *spc, property_tree_state, IntPoint(0, 0));
-      }
-    });
-  }
-}
-
 void LgApp::UpdateBackend() {
   // Checking if we need a fallback to Raster renderer.
   // Fallback is effective for small screens and weak videochips
@@ -413,15 +321,106 @@ void LgApp::onEndResizing() {
 void LgApp::onPaint(SkSurface* surface) {
   auto* canvas = surface->getCanvas();
 
-  int width = fWindow->width();
-  int height = fWindow->height();
-
   canvas->save();
 
   updateTitle();
-  PrintSinglePage(canvas, width, height);
+
+  // Updating fonts and colors.
+  // TODO Don't run this code on every frame. Put it to a system update event
+  // instead
+  UpdatePlatformFontsAndColors();
+
+  Paint(canvas);
 
   canvas->restore();
+}
+
+void LgApp::UpdatePlatformFontsAndColors() {
+  // Updating fonts
+#if defined(OS_WIN)
+  blink::FontCache::SetAntialiasedTextEnabled(true);
+
+  if (!this->fWindow->GetDefaultUIFont(defaultUIFont)) {
+    // Fallback. I don't know which disaster should happen to Windows
+    // that makes it fail to determine the system metrics, but we are prepared
+    // here.
+    defaultUIFont.typeface = "Arial";
+    defaultUIFont.heightPt = 10;
+  }
+
+  // On Windows blink determines the UI font as the default Menu font (no idea
+  // why not Message font). So, if we want "system-ui" typeface to work
+  // properly, we need to set it here
+  std::wstring wsTypeface;
+  base::UTF8ToWide(defaultUIFont.typeface.c_str(),
+                   defaultUIFont.typeface.size(), &wsTypeface);
+  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface.c_str(),
+                                              defaultUIFont.heightPt);
+#else
+  // On other platforms we just load the default UI font
+  this->fWindow->GetDefaultUIFont(defaultUIFont);
+#endif
+
+  // Updating colors
+  PlatformColors pc = this->fWindow->GetPlatformColors();
+  blink::SetFocusRingColor(pc.GetFocusRingColor(this->fWindow->IsActive()));
+  blink::SetSelectionColors(
+      pc.GetSelectionBackgroundColor(true), pc.GetSelectionTextColor(true),
+      pc.GetSelectionBackgroundColor(false), pc.GetSelectionTextColor(false));
+  blink::ColorSchemeChanged();
+}
+
+void LgApp::Paint(SkCanvas* canvas) {
+  
+  GetDocument().GetPage()->GetFocusController().SetActive(
+      this->fWindow->IsActive());
+
+  // Handling events
+  LocalFrameView* frame_view =
+      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+
+  webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
+      webView->MainFrameWidget());
+
+  for (auto& p : collectedInputEvents) {
+    WebInputEvent& theEvent = *p;
+    auto mtp = theEvent.GetType();
+
+    if (mtp == WebInputEvent::Type::kMouseUp) {
+      // Ending drag on mouse up event. That prevents input disabling
+      ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget())
+          ->DragSourceSystemDragEnded();
+    }
+
+    webView->MainFrameWidget()->HandleInputEvent(
+        WebCoalescedInputEvent(theEvent));
+  }
+  collectedInputEvents.clear();
+
+  // Updating the state machine
+  webView->MainFrameWidget()->UpdateAllLifecyclePhases(
+      WebWidget::LifecycleUpdateReason::kBeginMainFrame);
+
+  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+
+  PropertyTreeState property_tree_state =
+      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
+
+  std::shared_ptr<cc::SkiaPaintCanvas> spc =
+      std::make_shared<cc::SkiaPaintCanvas>(canvas);
+
+  {
+    blink::DisableCompositingQueryAsserts disabler;
+    root_graphics_layer =
+        GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+
+    ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
+      if (layer.PaintsContentOrHitTest()) {
+        layer.GetPaintController().GetPaintArtifact().Replay(
+            *spc, property_tree_state, IntPoint(0, 0));
+      }
+    });
+  }
 }
 
 bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
@@ -659,7 +658,16 @@ void LgApp::onIdle() {
   run_loop.RunUntilIdle();
 
   // Just re-paint continously
-  fWindow->inval();
+  int FPS = this->fWindow->IsActive() ? 60 : 30;
+
+  auto now = std::chrono::high_resolution_clock::now();
+  auto span =
+      std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
+  if (span > 1.0 / FPS) {
+    std::cout << "Span: " << span << std::endl;
+    fWindow->inval();
+    paintTime = now;
+  }
 }
 
 void LgApp::onAttach(sk_app::Window* window) {}

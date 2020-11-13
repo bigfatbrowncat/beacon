@@ -58,11 +58,12 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
               skui::ModifierKey modifiers) override;
 
   blink::Document& GetDocument();
-  void PrintSinglePage(SkCanvas* canvas, int width, int height);
   void UpdateBackend();
 
  private:
   void updateTitle();
+  void Paint(SkCanvas* canvas);
+  void UpdatePlatformFontsAndColors();
 
   sk_app::PlatformFont defaultUIFont;
 
@@ -101,6 +102,8 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
 
   std::shared_ptr<base::AtExitManager> exit_manager;
   std::shared_ptr<mojo::BinderMap> binder_map;
+  
+  std::chrono::time_point<std::chrono::high_resolution_clock> paintTime;
 };
 
 #endif  /* LgApp_DEFINED */
