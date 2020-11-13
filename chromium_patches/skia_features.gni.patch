@@ -1,8 +1,8 @@
 diff --git a/skia/features.gni b/skia/features.gni
-index 2a94ac2765..1c85a609e7 100644
+index 2a94ac2765..43ed03503d 100644
 --- a/skia/features.gni
 +++ b/skia/features.gni
-@@ -6,4 +6,11 @@ declare_args() {
+@@ -6,4 +6,12 @@ declare_args() {
    # Enable experimental SkiaRenderer Dawn backend.
    skia_use_dawn = false
    skia_use_gl = true
@@ -13,4 +13,5 @@ index 2a94ac2765..1c85a609e7 100644
 +  skia_tools_require_resources = false
 +  skia_use_expat = false
 +  skia_enable_discrete_gpu = false
++  skia_use_x11 = true
  }

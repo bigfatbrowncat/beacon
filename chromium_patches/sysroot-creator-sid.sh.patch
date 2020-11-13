@@ -1,0 +1,13 @@
+diff --git a/build/linux/sysroot_scripts/sysroot-creator-sid.sh b/build/linux/sysroot_scripts/sysroot-creator-sid.sh
+index 03c952d5df..aafc715ef5 100755
+--- a/build/linux/sysroot_scripts/sysroot-creator-sid.sh
++++ b/build/linux/sysroot_scripts/sysroot-creator-sid.sh
+@@ -138,6 +138,8 @@ DEBIAN_PACKAGES="\
+   libglvnd-dev
+   libglvnd0
+   libglx0
++  libglu1-mesa
++  libglu1-mesa-dev
+   libgmp10
+   libgnome-keyring-dev
+   libgnome-keyring0
