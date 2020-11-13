@@ -1,6 +1,6 @@
-## Building
+# Building
 
-# Stage 1: Chromium
+## Stage 1: Chromium
 
 This version of the project uses Chromium codebase version 81.0.4002.1.
 
@@ -40,7 +40,7 @@ gclient sync --with_branch_heads
 gclient runhooks
 ```
 
-# Stage 2: The project code
+## Stage 2: The project code
 
 Clone this project inside the 'src' folder.
 ```
@@ -52,6 +52,27 @@ Apply the necessary patches to chromium sources:
 (cd my_example && python apply_patches.py)
 ```
 
+### Replacing sysroot on Linux
+
+Note: this has been checked on Debian 9 (sid)
+
+After patching the source, build new sysroot:
+```
+cd build/linux/sysroot_scripts/
+./sysroot-creator-sid.sh BuildSysrootAmd64
+cd ..
+mv debian_sid_amd64-sysroot/ debian_sid_amd64-sysroot.old
+mkdir debian_sid_amd64-sysroot/
+cd debian_sid_amd64-sysroot/
+tar xvf ../../../out/sysroot-build/sid/debian_sid_amd64_sysroot.tar.xz
+cp ../debian_sid_amd64-sysroot.old/.stamp .
+cd ../../
+```
+
+If any package fails to download by script `wget` it manually and re-run the creating script, it would continue on.
+
+### Generating ninja configs
+
 Then run the project generating script.
 ```
 my_example/gen_Debug.sh
@@ -62,6 +83,17 @@ my_example/gen_Release.sh
 ```
 
 After the script has finished running, it creates `out/Debug` or `out/Release`.
+
+### Other Linux quirks
+
+For some reason (yet unknown) a few generated files are not generated when running normal build
+even though they are specified in the dependency chain. To make them appear run
+```
+ninja -C out/Debug -j 2 gpu/config
+```
+It is okay for now if this command eventually fails.
+
+### Building THE THING
 
 To build the project, run
 ```
