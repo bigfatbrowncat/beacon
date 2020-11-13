@@ -6,18 +6,20 @@
 #include "base/command_line.h"
 #include "base/at_exit.h"
 #include "base/task/sequence_manager/thread_controller_with_message_pump_impl.h"
-
-#include "mojo/public/cpp/bindings/binder_map.h"
 #include "third_party/blink/public/platform/platform.h"
 #include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
 #include "third_party/blink/public/platform/web_common.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
-#include "components/discardable_memory/service/discardable_shared_memory_manager.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
+#include "mojo/public/cpp/bindings/binder_map.h"
+#include "components/discardable_memory/service/discardable_shared_memory_manager.h"
 
 #include "app_base/Application.h"
 #include "app_base/Window.h"
+
+#include "LgBackendController.h"
+
 #include "hell/my_frame_test_helpers.h"
 
 class SkCanvas;

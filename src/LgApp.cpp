@@ -1,10 +1,3 @@
-#include "LgApp.h"
-#include "LgBlinkPlatformImpl.h"
-
-#include "hell/SkLoadICU.h"
-#include "hell/my_blink_platform_impl.h"
-#include "hell/my_frame_test_helpers.h"
-
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -14,6 +7,7 @@
 #include "include/core/SkGraphics.h"
 #include "include/core/SkSurface.h"
 #include "include/effects/SkGradientShader.h"
+
 #include "third_party/blink/renderer/core/events/before_print_event.h"
 #include "third_party/blink/renderer/core/frame/local_dom_window.h"
 #include "third_party/blink/renderer/core/frame/local_frame_view.h"
@@ -24,32 +18,34 @@
 #include "third_party/blink/renderer/core/paint/paint_layer.h"
 #include "third_party/blink/renderer/core/paint/paint_layer_painter.h"
 #include "third_party/blink/renderer/core/scroll/scrollbar_theme.h"
-#include "third_party/blink/renderer/platform/language.h"
-
-#include "base/message_loop/message_pump.h"
-#include "base/run_loop.h"
-#include "base/time/default_tick_clock.h"
-#include "mojo/core/embedder/embedder.h"
-#include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
-#include "third_party/blink/public/platform/web_font_render_style.h"
-#include "third_party/blink/renderer/platform/fonts/web_font_typeface_factory.h"
-#include "third_party/blink/public/platform/web_coalesced_input_event.h"
-#include "third_party/blink/public/web/blink.h"
-#include "third_party/blink/public/web/web_render_theme.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
 #include "third_party/blink/renderer/core/frame/web_frame_widget_base.h"
 #include "third_party/blink/renderer/core/page/focus_controller.h"
-#include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
 #include "third_party/blink/renderer/core/html/html_head_element.h"
 #include "third_party/blink/renderer/core/html/html_collection.h"
+#include "third_party/blink/renderer/platform/language.h"
+#include "third_party/blink/renderer/platform/fonts/web_font_typeface_factory.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_context.h"
 #include "third_party/blink/renderer/platform/graphics/paint/drawing_recorder.h"
 #include "third_party/blink/renderer/platform/graphics/paint/paint_record_builder.h"
 #include "third_party/blink/renderer/platform/heap/heap.h"
 #include "third_party/blink/renderer/platform/scheduler/main_thread/main_thread_scheduler_impl.h"
 #include "third_party/blink/renderer/platform/scheduler/public/dummy_schedulers.h"
+#include "third_party/blink/renderer/platform/geometry/int_point.h"
+#include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
+#include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 
+#include "third_party/blink/public/platform/scheduler/web_thread_scheduler.h"
+#include "third_party/blink/public/platform/web_coalesced_input_event.h"
+#include "third_party/blink/public/platform/web_font_render_style.h"
 #include "third_party/blink/public/resources/grit/blink_resources.h"
+#include "third_party/blink/public/web/blink.h"
+#include "third_party/blink/public/web/web_render_theme.h"
+
+#include "base/message_loop/message_pump.h"
+#include "base/run_loop.h"
+#include "base/time/default_tick_clock.h"
+
 
 #include "base/memory/discardable_memory_allocator.h"
 #include "base/task/post_task.h"
@@ -57,12 +53,9 @@
 #include "base/task/thread_pool/thread_pool_impl.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "base/files/file_path.h"
-#include "cc/paint/skia_paint_canvas.h"
-#include "third_party/blink/renderer/platform/geometry/int_point.h"
-#include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
-#include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
-#include "third_party/skia/include/core/SkCanvas.h"
 
+#include "mojo/core/embedder/embedder.h"
+#include "cc/paint/skia_paint_canvas.h"
 
 #include "ui/events/blink/blink_event_util.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -72,6 +65,14 @@
 #include "base/strings/utf_string_conversions.h"
 #include "third_party/blink/public/web/win/web_font_rendering.h"
 #endif
+
+#include "LgApp.h"
+#include "LgBlinkPlatformImpl.h"
+
+#include "hell/SkLoadICU.h"
+#include "hell/my_blink_platform_impl.h"
+#include "hell/my_frame_test_helpers.h"
+
 
 using namespace sk_app;
 using namespace blink;
@@ -140,11 +141,9 @@ LgApp::LgApp(int argc, char** argv,
   fWindow = Window::CreateNativeWindow(platformData);
   fWindow->setRequestedDisplayParams(DisplayParams());
 
-  platform = std::make_unique<LgBlinkPlatformImpl>(
-                                                   my_web_thread_sched->DefaultTaskRunner(),
+  platform = std::make_unique<LgBlinkPlatformImpl>(my_web_thread_sched->DefaultTaskRunner(),
                                                    my_web_thread_sched->DefaultTaskRunner(),
                                                    fWindow);
-        
         
   blink::Initialize(platform.get(), binder_map.get(),
                     /*scheduler::WebThreadScheduler * main_thread_scheduler*/

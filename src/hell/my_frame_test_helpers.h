@@ -33,8 +33,6 @@
 
 #define COMPILE_CONTENT_STATICALLY 1
 
-//#include <gmock/gmock.h>
-//#include <gtest/gtest.h>
 #include <memory>
 #include <string>
 
@@ -75,6 +73,8 @@
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
 
+#include "LgBackendController.h"
+
 #define EXPECT_FLOAT_POINT_EQ(expected, actual)    \
   do {                                             \
     EXPECT_FLOAT_EQ((expected).X(), (actual).X()); \
@@ -94,47 +94,6 @@
     EXPECT_FLOAT_EQ((expected).Width(), (actual).Width());   \
     EXPECT_FLOAT_EQ((expected).Height(), (actual).Height()); \
   } while (false)
-
-namespace SDK {
-
-class ResourceRequest {
-  private:
-    std::string url;
-
-  public:
-    ResourceRequest(const std::string& url);
-    const std::string& getUrl() const { return url; }
-    virtual ~ResourceRequest();
-};
-
-class ResourceResponse {
-  private:
-    std::vector<uint8_t> data;
-    std::string mimeType;
-  public:
-    ResourceResponse(const std::vector<uint8_t>& data,
-                     const std::string& mimeType);
-    ResourceResponse();
-    ResourceResponse(const ResourceResponse& other);
-
-    const std::vector<uint8_t>& getData() const { return data; } 
-    const std::string& getMimeType() const { return mimeType; }
-
-    void setData(const std::vector<uint8_t>& data) { this->data = data; }
-    void setMimeType(const std::string& mimeType) { this->mimeType = mimeType; }
-
-    virtual ~ResourceResponse();
-};
-
-class Backend {
-  public:
-    virtual ResourceResponse ProcessRequest(const ResourceRequest& request);
-    Backend();
-    virtual ~Backend();
-};
-
-}
-
 
 namespace base {
 class TickClock;

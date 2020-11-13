@@ -215,6 +215,8 @@ executable("HelloWorld") {
     "src/LgApp.h",
     "src/LgBlinkPlatformImpl.cpp",
     "src/LgBlinkPlatformImpl.h",
+    "src/LgBackendController.cpp",
+    "src/LgBackendController.h",
 
     "src/hell/my_frame_test_helpers.cc",
     "src/hell/my_frame_test_helpers.h",
