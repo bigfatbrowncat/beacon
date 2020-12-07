@@ -30,6 +30,9 @@ struct PlatformData {
 struct PlatformData {
 };
 
+#elif defined(__linux__)
+struct PlatformData {
+};
 #endif
 
 
