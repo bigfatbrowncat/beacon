@@ -1,5 +1,5 @@
 diff --git a/skia/BUILD.gn b/skia/BUILD.gn
-index a22d1dd026..586085686b 100644
+index a22d1dd026..fc4c89e61b 100644
 --- a/skia/BUILD.gn
 +++ b/skia/BUILD.gn
 @@ -26,6 +26,7 @@ skia_support_gpu = !is_ios
@@ -171,8 +171,8 @@ index a22d1dd026..586085686b 100644
 +  deps = []
 +  public_deps = []
 +  sources = [
-+    "//third_party/skia/tools/gpu/GrContextFactory.cpp",
-+    "//third_party/skia/tools/gpu/GrTest.cpp",
++#    "//third_party/skia/tools/gpu/GrContextFactory.cpp",
++#    "//third_party/skia/tools/gpu/GrTest.cpp",
 +    "//third_party/skia/tools/gpu/MemoryCache.cpp",
 +    "//third_party/skia/tools/gpu/MemoryCache.h",
 +    "//third_party/skia/tools/gpu/ProxyUtils.cpp",
@@ -187,7 +187,7 @@ index a22d1dd026..586085686b 100644
 +    sources += [
 +      "//third_party/skia/tools/gpu/atlastext/GLTestAtlasTextRenderer.cpp",
 +      "//third_party/skia/tools/gpu/gl/GLTestContext.cpp",
-+      "//third_party/skia/tools/gpu/gl/command_buffer/GLTestContext_command_buffer.cpp",
++#      "//third_party/skia/tools/gpu/gl/command_buffer/GLTestContext_command_buffer.cpp",
 +    ]
 +  }
 +
