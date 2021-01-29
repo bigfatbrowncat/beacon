@@ -367,7 +367,8 @@ bool Window_unix::attach(BackendType attachType) {
                     window_context_factory::MakeDawnVulkanForXlib(winInfo, fRequestedDisplayParams);
             break;
 #endif
-#ifdef SK_VULKAN
+//FIXME: enable Vulkan on Linux properly
+#if defined(SK_VULKAN) && 0
         case kVulkan_BackendType:
             fWindowContext =
                     window_context_factory::MakeVulkanForXlib(winInfo, fRequestedDisplayParams);
