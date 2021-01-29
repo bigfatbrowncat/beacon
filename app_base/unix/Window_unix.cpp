@@ -14,6 +14,8 @@
 
 #include "tools/sk_app/unix/WindowContextFactory_unix.h"
 
+#include "app_base/unix/Window_unix.h"
+
 #include "src/utils/SkUTF.h"
 #include "tools/sk_app/GLWindowContext.h"
 #include "tools/sk_app/unix/Window_unix.h"
@@ -30,11 +32,11 @@ namespace sk_app {
 
 SkTDynamicHash<Window_unix, XWindow> Window_unix::gWindowMap;
 
-Window* Window::CreateNativeWindow(void* platformData) {
-    Display* display = (Display*)platformData;
+Window* Window::CreateNativeWindow(const std::shared_ptr<PlatformData>& platformData) {
+    Display* display = platformData->display; 
     SkASSERT(display);
 
-    Window_unix* window = new Window_unix();
+    Window_unix* window = new Window_unix(platformData);
     if (!window->initWindow(display)) {
         delete window;
         return nullptr;
@@ -250,6 +252,7 @@ static skui::ModifierKey get_modifiers(const XEvent& event) {
 }
 
 bool Window_unix::handleEvent(const XEvent& event) {
+    XEvent ev2 = event; //TODO: see if it breaks
     switch (event.type) {
         case MapNotify:
             if (!fGC) {
@@ -267,27 +270,27 @@ bool Window_unix::handleEvent(const XEvent& event) {
         case ButtonPress:
             switch (event.xbutton.button) {
                 case Button1:
-                    this->onMouse(event.xbutton.x, event.xbutton.y,
+                    this->onMouse(&ev2, event.xbutton.x, event.xbutton.y,
                                   skui::InputState::kDown, get_modifiers(event));
                     break;
                 case Button4:
-                    this->onMouseWheel(1.0f, get_modifiers(event));
+                    this->onMouseWheel(&ev2, 1.0f, get_modifiers(event));
                     break;
                 case Button5:
-                    this->onMouseWheel(-1.0f, get_modifiers(event));
+                    this->onMouseWheel(&ev2, -1.0f, get_modifiers(event));
                     break;
             }
             break;
 
         case ButtonRelease:
             if (event.xbutton.button == Button1) {
-                this->onMouse(event.xbutton.x, event.xbutton.y,
+                this->onMouse(&ev2, event.xbutton.x, event.xbutton.y,
                               skui::InputState::kUp, get_modifiers(event));
             }
             break;
 
         case MotionNotify:
-            this->onMouse(event.xmotion.x, event.xmotion.y,
+            this->onMouse(&ev2, event.xmotion.x, event.xmotion.y,
                           skui::InputState::kMove, get_modifiers(event));
             break;
 
@@ -295,8 +298,8 @@ bool Window_unix::handleEvent(const XEvent& event) {
             int shiftLevel = (event.xkey.state & ShiftMask) ? 1 : 0;
             KeySym keysym = XkbKeycodeToKeysym(fDisplay, event.xkey.keycode, 0, shiftLevel);
             skui::Key key = get_key(keysym);
-            if (key != skui::Key::kNONE) {
-                if (!this->onKey(key, skui::InputState::kDown, get_modifiers(event))) {
+            /*if (key != skui::Key::kNONE)*/ {
+                if (!this->onKey(&ev2, keysym, skui::InputState::kDown, get_modifiers(event))) {
                     if (keysym == XK_Escape) {
                         return true;
                     }
@@ -305,7 +308,7 @@ bool Window_unix::handleEvent(const XEvent& event) {
 
             long uni = keysym2ucs(keysym);
             if (uni != -1) {
-                (void) this->onChar((SkUnichar) uni, get_modifiers(event));
+                (void) this->onChar(&ev2, (SkUnichar) uni, get_modifiers(event));
             }
         } break;
 
@@ -314,7 +317,7 @@ bool Window_unix::handleEvent(const XEvent& event) {
             KeySym keysym = XkbKeycodeToKeysym(fDisplay, event.xkey.keycode,
                                                0, shiftLevel);
             skui::Key key = get_key(keysym);
-            (void) this->onKey(key, skui::InputState::kUp,
+            (void) this->onKey(&ev2, keysym, skui::InputState::kUp,
                                get_modifiers(event));
         } break;
 

@@ -12,6 +12,9 @@
 
 #ifdef WIN32
 #include <windows.h>
+#elif defined(__linux__)
+//#include <X11/Xlib.h>
+typedef struct _XDisplay Display;
 #endif
 
 namespace sk_app {
@@ -32,6 +35,9 @@ struct PlatformData {
 
 #elif defined(__linux__)
 struct PlatformData {
+    Display* display;
+
+    PlatformData(Display* display);
 };
 #endif
 

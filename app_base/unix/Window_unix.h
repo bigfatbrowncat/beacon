@@ -21,8 +21,9 @@ namespace sk_app {
 
 class Window_unix : public Window {
 public:
-    Window_unix()
-            : Window()
+    Window_unix(const std::shared_ptr<PlatformData>& platformData)
+	    : platformData(platformData)
+            , Window()
             , fDisplay(nullptr)
             , fWindow(0)
             , fGC(nullptr)
@@ -76,8 +77,15 @@ public:
 
     void setRequestedDisplayParams(const DisplayParams&, bool allowReattach) override;
 
+    bool GetDefaultUIFont(PlatformFont& result) override;
+
+    PlatformColors GetPlatformColors() const override;
+    bool IsActive() const override;
+
 private:
     void closeWindow();
+
+    const std::shared_ptr<PlatformData> platformData;
 
     Display*     fDisplay;
     XWindow      fWindow;
