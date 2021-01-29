@@ -8,15 +8,18 @@
 
 #include "include/core/SkTypes.h"
 #include "include/private/SkTHash.h"
-#include "tools/sk_app/Application.h"
-#include "tools/sk_app/unix/Window_unix.h"
+#include "app_base/Application.h"
+#include "app_base/unix/Window_unix.h"
 #include "tools/timer/Timer.h"
 
 int main(int argc, char**argv) {
     XInitThreads();
     Display* display = XOpenDisplay(nullptr);
 
-    sk_app::Application* app = sk_app::Application::Create(argc, argv, (void*)display);
+    std::shared_ptr<sk_app::PlatformData> platformData =
+            std::make_shared<sk_app::PlatformData>(display);
+
+    sk_app::Application* app = sk_app::Application::Create(argc, argv, platformData);
 
     // Get the file descriptor for the X display
     const int x11_fd = ConnectionNumber(display);

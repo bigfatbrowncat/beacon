@@ -419,4 +419,21 @@ void Window_unix::setRequestedDisplayParams(const DisplayParams& params, bool al
     INHERITED::setRequestedDisplayParams(params, allowReattach);
 }
 
+bool Window_unix::GetDefaultUIFont(PlatformFont& result) {
+    result.typeface = "sans";
+    result.heightPt = 10;
+    return true;
+}
+
+PlatformColors Window_unix::GetPlatformColors() const {
+    PlatformColors pc;
+    //TODO: implement me :)
+
+    return pc;
+}
+
+bool Window_unix::IsActive() const {
+   return true; //FIXME: implement properly
+}
+
 }   // namespace sk_app
