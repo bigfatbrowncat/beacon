@@ -22,8 +22,8 @@ namespace sk_app {
 class Window_unix : public Window {
 public:
     Window_unix(const std::shared_ptr<PlatformData>& platformData)
-	    : platformData(platformData)
-            , Window()
+	    : Window()
+	    , platformData(platformData)
             , fDisplay(nullptr)
             , fWindow(0)
             , fGC(nullptr)

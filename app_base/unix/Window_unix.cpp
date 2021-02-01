@@ -28,6 +28,9 @@ extern "C" {
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
 
+//FIXME: remove when Vulkan support is fixed
+#include <iostream>
+
 namespace sk_app {
 
 SkTDynamicHash<Window_unix, XWindow> Window_unix::gWindowMap;
@@ -367,11 +370,12 @@ bool Window_unix::attach(BackendType attachType) {
                     window_context_factory::MakeDawnVulkanForXlib(winInfo, fRequestedDisplayParams);
             break;
 #endif
-//FIXME: enable Vulkan on Linux properly
-#if defined(SK_VULKAN) && 0
+#ifdef SK_VULKAN
         case kVulkan_BackendType:
-            fWindowContext =
-                    window_context_factory::MakeVulkanForXlib(winInfo, fRequestedDisplayParams);
+           //FIXME: enable Vulkan on Linux properly
+	    std::cerr << "Vulkan not supported" << std::endl;
+//            fWindowContext =
+//                    window_context_factory::MakeVulkanForXlib(winInfo, fRequestedDisplayParams);
             break;
 #endif
         case kNativeGL_BackendType:

@@ -63,11 +63,13 @@ int main(int argc, char**argv) {
                 switch (event.type) {
                 case Expose:
                     win->markPendingPaint();
+                    //pendingWindows.add(win);
                     pendingWindows.insert(win);
                     break;
                 case ConfigureNotify:
                     win->markPendingResize(event.xconfigurerequest.width,
                                            event.xconfigurerequest.height);
+                    //pendingWindows.add(win);
                     pendingWindows.insert(win);
                     break;
                 default:
