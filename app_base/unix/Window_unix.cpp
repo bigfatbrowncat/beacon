@@ -12,13 +12,11 @@
 
 //#include <tchar.h>
 
-#include "tools/sk_app/unix/WindowContextFactory_unix.h"
-
+#include "app_base/unix/WindowContextFactory_unix.h"
 #include "app_base/unix/Window_unix.h"
+#include "app_base/GLWindowContext.h"
 
 #include "src/utils/SkUTF.h"
-#include "tools/sk_app/GLWindowContext.h"
-#include "tools/sk_app/unix/Window_unix.h"
 #include "tools/skui/ModifierKey.h"
 #include "tools/timer/Timer.h"
 

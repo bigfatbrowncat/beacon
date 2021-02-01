@@ -323,4 +323,7 @@ executable("HelloWorld") {
         #"//content/child:child",
 
   ]
+  if (is_linux && skia_use_x11) {
+    deps += ["//ui/events/devices/x11:x11"]
+  }
 }

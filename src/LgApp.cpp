@@ -46,7 +46,6 @@
 #include "base/run_loop.h"
 #include "base/time/default_tick_clock.h"
 
-
 #include "base/memory/discardable_memory_allocator.h"
 #include "base/task/post_task.h"
 #include "base/task/single_thread_task_executor.h"
@@ -58,6 +57,10 @@
 #include "cc/paint/skia_paint_canvas.h"
 
 #include "ui/events/blink/blink_event_util.h"
+#ifdef __linux__
+//FIXME: maybe switch to proper X11 handling from events/platform/x11
+#include "ui/events/devices/x11/device_data_manager_x11.h"
+#endif
 #include "ui/base/resource/resource_bundle.h"
 
 #if defined(OS_WIN)
@@ -82,7 +85,7 @@ extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
 
 LgApp::LgApp(int argc, char** argv,
                        const std::shared_ptr<PlatformData>& platformData)
-    : fBackendType(Window::kRaster_BackendType),
+    : fBackendType(sk_app::Window::kRaster_BackendType),
       platformData(platformData),
       paintTime(std::chrono::high_resolution_clock::now()) {
 
@@ -139,7 +142,7 @@ LgApp::LgApp(int argc, char** argv,
 
   SkGraphics::Init();
   
-  fWindow = Window::CreateNativeWindow(platformData);
+  fWindow = sk_app::Window::CreateNativeWindow(platformData);
   fWindow->setRequestedDisplayParams(DisplayParams());
 
   platform = std::make_unique<LgBlinkPlatformImpl>(my_web_thread_sched->DefaultTaskRunner(),
@@ -172,6 +175,11 @@ LgApp::LgApp(int argc, char** argv,
       my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
       composeTaskRunner,
       my_web_thread_sched.get());
+
+#ifdef __linux__
+  // needed for proper XEvent handling like mouse scrolling
+  ui::DeviceDataManagerX11::CreateInstance();
+#endif
 
   webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(), wvc.get(), wwc.get());
 
@@ -228,7 +236,7 @@ void LgApp::updateTitle() {
   }
   SkString skTitle(title.Utf8().c_str());
   skTitle.append(" [");
-  skTitle.append(Window::kRaster_BackendType == fBackendType ? "Raster"
+  skTitle.append(sk_app::Window::kRaster_BackendType == fBackendType ? "Raster"
                                                              : "OpenGL");
   skTitle.append("]");
   fWindow->setTitle(skTitle.c_str());
@@ -266,11 +274,11 @@ void LgApp::UpdateBackend() {
   // OpenGL context slows down the resizing process.
   // So we are changing the backend to software raster during resizing
   auto newBackendType =
-      fallback ? Window::kRaster_BackendType : Window::kNativeGL_BackendType;
+      fallback ? sk_app::Window::kRaster_BackendType : sk_app::Window::kNativeGL_BackendType;
 
   // If there is no GL context allocated then falling back to raster
   if (fWindow->getGrContext() == nullptr) {
-    newBackendType = Window::kRaster_BackendType;
+    newBackendType = sk_app::Window::kRaster_BackendType;
   } else
   {
     // If too much time passed after the last attempt to init GL
@@ -282,7 +290,7 @@ void LgApp::UpdateBackend() {
                 .count() > 1000 &&
         !fallback) {
       // Good luck to us!
-      newBackendType = Window::kNativeGL_BackendType;
+      newBackendType = sk_app::Window::kNativeGL_BackendType;
       lastGLInitAttempt = curTime;
     }
   }
