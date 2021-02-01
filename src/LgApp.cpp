@@ -271,19 +271,20 @@ void LgApp::UpdateBackend() {
   // If there is no GL context allocated then falling back to raster
   if (fWindow->getGrContext() == nullptr) {
     newBackendType = Window::kRaster_BackendType;
-  }
-
-  // If too much time passed after the last attempt to init GL
-  // and we aren't resizing, try again
-  std::chrono::steady_clock::time_point curTime =
-      std::chrono::steady_clock::now();
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
-                                                            lastGLInitAttempt)
-              .count() > 1000 &&
-      !fallback) {
-    // Good luck to us!
-    newBackendType = Window::kNativeGL_BackendType;
-    lastGLInitAttempt = curTime;
+  } else
+  {
+    // If too much time passed after the last attempt to init GL
+    // and we aren't resizing, try again
+    std::chrono::steady_clock::time_point curTime =
+        std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
+                                                              lastGLInitAttempt)
+                .count() > 1000 &&
+        !fallback) {
+      // Good luck to us!
+      newBackendType = Window::kNativeGL_BackendType;
+      lastGLInitAttempt = curTime;
+    }
   }
 
   if (fBackendType != newBackendType) {

@@ -7,8 +7,8 @@
  */
 
 #include "include/gpu/gl/GrGLInterface.h"
-#include "tools/sk_app/GLWindowContext.h"
-#include "tools/sk_app/unix/WindowContextFactory_unix.h"
+#include "app_base/GLWindowContext.h"
+#include "app_base/unix/WindowContextFactory_unix.h"
 
 #include <GL/gl.h>
 
