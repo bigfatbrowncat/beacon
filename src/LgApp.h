@@ -40,7 +40,10 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
   void onResize(int width, int height) override;
   void onBeginResizing() override;
   void onEndResizing() override;
+
+  bool UpdateViewIfNeededAndBeginFrame();
   void onPaint(SkSurface*) override;
+
   bool onMouse(const ui::PlatformEvent& platformEvent,
                int x,
                int y,
@@ -93,7 +96,7 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
       threadController;
 
   blink::WebViewImpl* webView = nullptr;
-  blink::GraphicsLayer* root_graphics_layer = nullptr;
+  //blink::GraphicsLayer* root_graphics_layer = nullptr;
 
   WTF::Vector<std::shared_ptr<blink::WebInputEvent>> collectedInputEvents;
 
@@ -104,6 +107,8 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
   std::shared_ptr<mojo::BinderMap> binder_map;
   
   std::chrono::time_point<std::chrono::high_resolution_clock> paintTime;
+
+  //bool just_updated;
 };
 
 #endif  /* LgApp_DEFINED */

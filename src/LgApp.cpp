@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
@@ -8,30 +9,34 @@
 #include "include/core/SkSurface.h"
 #include "include/effects/SkGradientShader.h"
 
+#include "third_party/blink/renderer/core/animation/document_animations.h"
+#include "third_party/blink/renderer/core/animation/document_timeline.h"
 #include "third_party/blink/renderer/core/events/before_print_event.h"
 #include "third_party/blink/renderer/core/frame/local_dom_window.h"
 #include "third_party/blink/renderer/core/frame/local_frame_view.h"
+#include "third_party/blink/renderer/core/frame/visual_viewport.h"
+#include "third_party/blink/renderer/core/frame/web_frame_widget_base.h"
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
+#include "third_party/blink/renderer/core/html/html_collection.h"
 #include "third_party/blink/renderer/core/html/html_element.h"
+#include "third_party/blink/renderer/core/html/html_head_element.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
+#include "third_party/blink/renderer/core/page/focus_controller.h"
 #include "third_party/blink/renderer/core/page/print_context.h"
 #include "third_party/blink/renderer/core/paint/paint_layer.h"
 #include "third_party/blink/renderer/core/paint/paint_layer_painter.h"
 #include "third_party/blink/renderer/core/scroll/scrollbar_theme.h"
-#include "third_party/blink/renderer/core/frame/visual_viewport.h"
-#include "third_party/blink/renderer/core/frame/web_frame_widget_base.h"
-#include "third_party/blink/renderer/core/page/focus_controller.h"
-#include "third_party/blink/renderer/core/html/html_head_element.h"
-#include "third_party/blink/renderer/core/html/html_collection.h"
-#include "third_party/blink/renderer/platform/language.h"
+#include "third_party/blink/renderer/platform/animation/compositor_animation_timeline.h"
 #include "third_party/blink/renderer/platform/fonts/web_font_typeface_factory.h"
+#include "third_party/blink/renderer/platform/geometry/int_point.h"
+#include "third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_context.h"
 #include "third_party/blink/renderer/platform/graphics/paint/drawing_recorder.h"
 #include "third_party/blink/renderer/platform/graphics/paint/paint_record_builder.h"
 #include "third_party/blink/renderer/platform/heap/heap.h"
+#include "third_party/blink/renderer/platform/language.h"
 #include "third_party/blink/renderer/platform/scheduler/main_thread/main_thread_scheduler_impl.h"
 #include "third_party/blink/renderer/platform/scheduler/public/dummy_schedulers.h"
-#include "third_party/blink/renderer/platform/geometry/int_point.h"
 #include "third_party/blink/renderer/platform/wtf/text/text_stream.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 
@@ -46,27 +51,29 @@
 #include "base/run_loop.h"
 #include "base/time/default_tick_clock.h"
 
+#include "base/files/file_path.h"
 #include "base/memory/discardable_memory_allocator.h"
 #include "base/task/post_task.h"
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_impl.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
-#include "base/files/file_path.h"
+
+#include "cc/paint/skia_paint_canvas.h"
+#include "cc/animation/animation_host.h"
 
 #include "mojo/core/embedder/embedder.h"
-#include "cc/paint/skia_paint_canvas.h"
 
 #include "ui/events/blink/blink_event_util.h"
 #ifdef __linux__
-//FIXME: maybe switch to proper X11 handling from events/platform/x11
+// FIXME: maybe switch to proper X11 handling from events/platform/x11
 #include "ui/events/devices/x11/device_data_manager_x11.h"
 #endif
 #include "ui/base/resource/resource_bundle.h"
 
 #if defined(OS_WIN)
-#include "ui/events/blink/web_input_event_builders_win.h"
 #include "base/strings/utf_string_conversions.h"
 #include "third_party/blink/public/web/win/web_font_rendering.h"
+#include "ui/events/blink/web_input_event_builders_win.h"
 #endif
 
 #include "LgApp.h"
@@ -76,19 +83,18 @@
 #include "hell/my_blink_platform_impl.h"
 #include "hell/my_frame_test_helpers.h"
 
-
 using namespace sk_app;
 using namespace blink;
 
-extern "C" uint8_t blink_resources_pak[]; /* binary data         */
+extern "C" uint8_t blink_resources_pak[];     /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
 
-LgApp::LgApp(int argc, char** argv,
-                       const std::shared_ptr<PlatformData>& platformData)
+LgApp::LgApp(int argc,
+             char** argv,
+             const std::shared_ptr<PlatformData>& platformData)
     : fBackendType(sk_app::Window::kRaster_BackendType),
       platformData(platformData),
       paintTime(std::chrono::high_resolution_clock::now()) {
-
   exit_manager = std::make_shared<base::AtExitManager>();
 
   base::CommandLine::Init(argc, argv);
@@ -96,11 +102,11 @@ LgApp::LgApp(int argc, char** argv,
       base::CommandLine::ForCurrentProcess()->GetArgs();
 
   if (parsedArgs.size() > 0) {
-      // Processing toe command line
+    // Processing toe command line
   }
 
   if (!SkLoadICU()) {
-  	std::cerr << "Can't load ICU4C data" << std::endl;
+    std::cerr << "Can't load ICU4C data" << std::endl;
   }
 
   mojo::core::Init();
@@ -110,14 +116,13 @@ LgApp::LgApp(int argc, char** argv,
         "en-US", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
 
     // Adding the blink_resources.pak embeded into the binary
-    base::StringPiece blink_pak_memory((char*) blink_resources_pak,
+    base::StringPiece blink_pak_memory((char*)blink_resources_pak,
                                        blink_resources_pak_size);
 
     ui::ResourceBundle::GetSharedInstance().AddDataPackFromBuffer(
-        blink_pak_memory, ui::SCALE_FACTOR_100P);     
+        blink_pak_memory, ui::SCALE_FACTOR_100P);
   }
 
-       
   // Creating a thread pool
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
 
@@ -131,24 +136,23 @@ LgApp::LgApp(int argc, char** argv,
           base::MessagePump::Create(base::MessagePumpType::DEFAULT),
           base::Optional<base::Time>());
 
-
-
   binder_map = std::make_unique<mojo::BinderMap>();
 
   // Creating a discardable memory allocator
   discardableSharedMemoryManager =
       std::make_shared<discardable_memory::DiscardableSharedMemoryManager>();
-  base::DiscardableMemoryAllocator::SetInstance(discardableSharedMemoryManager.get());
+  base::DiscardableMemoryAllocator::SetInstance(
+      discardableSharedMemoryManager.get());
 
   SkGraphics::Init();
-  
+
   fWindow = sk_app::Window::CreateNativeWindow(platformData);
   fWindow->setRequestedDisplayParams(DisplayParams());
 
-  platform = std::make_unique<LgBlinkPlatformImpl>(my_web_thread_sched->DefaultTaskRunner(),
-                                                   my_web_thread_sched->DefaultTaskRunner(),
-                                                   fWindow);
-        
+  platform = std::make_unique<LgBlinkPlatformImpl>(
+      my_web_thread_sched->DefaultTaskRunner(),
+      my_web_thread_sched->DefaultTaskRunner(), fWindow);
+
   blink::Initialize(platform.get(), binder_map.get(),
                     /*scheduler::WebThreadScheduler * main_thread_scheduler*/
                     my_web_thread_sched.get());
@@ -160,7 +164,7 @@ LgApp::LgApp(int argc, char** argv,
   blink::WebFontRenderStyle::SetAntiAlias(true);
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
- 
+
   backend = std::make_shared<SDK::Backend>();
 
   webViewHelper =
@@ -169,20 +173,20 @@ LgApp::LgApp(int argc, char** argv,
       backend);
   wfc->SetScheduler(my_web_thread_sched);
 
-  wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>(webViewHelper);
+  wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>(
+      webViewHelper);
   wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
       new my_frame_test_helpers::StubLayerTreeViewDelegate(),
       my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
-      composeTaskRunner,
-      my_web_thread_sched.get());
+      composeTaskRunner, my_web_thread_sched.get());
 
 #ifdef __linux__
   // needed for proper XEvent handling like mouse scrolling
   ui::DeviceDataManagerX11::CreateInstance();
 #endif
 
-  webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(), wvc.get(), wwc.get());
-
+  webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(),
+                                             wvc.get(), wwc.get());
 
   // register callbacks
   fWindow->pushLayer(this);
@@ -192,19 +196,16 @@ LgApp::LgApp(int argc, char** argv,
   float scaleFactor = fWindow->getScale();
   webView->SetZoomFactorOverride(scaleFactor);
 
-
-
   // Setting the main view initially focused
   webViewHelper->SetFocused();
-  
+
   // Setting caret visible
   blink::WebLocalFrameImpl& frm = *webView->MainFrameImpl();
   frm.SetCaretVisible(true);
-        
+
   // Setting the initial size
   IntSize page_size(fWindow->width(), fWindow->height());
   webView->Resize(WebSize(page_size));
-
 }
 
 LgApp::~LgApp() {
@@ -227,17 +228,19 @@ void LgApp::updateTitle() {
 
   WTF::String title = "Blink window";
   if (GetDocument() != nullptr && GetDocument().head() != nullptr) {
-      // Search for <title> tags in the <head>
-      HTMLCollection* titleEls = GetDocument().head()->getElementsByTagName("title");
-      if (titleEls != nullptr && titleEls->length() > 0) {
-        // Taking the first one (assuming it is only one)
-        title = titleEls->item(0)->innerText();
-      }
+    // Search for <title> tags in the <head>
+    HTMLCollection* titleEls =
+        GetDocument().head()->getElementsByTagName("title");
+    if (titleEls != nullptr && titleEls->length() > 0) {
+      // Taking the first one (assuming it is only one)
+      title = titleEls->item(0)->innerText();
+    }
   }
   SkString skTitle(title.Utf8().c_str());
   skTitle.append(" [");
-  skTitle.append(sk_app::Window::kRaster_BackendType == fBackendType ? "Raster"
-                                                             : "OpenGL");
+  skTitle.append(sk_app::Window::kRaster_BackendType == fBackendType
+                     ? "Raster"
+                     : "OpenGL");
   skTitle.append("]");
   fWindow->setTitle(skTitle.c_str());
 }
@@ -273,14 +276,13 @@ void LgApp::UpdateBackend() {
 
   // OpenGL context slows down the resizing process.
   // So we are changing the backend to software raster during resizing
-  auto newBackendType =
-      fallback ? sk_app::Window::kRaster_BackendType : sk_app::Window::kNativeGL_BackendType;
+  auto newBackendType = fallback ? sk_app::Window::kRaster_BackendType
+                                 : sk_app::Window::kNativeGL_BackendType;
 
   // If there is no GL context allocated then falling back to raster
   if (fWindow->getGrContext() == nullptr) {
     newBackendType = sk_app::Window::kRaster_BackendType;
-  } else
-  {
+  } else {
     // If too much time passed after the last attempt to init GL
     // and we aren't resizing, try again
     std::chrono::steady_clock::time_point curTime =
@@ -379,14 +381,18 @@ void LgApp::UpdatePlatformFontsAndColors() {
   blink::ColorSchemeChanged();
 }
 
-void LgApp::Paint(SkCanvas* canvas) {
-  
+bool LgApp::UpdateViewIfNeededAndBeginFrame() {
   GetDocument().GetPage()->GetFocusController().SetActive(
       this->fWindow->IsActive());
 
   // Handling events
-  LocalFrameView* frame_view =
-      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+  bool anything_changed = false;
+  //std::cout << "anything_changed: ";
+  
+  if (collectedInputEvents.size() > 0) {
+    anything_changed = true;
+    //std::cout << "events ";
+  }
 
   webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
       webView->MainFrameWidget());
@@ -406,34 +412,157 @@ void LgApp::Paint(SkCanvas* canvas) {
   }
   collectedInputEvents.clear();
 
-  // Updating the state machine
-  webView->MainFrameWidget()->UpdateAllLifecyclePhases(
-      WebWidget::LifecycleUpdateReason::kBeginMainFrame);
-
   webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
 
-  PropertyTreeState property_tree_state =
-      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
+  // Updating the state machine
+
+  LocalFrameView* frame_view =
+      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+
+  {
+    blink::DisableCompositingQueryAsserts disabler;
+
+    /* auto root_graphics_layer =
+        GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+
+    ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {});*/
+
+    auto anims = GetDocument().GetDocumentAnimations().getAnimations();
+    int playing_anims = 0;
+    for (WTF::wtf_size_t ii = 0; ii < anims.size(); ii++) {
+      if (anims[ii]->Playing())
+        playing_anims++;
+    }
+    
+    if (playing_anims > 0) {
+      anything_changed = true;
+    }
+
+    webView->MainFrameWidget()->UpdateLifecycle(
+        WebWidget::LifecycleUpdate::kPrePaint,
+        WebWidget::LifecycleUpdateReason::kBeginMainFrame);
+
+    //frame_view->UpdateAllLifecyclePhasesExceptPaint();
+
+
+    if (frame_view->GetPaintArtifactCompositor() != nullptr &&
+        frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
+
+        anything_changed = true;
+        //std::cout << "compositor ";
+    }
+
+    /* cc::PropertyTrees* pts = frame_view->GetPaintArtifactCompositor()
+                                 ->GetPropertyTreesForDirectUpdate();
+    if (pts->changed) {
+      anything_changed = true;
+      std::cout << "changed" << std::endl;
+    }*/
+
+    /*frame_view->GetFrame().LocalFrameRoot().View()->UpdateLifecyclePhases(
+        DocumentLifecycle::kPrePaintClean, reason);*/
+
+    // PropertyTreeState property_tree_state =
+    //    frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
+
+    // if (frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
+    // auto layout_view = GetDocument().GetLayoutView();
+    // auto compositor = layout_view->Compositor();
+    // compositor->UpdateIfNeededRecursive(DocumentLifecycle::LifecycleState::kInPrePaint);
+
+    // PaintArtifactCompositor handles all the changes except animations
+
+    
+    /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
+      if (layer.PaintsContentOrHitTest()) {
+        anything_changed = true;
+        std::cout << "layer";
+      }
+    });*/
+
+    
+
+
+
+
+    //std::cout << std::endl;
+
+    return anything_changed;
+  }
+}
+
+void LgApp::Paint(SkCanvas* canvas) {
+  //std::cout << "LgApp::Paint()" << std::endl;
+
+  // GetDocument().GetPage()->GetFocusController().SetActive(
+  //    this->fWindow->IsActive());
+
+  // Handling events
+
+  /*webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
+      webView->MainFrameWidget());
+
+  for (auto& p : collectedInputEvents) {
+    WebInputEvent& theEvent = *p;
+    auto mtp = theEvent.GetType();
+
+    if (mtp == WebInputEvent::Type::kMouseUp) {
+      // Ending drag on mouse up event. That prevents input disabling
+      ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget())
+          ->DragSourceSystemDragEnded();
+    }
+
+    webView->MainFrameWidget()->HandleInputEvent(
+        WebCoalescedInputEvent(theEvent));
+  }
+  collectedInputEvents.clear();*/
+
+  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
 
   std::shared_ptr<cc::SkiaPaintCanvas> spc =
       std::make_shared<cc::SkiaPaintCanvas>(canvas);
 
+  // PaintRecordBuilder builder(nullptr, nullptr, nullptr,
+  //                           spc->GetPaintPreviewTracker());
+
+  // Updating the state machine
+  /* webView->MainFrameWidget()->UpdateAllLifecyclePhases(
+      WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
+
+  LocalFrameView* frame_view =
+      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+
+  PropertyTreeState property_tree_state =
+      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
   {
     blink::DisableCompositingQueryAsserts disabler;
-    root_graphics_layer =
+    auto root_graphics_layer =
         GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
 
+    // if (frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
+    // auto layout_view = GetDocument().GetLayoutView();
+    // auto compositor = layout_view->Compositor();
+    // compositor->UpdateIfNeededRecursive(DocumentLifecycle::LifecycleState::kInPaint);
+
+    frame_view->UpdateAllLifecyclePhases(
+        DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
+
+    //just_updated = false;
     ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
       if (layer.PaintsContentOrHitTest()) {
-        layer.GetPaintController().GetPaintArtifact().Replay(
-            *spc, property_tree_state, IntPoint(0, 0));
+        auto& artifact = layer.GetPaintController().GetPaintArtifact();
+        artifact.Replay(*spc, property_tree_state, IntPoint(0, 0));
+          //just_updated = true;
       }
     });
   }
 }
 
 bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
-                         int, int, skui::InputState, skui::ModifierKey) {
+                    int,
+                    int,
+                    skui::InputState,
+                    skui::ModifierKey) {
   std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
   if (evt == nullptr)
     return false;
@@ -467,7 +596,7 @@ bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
     }
 
     WebPointerProperties::Button button;
-    switch (mseEvt->button_flags()) { 
+    switch (mseEvt->button_flags()) {
       case ui::EF_LEFT_MOUSE_BUTTON:
         button = WebPointerProperties::Button::kLeft;
         break;
@@ -494,7 +623,8 @@ bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
     int click_count_param = mseEvt->GetClickCount();
     WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0, base::TimeTicks());
     bMseEvent = std::make_shared<blink::WebMouseEvent>(
-        mtp, std::move(ge), button, click_count_param, modifiers, base::TimeTicks());
+        mtp, std::move(ge), button, click_count_param, modifiers,
+        base::TimeTicks());
     bMseEvent->SetPositionInWidget(mseEvt->location_f());
 
     bEvent = bMseEvent;
@@ -508,104 +638,8 @@ bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
 }
 
 bool LgApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
-    float delta,
-    skui::ModifierKey modKey) {
-
-    std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
-    if (evt == nullptr)
-      return false;
-
-    int modifiers = 0;
-    if (evt->IsShiftDown())
-      modifiers |= WebInputEvent::kShiftKey;
-    if (evt->IsControlDown())
-      modifiers |= WebInputEvent::kControlKey;
-    if (evt->IsAltDown() || evt->IsAltGrDown())
-      modifiers |= WebInputEvent::kAltKey;
-    if (evt->IsCommandDown())
-      modifiers |= WebInputEvent::kMetaKey;
-
-
-    if (evt->IsMouseWheelEvent() || evt->IsScrollEvent()) {
-      std::shared_ptr<blink::WebGestureEvent> bGstEvent;
-
-      int x_offset, y_offset;
-      gfx::PointF location_f;
-
-      switch (evt->type()) {
-        case ui::ET_MOUSEWHEEL:     // This one is generated for mouse wheel on Windows
-        {
-          ui::MouseWheelEvent* scrlEvt = evt->AsMouseWheelEvent();
-          x_offset = scrlEvt->x_offset();
-          y_offset = scrlEvt->y_offset();
-          location_f = scrlEvt->location_f();
-        }
-        break;
-        case ui::ET_SCROLL:         // This one is generated for mouse wheel on macOS
-        {
-          ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
-          x_offset = scrlEvt->x_offset();
-          y_offset = scrlEvt->y_offset();
-          location_f = scrlEvt->location_f();
-        }
-        break;
-
-        default:
-          return false;
-      }
-
-      // Setting up begin+update+end sequence
-      {
-        // Begin
-        bGstEvent = std::make_shared<blink::WebGestureEvent>(
-            WebInputEvent::Type::kGestureScrollBegin, modifiers,
-                                                             base::TimeTicks());
-
-        bGstEvent->SetPositionInWidget(location_f);
-        bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
-        bGstEvent->SetFrameScale(1.0);
-        bGstEvent->data.scroll_begin.scrollable_area_element_id = 0;
-        bGstEvent->data.scroll_begin.delta_y_hint = 0.0;
-        collectedInputEvents.push_back(bGstEvent);
-      }
-      {
-        // Update
-        bGstEvent = std::make_shared<blink::WebGestureEvent>(
-            WebInputEvent::Type::kGestureScrollUpdate, modifiers,
-            base::TimeTicks());
-
-        bGstEvent->SetPositionInWidget(location_f);
-
-        bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
-        bGstEvent->SetFrameScale(1.0);
-        bGstEvent->data.scroll_update.inertial_phase =
-            WebGestureEvent::InertialPhaseState::kMomentum;
-        bGstEvent->data.scroll_update.delta_x = x_offset;
-        bGstEvent->data.scroll_update.delta_y = y_offset;
-        collectedInputEvents.push_back(bGstEvent);
-      }
-      {
-        // End
-        bGstEvent = std::make_shared<blink::WebGestureEvent>(
-            WebInputEvent::Type::kGestureScrollEnd, modifiers,
-            base::TimeTicks());
-        bGstEvent->SetPositionInWidget(location_f);
-        bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
-        bGstEvent->SetFrameScale(1.0);
-        collectedInputEvents.push_back(bGstEvent);
-      }
-
-      return true;
-    }
-
-    return false;
-
-}
-
-bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
-                       uint64_t key,
-                       skui::InputState inState,
-                       skui::ModifierKey modKey) {
+                         float delta,
+                         skui::ModifierKey modKey) {
   std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
   if (evt == nullptr)
     return false;
@@ -619,7 +653,98 @@ bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
     modifiers |= WebInputEvent::kAltKey;
   if (evt->IsCommandDown())
     modifiers |= WebInputEvent::kMetaKey;
-  
+
+  if (evt->IsMouseWheelEvent() || evt->IsScrollEvent()) {
+    std::shared_ptr<blink::WebGestureEvent> bGstEvent;
+
+    int x_offset, y_offset;
+    gfx::PointF location_f;
+
+    switch (evt->type()) {
+      case ui::ET_MOUSEWHEEL:  // This one is generated for mouse wheel on
+                               // Windows
+      {
+        ui::MouseWheelEvent* scrlEvt = evt->AsMouseWheelEvent();
+        x_offset = scrlEvt->x_offset();
+        y_offset = scrlEvt->y_offset();
+        location_f = scrlEvt->location_f();
+      } break;
+      case ui::ET_SCROLL:  // This one is generated for mouse wheel on macOS
+      {
+        ui::ScrollEvent* scrlEvt = evt->AsScrollEvent();
+        x_offset = scrlEvt->x_offset();
+        y_offset = scrlEvt->y_offset();
+        location_f = scrlEvt->location_f();
+      } break;
+
+      default:
+        return false;
+    }
+
+    // Setting up begin+update+end sequence
+    {
+      // Begin
+      bGstEvent = std::make_shared<blink::WebGestureEvent>(
+          WebInputEvent::Type::kGestureScrollBegin, modifiers,
+          base::TimeTicks());
+
+      bGstEvent->SetPositionInWidget(location_f);
+      bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
+      bGstEvent->SetFrameScale(1.0);
+      bGstEvent->data.scroll_begin.scrollable_area_element_id = 0;
+      bGstEvent->data.scroll_begin.delta_y_hint = 0.0;
+      collectedInputEvents.push_back(bGstEvent);
+    }
+    {
+      // Update
+      bGstEvent = std::make_shared<blink::WebGestureEvent>(
+          WebInputEvent::Type::kGestureScrollUpdate, modifiers,
+          base::TimeTicks());
+
+      bGstEvent->SetPositionInWidget(location_f);
+
+      bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
+      bGstEvent->SetFrameScale(1.0);
+      bGstEvent->data.scroll_update.inertial_phase =
+          WebGestureEvent::InertialPhaseState::kMomentum;
+      bGstEvent->data.scroll_update.delta_x = x_offset;
+      bGstEvent->data.scroll_update.delta_y = y_offset;
+      collectedInputEvents.push_back(bGstEvent);
+    }
+    {
+      // End
+      bGstEvent = std::make_shared<blink::WebGestureEvent>(
+          WebInputEvent::Type::kGestureScrollEnd, modifiers, base::TimeTicks());
+      bGstEvent->SetPositionInWidget(location_f);
+      bGstEvent->SetSourceDevice(WebGestureDevice::kSyntheticAutoscroll);
+      bGstEvent->SetFrameScale(1.0);
+      collectedInputEvents.push_back(bGstEvent);
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
+                  uint64_t key,
+                  skui::InputState inState,
+                  skui::ModifierKey modKey) {
+  std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
+  if (evt == nullptr)
+    return false;
+
+  int modifiers = 0;
+  if (evt->IsShiftDown())
+    modifiers |= WebInputEvent::kShiftKey;
+  if (evt->IsControlDown())
+    modifiers |= WebInputEvent::kControlKey;
+  if (evt->IsAltDown() || evt->IsAltGrDown())
+    modifiers |= WebInputEvent::kAltKey;
+  if (evt->IsCommandDown())
+    modifiers |= WebInputEvent::kMetaKey;
+
   std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
   if (evt->IsKeyEvent()) {
     auto* keyEvt = evt->AsKeyEvent();
@@ -637,8 +762,8 @@ bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
         return false;
     }
 
-    bKbdEvent =
-        std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers, base::TimeTicks());
+    bKbdEvent = std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers,
+                                                          base::TimeTicks());
     bKbdEvent->text[0] = keyEvt->GetText();
     bKbdEvent->windows_key_code = keyEvt->key_code();
     bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
@@ -654,8 +779,8 @@ bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
 }
 
 bool LgApp::onChar(const ui::PlatformEvent& platformEvent,
-                        SkUnichar c,
-                        skui::ModifierKey modifiers) {
+                   SkUnichar c,
+                   skui::ModifierKey modifiers) {
   return false;
 }
 
@@ -669,14 +794,34 @@ void LgApp::onIdle() {
   // Just re-paint continously
   int FPS = this->fWindow->IsActive() ? 60 : 30;
 
-  auto now = std::chrono::high_resolution_clock::now();
-  auto span =
-      std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
-  if (span > 1.0 / FPS) {
-    //std::cout << "Span: " << span << std::endl;
+  // auto now = std::chrono::high_resolution_clock::now();
+  // auto span =
+  //    std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
+  // if (span > 1.0 / FPS) {
+  // std::cout << "Span: " << span << std::endl;
+
+  bool needsRepaint = UpdateViewIfNeededAndBeginFrame();
+
+  // WebLocalFrameImpl* main_frame = webView->MainFrameImpl();
+  // WebWidgetClient* client = main_frame->LocalRootFrameWidget()->Client();
+
+  /* auto my_web_widget_client =
+      dynamic_cast<blink::my_frame_test_helpers::TestWebWidgetClient*>(client);
+  if (my_web_widget_client->AnimationScheduled()) {
+    needsRepaint = true;
+    my_web_widget_client->ClearAnimationScheduled();
+  }*/
+
+  // std::cout << "just_updated: " << just_updated << std::endl;
+  if (needsRepaint /* || just_updated*/) {
     fWindow->inval();
-    paintTime = now;
+  } else {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
+    //fWindow->inval();
   }
+  // paintTime = now;
+
+  //}
 }
 
 void LgApp::onAttach(sk_app::Window* window) {}

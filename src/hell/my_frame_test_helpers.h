@@ -35,6 +35,7 @@
 
 #include <memory>
 #include <string>
+#include <iostream>
 
 #include "base/location.h"
 #include "base/macros.h"
@@ -231,9 +232,15 @@ class StubLayerTreeViewDelegate : public content::LayerTreeViewDelegate {
   void EndUpdateLayers() override {}
   void RequestNewLayerTreeFrameSink(
       LayerTreeFrameSinkCallback callback) override;
-  void DidCommitAndDrawCompositorFrame() override {}
-  void WillCommitCompositorFrame() override {}
-  void DidCommitCompositorFrame() override {}
+  void DidCommitAndDrawCompositorFrame() override {
+    std::cout << "DidCommitAndDrawCompositorFrame()" << std::endl;
+  }
+  void WillCommitCompositorFrame() override {
+    std::cout << "WillCommitCompositorFrame()" << std::endl;
+  }
+  void DidCommitCompositorFrame() override {
+    std::cout << "DidCommitCompositorFrame()" << std::endl;
+  }
   void DidCompletePageScaleAnimation() override {}
   void UpdateVisualState() override {}
   void WillBeginCompositorFrame() override {}
@@ -352,6 +359,15 @@ class TestWebViewClient : public WebViewClient {
   // LayerTreeViewFactory layer_tree_view_factory_;
   WTF::Vector<std::unique_ptr<WebViewHelper>> child_web_views_;
   std::shared_ptr<WebViewHelper> parent;
+
+public:
+  // Called when a region of the WebView needs to be re-painted. This is only
+  // for non-composited WebViews that exist to contribute to a "parent" WebView
+  // painting. Otherwise invalidations are transmitted to the compositor through
+  // the layers.
+  void DidInvalidateRect(const WebRect&) override {
+   std::cout << "DidInvalidateRect()" << std::endl;
+  }
 };
 
 // Convenience class for handling the lifetime of a WebView and its associated
@@ -443,6 +459,11 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
     viewport_enabled_ = viewport;
   }
 
+  std::unique_ptr<TestWebViewClient> owned_test_web_view_client_;
+  TestWebViewClient* test_web_view_client_ = nullptr;
+  std::unique_ptr<TestWebWidgetClient> owned_test_web_widget_client_;
+  TestWebWidgetClient* test_web_widget_client_ = nullptr;
+
  private:
   void InitializeWebView(TestWebViewClient*, class WebView* opener);
 
@@ -450,10 +471,6 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
 
   WebViewImpl* web_view_;
 
-  std::unique_ptr<TestWebViewClient> owned_test_web_view_client_;
-  TestWebViewClient* test_web_view_client_ = nullptr;
-  std::unique_ptr<TestWebWidgetClient> owned_test_web_widget_client_;
-  TestWebWidgetClient* test_web_widget_client_ = nullptr;
 
   // The Platform should not change during the lifetime of the test!
   Platform* const platform_;
@@ -509,6 +526,16 @@ class TestWebFrameClient : public WebLocalFrameClient {
   WebPlugin* CreatePlugin(const WebPluginParams& params) override;
   AssociatedInterfaceProvider* GetRemoteNavigationAssociatedInterfaces()
       override;
+
+  // Called when the frame rects changed.
+  void FrameRectsChanged(const WebRect&) override {
+    // TODO Redraw here!!!
+  }
+
+  virtual void DidChangeContents() override {
+    std::cout << "DidChangeContents()" << std::endl;
+  }
+
 
  private:
   void CommitNavigation(std::unique_ptr<WebNavigationInfo>);

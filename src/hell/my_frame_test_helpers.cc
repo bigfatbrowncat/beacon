@@ -440,7 +440,7 @@ WebLocalFrameImpl* CreateLocalChild(WebRemoteFrame& parent,
       WebFrameWidget::CreateForChildLocalRoot(widget_client, frame);
   // The WebWidget requires an AnimationHost to be set, either by the
   // WebWidgetClient itself or by someone else. We do that here.
-  // frame_widget->SetAnimationHost(widget_client->animation_host());
+  frame_widget->SetAnimationHost(widget_client->animation_host());
   // Set an initial size for subframes.
   if (frame->Parent())
     frame_widget->Resize(WebSize());
@@ -501,8 +501,6 @@ WebViewImpl* WebViewHelper::InitializeWithOpener(
   // This happens before CreateForMainFrame as the WebFrameWidget binding to the
   // WebLocalFrameImpl sets up animations.
 
-  // web_view_->SetAnimationHost(test_web_widget_client_->animation_host());
-
   // TODO(dcheng): The main frame widget currently has a special case.
   // Eliminate this once WebView is no longer a WebWidget.
   blink::WebFrameWidget::CreateForMainFrame(test_web_widget_client_, frame);
@@ -517,6 +515,9 @@ WebViewImpl* WebViewHelper::InitializeWithOpener(
   // Set an initial size for subframes.
   if (frame->Parent())
     frame->FrameWidget()->Resize(WebSize());
+
+  web_view_->MainFrameWidget()->SetAnimationHost(
+    test_web_widget_client_->animation_host());
 
   return web_view_;
 }
@@ -830,6 +831,7 @@ TestWebWidgetClient::TestWebWidgetClient(
     scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner,
     scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner,
     blink::scheduler::WebThreadScheduler* my_web_thread_sched) {
+
   layer_tree_view_ = std::make_unique<content::LayerTreeView>(delegate, mainTaskRunner,
       composeTaskRunner, new cc::SingleThreadTaskGraphRunner(), my_web_thread_sched);
 
@@ -929,8 +931,8 @@ void TestWebWidgetClient::RegisterSelection(
   layer_tree_host()->RegisterSelection(selection);
 }
 
-void TestWebWidgetClient::DidMeaningfulLayout(
-    WebMeaningfulLayout meaningful_layout) {
+void TestWebWidgetClient::DidMeaningfulLayout(WebMeaningfulLayout meaningful_layout) {
+  std::cout << "TestWebWidgetClient::DidMeaningfulLayout()" << std::endl;
   switch (meaningful_layout) {
     case WebMeaningfulLayout::kVisuallyNonEmpty:
       visually_non_empty_layout_count_++;
@@ -986,7 +988,9 @@ void TestWebViewClient::FocusPrevious() {
 }
 
 TestWebWidgetClient::~TestWebWidgetClient() {}
+
 void TestWebWidgetClient::ScheduleAnimation() {
+  //std::cout << "TestWebWidgetClient::ScheduleAnimation()" << std::endl;
   animation_scheduled_ = true;
 }
 TestWebViewClient::TestWebViewClient(std::shared_ptr<WebViewHelper> parent) {
