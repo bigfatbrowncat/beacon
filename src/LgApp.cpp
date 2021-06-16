@@ -267,42 +267,54 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
 }
 
 void LgApp::UpdateBackend() {
-  // Checking if we need a fallback to Raster renderer.
-  // Fallback is effective for small screens and weak videochips
   bool fallback = false;
-  if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
+  if (fWindow->width() * fWindow->height() <= 2560 * 1440 || resizing) {
+    // Checking if we need a fallback to Raster renderer.
+    // Fallback is effective for small screens and weak videochips
+
+    // Also, OpenGL context slows down the resizing process.
+    // So we are changing the backend to software raster during resizing
     fallback = true;
   }
 
-  // OpenGL context slows down the resizing process.
-  // So we are changing the backend to software raster during resizing
   auto newBackendType = fallback ? sk_app::Window::kRaster_BackendType
                                  : sk_app::Window::kNativeGL_BackendType;
 
-  // If there is no GL context allocated then falling back to raster
-  if (fWindow->getGrContext() == nullptr) {
+  std::chrono::steady_clock::time_point curTime = 
+      std::chrono::steady_clock::now();
+
+  if (fBackendType != sk_app::Window::kRaster_BackendType && 
+    fWindow->getGrContext() == nullptr) {
+
+    // If we attempted to initialize GL before, but failed,
+    // then falling back to raster
     newBackendType = sk_app::Window::kRaster_BackendType;
-  } else {
-    // If too much time passed after the last attempt to init GL
-    // and we aren't resizing, try again
-    std::chrono::steady_clock::time_point curTime =
-        std::chrono::steady_clock::now();
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
-                                                              lastGLInitAttempt)
-                .count() > 1000 &&
-        !fallback) {
-      // Good luck to us!
-      newBackendType = sk_app::Window::kNativeGL_BackendType;
-      lastGLInitAttempt = curTime;
-    }
-  }
+
+  } 
+
+  bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              curTime - lastBackendInitFailedAttempt)
+                              .count() > 1000;
 
   if (fBackendType != newBackendType) {
-    std::cout << "LgApp::UpdateBackend: updating backend" << std::endl;
-    fBackendType = newBackendType;
-    fWindow->detach();
-    fWindow->attach(fBackendType);
-    updateTitle();
+    if (newBackendType == sk_app::Window::kRaster_BackendType ||
+        enoughTimePassed) {
+
+     std::cout << "LgApp::UpdateBackend: updating backend" << std::endl;
+      fBackendType = newBackendType;
+      fWindow->detach();
+
+      // If we are switching to the raster fallback mode 
+      // or enough time has passed since the previous context 
+      // switching failure, let's try to switch the context
+
+      if (!fWindow->attach(fBackendType)) {
+        // Oops, we've failed...
+        // Let's record the last failure time
+        lastBackendInitFailedAttempt = curTime;
+      }
+      updateTitle();
+    }
   }
 }
 
@@ -385,15 +397,15 @@ bool LgApp::UpdateViewIfNeededAndBeginFrame() {
   GetDocument().GetPage()->GetFocusController().SetActive(
       this->fWindow->IsActive());
 
-  // Handling events
   bool anything_changed = false;
   //std::cout << "anything_changed: ";
   
-  if (collectedInputEvents.size() > 0) {
-    anything_changed = true;
+  //if (collectedInputEvents.size() > 0) {
+  //  anything_changed = true;
     //std::cout << "events ";
-  }
+  //}
 
+  // Handling events
   webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
       webView->MainFrameWidget());
 
@@ -401,10 +413,19 @@ bool LgApp::UpdateViewIfNeededAndBeginFrame() {
     WebInputEvent& theEvent = *p;
     auto mtp = theEvent.GetType();
 
+    auto frame_widget =
+        ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget());
     if (mtp == WebInputEvent::Type::kMouseUp) {
       // Ending drag on mouse up event. That prevents input disabling
-      ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget())
-          ->DragSourceSystemDragEnded();
+      frame_widget->DragSourceSystemDragEnded();
+    }
+
+    if (mtp != WebInputEvent::Type::kMouseMove ||
+        !frame_widget->DoingDragAndDrop()) {
+      
+      // Any event except mouse moving without an active 
+      // drag-drop operation is considered a changing operation
+      anything_changed = true;
     }
 
     webView->MainFrameWidget()->HandleInputEvent(
@@ -422,10 +443,10 @@ bool LgApp::UpdateViewIfNeededAndBeginFrame() {
   {
     blink::DisableCompositingQueryAsserts disabler;
 
-    /* auto root_graphics_layer =
-        GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+    //auto root_graphics_layer =
+    //    GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
 
-    ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {});*/
+    /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {});*/
 
     auto anims = GetDocument().GetDocumentAnimations().getAnimations();
     int playing_anims = 0;
@@ -473,7 +494,7 @@ bool LgApp::UpdateViewIfNeededAndBeginFrame() {
     // PaintArtifactCompositor handles all the changes except animations
 
     
-    /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
+    /* ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
       if (layer.PaintsContentOrHitTest()) {
         anything_changed = true;
         std::cout << "layer";
