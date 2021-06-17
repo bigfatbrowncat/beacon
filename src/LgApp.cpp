@@ -268,7 +268,7 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
 
 void LgApp::UpdateBackend() {
   bool fallback = false;
-  if (fWindow->width() * fWindow->height() <= 2560 * 1440 || resizing) {
+  if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
     // Checking if we need a fallback to Raster renderer.
     // Fallback is effective for small screens and weak videochips
 

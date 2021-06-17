@@ -54,6 +54,13 @@ void RasterWindowContext_win::setDisplayParams(const DisplayParams& params) {
 void RasterWindowContext_win::resize(int w, int h) {
     fWidth = w;
     fHeight = h;
+
+    // Safety. The buffer can't have zero size
+    if (h == 0)
+      h = 1;
+    if (w == 0)
+      w = 1;
+
     fBackbufferSurface.reset();
     const size_t bmpSize = sizeof(BITMAPINFOHEADER) + w * h * sizeof(uint32_t);
     fSurfaceMemory.reset(bmpSize);

@@ -63,8 +63,14 @@ sk_sp<SkSurface> GLWindowContext::getBackbufferSurface() {
             fbInfo.fFBOID = buffer;
             fbInfo.fFormat = GR_GL_RGBA8;
 
-            GrBackendRenderTarget backendRT(fWidth,
-                                            fHeight,
+            int w = fWidth, h = fHeight;
+            
+            // Safety. The context should hot have zero size
+            if (w == 0)
+              w = 1;
+            if (h == 0)
+              h = 1;
+            GrBackendRenderTarget backendRT(w, h,
                                             fSampleCount,
                                             fStencilBits,
                                             fbInfo);
