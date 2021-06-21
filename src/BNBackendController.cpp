@@ -1,4 +1,4 @@
-#include "LgBackendController.h"
+#include "BNBackendController.h"
 
 namespace SDK {
 
@@ -75,7 +75,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     std::string htmlText =
     "    <html>"
     "    <head>"
-    "        <title>Welcome to LightningUI</title>"
+    "        <title>Beacon</title>"
     "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
     "        <link rel=\"stylesheet\" href=\"mem://root.css\" />"
     "        <style>"
@@ -96,16 +96,16 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "    <body>"
     "        <div class=\"logo\">"
     "            <img class=\"logo\" src=\"mem://logo.svg\"></img>"
-    "            <div class=\"logo-title\">This is LightningUI</div>"
+    "            <div class=\"logo-title\">Beacon's here</div>"
     "        </div>"
     "        <div class=\"content-frame\">"
     "            <div class=\"content-page\">"
     "                <div class=\"content-page-margins\">"
     "                    <p class=\"title-item\" onclick=\"toggle('description')\"><b>Description</b></p>"
     "                    <div id=\"description\" class=\"shown\">"
-    "                        <p><b>LightningUI</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>LightningUI</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
-    "                        <p><b>LightningUI</b> is a framework, that provides <b>the end-user</b> with a modern-looking and fast-paced application interaction experience.</p>" 
-    "                        <p><b>LightningUI</b> is the fastest among all the HTML-based UI frameworks such as Electron, NW.js, "
+    "                        <p><b>Beacon</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>Beacon</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
+    "                        <p><b>Beacon</b> is a framework, that provides <b>the end-user</b> with a modern-looking and fast-paced application interaction experience.</p>" 
+    "                        <p><b>Beacon</b> is the fastest among all the HTML-based UI frameworks such as Electron, NW.js, "
     "                            CEF and everything else Chromium-based. If you don't believe that, just start resizing this window by dragging its corner randomly with the mouse and compare the visual sense to any application built upon another framework ;)"
     "                        </p>"
     "                    </div>"
@@ -138,6 +138,9 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
     "                    element.classList.add(\"hidden\");"
     "                }"
     "            }"
+    "        </script>"
+    "        <script>"
+    "            print('This is printed from javascript!');"
     "        </script>"
     "    </body>"
     "    </html>";

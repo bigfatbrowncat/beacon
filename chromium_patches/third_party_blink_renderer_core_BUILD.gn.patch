@@ -9,7 +9,7 @@ index fbdf332d09..8c85996908 100644
 -  visibility = [ "//third_party/blink/*" ]
 +  visibility = [ 
 +    "//third_party/blink/*", 
-+    "//my_example:HelloWorld"
++    "//beacon:Beacon"
 +  ]
  
    # If you create a new subdirectory, make a new BUILD file for that directory

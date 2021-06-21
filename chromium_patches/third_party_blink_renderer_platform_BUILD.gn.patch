@@ -7,7 +7,7 @@ index 1252f23c91..c8e7ef598c 100644
      "//url/mojom:url_mojom_origin_blink",
      "//url/mojom:url_mojom_gurl_blink",
 +
-+    "//my_example:HelloWorld"
++    "//beacon:Beacon"
    ]
    output_name = "blink_platform"
  

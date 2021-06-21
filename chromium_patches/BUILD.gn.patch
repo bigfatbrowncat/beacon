@@ -16,7 +16,7 @@ index b309339416..323f4e8c3c 100644
      "//third_party/pffft:pffft_unittest",
    ]
 +
-+  deps += [ "//my_example:HelloWorld" ]
++  deps += [ "//beacon:Beacon" ]
  }
  
  if ((is_linux || is_win) && enable_remoting && !use_ozone) {

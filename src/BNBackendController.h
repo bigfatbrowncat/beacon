@@ -1,5 +1,4 @@
-#ifndef LgBackendController_DEFINED
-#define LgBackendController_DEFINED
+#pragma once
 
 #include <string>
 #include <vector>
@@ -44,5 +43,3 @@ public:
 };
 
 }
-
-#endif

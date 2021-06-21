@@ -7,7 +7,7 @@ index e7ba2fb465..671c632db7 100644
  
    visibility = []  # Allow re-assignment of list.
 -  visibility = [ "//third_party/blink/*" ]
-+  visibility = [ "//third_party/blink/*", "//my_example:HelloWorld" ]
++  visibility = [ "//third_party/blink/*", "//beacon:Beacon" ]
  
    sources = [
      "event_modules.h",

@@ -47,6 +47,8 @@
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/public/web/web_render_theme.h"
 
+#include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
+
 #include "base/message_loop/message_pump.h"
 #include "base/run_loop.h"
 #include "base/time/default_tick_clock.h"
@@ -76,8 +78,8 @@
 #include "ui/events/blink/web_input_event_builders_win.h"
 #endif
 
-#include "LgApp.h"
-#include "LgBlinkPlatformImpl.h"
+#include "BNApp.h"
+#include "BNBlinkPlatformImpl.h"
 
 #include "hell/SkLoadICU.h"
 #include "hell/my_blink_platform_impl.h"
@@ -88,6 +90,30 @@ using namespace blink;
 
 extern "C" uint8_t blink_resources_pak[];     /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
+
+// Extracts a C string from a V8 Utf8Value.
+const char* ToCString(const v8::String::Utf8Value& value) {
+  return *value ? *value : "<string conversion failed>";
+}
+
+// The callback that is invoked by v8 whenever the JavaScript 'print'
+// function is called.  Prints its arguments on stdout separated by
+// spaces and ending with a newline.
+void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  bool first = true;
+  for (int i = 0; i < args.Length(); i++) {
+    v8::HandleScope handle_scope(args.GetIsolate());
+    if (first) {
+      first = false;
+    } else {
+      std::cout << " ";
+    }
+    v8::String::Utf8Value str(args.GetIsolate(), args[i]);
+    const char* cstr = ToCString(str);
+    std::cout << cstr;
+  }
+  std::cout << std::endl;
+}
 
 LgApp::LgApp(int argc,
              char** argv,
@@ -203,6 +229,24 @@ LgApp::LgApp(int argc,
   blink::WebLocalFrameImpl& frm = *webView->MainFrameImpl();
   frm.SetCaretVisible(true);
 
+  // Setting up the v8 global object
+
+  v8::Isolate* isolate = ToIsolate(frm.GetFrame());
+  {
+    v8::HandleScope handle_scope(isolate);
+
+    v8::Local<v8::Context> v8context = frm.MainWorldScriptContext();
+    v8::Local<v8::Object> v8proxyProto = frm.GlobalProxy();//->GetPrototype();
+
+    v8::Local<v8::Value> printKey =
+        v8::String::NewFromUtf8(isolate, "print", v8::NewStringType::kNormal)
+            .ToLocalChecked();
+    v8::Local<v8::Value> printValue = v8::FunctionTemplate::New(isolate, Print)
+                                          ->GetFunction(v8context)
+                                          .ToLocalChecked();
+    v8proxyProto->Set(v8context, printKey, printValue).Check();
+  }
+
   // Setting the initial size
   IntSize page_size(fWindow->width(), fWindow->height());
   webView->Resize(WebSize(page_size));
@@ -266,8 +310,9 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
     ForAllGraphicsLayers(*child, function);
 }
 
-void LgApp::UpdateBackend() {
-  bool fallback = false;
+void LgApp::UpdateBackend(bool forceFallback) {
+  bool fallback = forceFallback;
+
   if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
     // Checking if we need a fallback to Raster renderer.
     // Fallback is effective for small screens and weak videochips
@@ -282,6 +327,12 @@ void LgApp::UpdateBackend() {
 
   std::chrono::steady_clock::time_point curTime = 
       std::chrono::steady_clock::now();
+
+  if (forceFallback) {
+    // If we are forcing the fallback, we don't 
+    // let the context to upgrade immediately
+    lastBackendInitFailedAttempt = curTime;
+  }
 
   if (fBackendType != sk_app::Window::kRaster_BackendType && 
     fWindow->getGrContext() == nullptr) {
@@ -300,7 +351,7 @@ void LgApp::UpdateBackend() {
     if (newBackendType == sk_app::Window::kRaster_BackendType ||
         enoughTimePassed) {
 
-     std::cout << "LgApp::UpdateBackend: updating backend" << std::endl;
+      std::cout << "LgApp::UpdateBackend: updating backend" << std::endl;
       fBackendType = newBackendType;
       fWindow->detach();
 
@@ -319,7 +370,13 @@ void LgApp::UpdateBackend() {
 }
 
 void LgApp::onResize(int width, int height) {
-  UpdateBackend();
+  std::cout << "LgApp::onResize" << std::endl;
+  if (resizing) {
+    // UpdateBackend should not be called on 
+    // window maximization/restoration because that's slow 
+    // (and leads to high flicker)
+    UpdateBackend(true);
+  }
 
   int kPageWidth = width;
   int kPageHeight = height;
@@ -332,13 +389,13 @@ void LgApp::onResize(int width, int height) {
 void LgApp::onBeginResizing() {
   std::cout << "LgApp::onBeginResizing" << std::endl;
   resizing = true;
-  UpdateBackend();
+  UpdateBackend(true);
 }
 
 void LgApp::onEndResizing() {
   std::cout << "LgApp::onEndResizing" << std::endl;
   resizing = false;
-  UpdateBackend();
+  UpdateBackend(true);
 }
 
 void LgApp::onPaint(SkSurface* surface) {
@@ -806,7 +863,7 @@ bool LgApp::onChar(const ui::PlatformEvent& platformEvent,
 }
 
 void LgApp::onIdle() {
-  UpdateBackend();
+  UpdateBackend(false);
 
   // Processing the pending commands
   base::RunLoop run_loop;

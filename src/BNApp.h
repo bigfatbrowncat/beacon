@@ -18,7 +18,7 @@
 #include "app_base/Application.h"
 #include "app_base/Window.h"
 
-#include "LgBackendController.h"
+#include "BNBackendController.h"
 
 #include "hell/my_frame_test_helpers.h"
 
@@ -61,7 +61,7 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
               skui::ModifierKey modifiers) override;
 
   blink::Document& GetDocument();
-  void UpdateBackend();
+  void UpdateBackend(bool forceFallback);
 
  private:
   void updateTitle();
@@ -77,7 +77,7 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
   std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
       discardableSharedMemoryManager;    
 
-  std::chrono::steady_clock::time_point lastGLInitAttempt =
+  std::chrono::steady_clock::time_point lastBackendInitFailedAttempt =
       std::chrono::steady_clock::now();
 
   std::shared_ptr<blink::Platform> platform;
@@ -108,7 +108,7 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
   
   std::chrono::time_point<std::chrono::high_resolution_clock> paintTime;
 
-  bool just_updated;
+  //bool just_updated;
 };
 
 #endif  /* LgApp_DEFINED */

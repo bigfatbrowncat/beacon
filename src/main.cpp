@@ -1,6 +1,6 @@
 #include <app_base/Application.h>
 
-#include "LgApp.h"
+#include "BNApp.h"
 
 using namespace sk_app;
 
