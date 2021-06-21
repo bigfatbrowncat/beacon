@@ -1,0 +1,23 @@
+diff --git a/build/config/BUILD.gn b/build/config/BUILD.gn
+index 154d9e56a2..50f94dec6e 100644
+--- a/build/config/BUILD.gn
++++ b/build/config/BUILD.gn
+@@ -47,6 +47,7 @@ if (is_android) {
+ # build flags.
+ config("feature_flags") {
+   defines = []
++  
+   if (dcheck_always_on) {
+     defines += [ "DCHECK_ALWAYS_ON=1" ]
+     if (dcheck_is_configurable) {
+@@ -108,6 +109,10 @@ config("feature_flags") {
+     defines += [ "GOOGLE_CHROME_BUILD" ]
+   }
+ 
++  if (is_win) {
++    defines += [ "_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH" ]
++  }
++  
+   # ==============================================
+   #   PLEASE DO NOT ADD MORE THINGS TO THIS LIST
+   # ==============================================
