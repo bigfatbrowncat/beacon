@@ -1,3 +1,24 @@
+# About Beacon GUI framework
+Beacon is a Graphics User Interface framework that provides a "web-like" HTML+CSS+JS development interface and allows to connect it to a native (C/C++) backend.
+
+Beacon's motto: 
+
+    We shall use JavaScript for the UI, 
+    but native languages for the backend.
+    
+    And let both of them be as simple as possible! Amen.
+
+## What's the killer feature? 
+Unlike the popular competitors (such as Electron and NW.js), Beacon does not include the full browser code to itself. Instead, it adopts only the HTML renderer engine and JavaScript virtual machine directly. Thus it does not have any of the drawbacks, which are typical to "including the full browser" approach:
+
+* Beacon is **small** (about 70 megabytes)
+* Beacon **starts instantly**, as any other small native application like Microsoft Windows Calculator
+* Beacon creates **no excessive processes** (no irritating additional process-per-window browser-like sandboxing thing, no IPC calls inside your application)
+* Beacon **allows direct synchroneous calls** from the application _frontend_ to its _backend_ (and makes it simple to make them)
+* Beacon updates, layouts and draws the contents **faster and smoother** than any other HTML/JS-based UI framework does (especially during the resizing of its windows, when Beacon can literally _compete with native UI applications_ like Notepad or Windows Explorer).
+
+_We are doing our best to develop and keep Beacon as easy to adopt as possible._
+
 # Building
 
 ## Stage 1: Chromium
@@ -44,12 +65,12 @@ gclient runhooks
 
 Clone this project inside the 'src' folder.
 ```
-git clone https://bitbucket.org/bigfatbrowncat/my_example.git
+git clone https://github.com/bigfatbrowncat/beacon
 ```
 
 Apply the necessary patches to chromium sources:
 ```
-(cd my_example && python apply_patches.py)
+(cd beacon && python apply_patches.py)
 ```
 
 ### Replacing sysroot on Linux
@@ -75,11 +96,11 @@ If any package fails to download by script `wget` it manually and re-run the cre
 
 Then run the project generating script.
 ```
-my_example/gen_Debug.sh
+beacon/gen_Debug.sh
 ```
 or
 ```
-my_example/gen_Release.sh
+beacon/gen_Release.sh
 ```
 
 After the script has finished running, it creates `out/Debug` or `out/Release`.
@@ -97,11 +118,11 @@ It is okay for now if this command eventually fails.
 
 To build the project, run
 ```
-ninja -C out/Debug -j 2 HelloWorld
+ninja -C out/Debug -j 8 Beacon
 ```
 or
 ```
-ninja -C out/Release -j 2 HelloWorld
+ninja -C out/Release -j 8 Beacon
 ```
 
 Then you should generate a project.
