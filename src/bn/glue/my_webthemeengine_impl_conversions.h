@@ -8,6 +8,8 @@
 #include "content/common/content_export.h"
 #include "ui/native_theme/native_theme.h"
 
+namespace beacon::glue {
+
 CONTENT_EXPORT ui::NativeTheme::Part NativeThemePart(
     blink::WebThemeEngine::Part part);
 
@@ -30,3 +32,4 @@ CONTENT_EXPORT ui::NativeTheme::PreferredColorScheme NativePreferredColorScheme(
 CONTENT_EXPORT blink::PreferredColorScheme WebPreferredColorScheme(
     ui::NativeTheme::PreferredColorScheme preferred_color_scheme);
 
+}  // namespace beacon::glue

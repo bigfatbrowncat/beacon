@@ -30,9 +30,9 @@
 
 #include "my_frame_test_helpers.h"
 
+#include <iostream>
 #include <memory>
 #include <utility>
-#include <iostream>
 
 #include "base/bind.h"
 #include "cc/raster/single_thread_task_graph_runner.h"
@@ -69,9 +69,9 @@
 #include "third_party/blink/renderer/platform/wtf/functional.h"
 #include "third_party/blink/renderer/platform/wtf/std_lib_extras.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
+#include "ui/events/blink/blink_event_util.h"
 #include "ui/events/keycodes/dom/dom_key.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
-#include "ui/events/blink/blink_event_util.h"
 
 // We need this for WTF::Passed(std::move(blink::WebURLRequest))
 namespace WTF {
@@ -83,8 +83,7 @@ struct CrossThreadCopier<blink::WebURLRequest>
 
 }  // namespace WTF
 
-
-namespace blink {
+namespace beacon::glue {
 
 /*
 namespace my_scheduler {
@@ -172,7 +171,6 @@ bool FakeTaskRunner::PostNonNestableDelayedTask(const base::Location& location,
 
 }  // namespace my_scheduler
 */
-namespace my_frame_test_helpers {
 
 namespace {
 
@@ -209,10 +207,10 @@ void RunServeAsyncRequestsTask(scoped_refptr<base::TaskRunner> task_runner) {
 // In both cases the client to be used is returned.
 template <typename T>
 T* CreateDefaultClientIfNeeded(T* client, std::unique_ptr<T>& owned_client) {
-  //if (client)
-    return client;
-  //owned_client = std::make_unique<T>();
-  //return owned_client.get();
+  // if (client)
+  return client;
+  // owned_client = std::make_unique<T>();
+  // return owned_client.get();
 }
 
 }  // namespace
@@ -230,22 +228,21 @@ void LoadFrameDontWait(WebLocalFrame* frame, const WebURL& url) {
 
     WebLocalFrameClient* client = frame->Client();
     TestWebFrameClient* tclient =
-        static_cast<blink::my_frame_test_helpers::TestWebFrameClient*>(client);
+        static_cast<TestWebFrameClient*>(client);
     auto backend = tclient->Backend();
     FillNavigationParamsResponse(params.get(), backend.get());
 
     impl->CommitNavigation(
         std::move(params), nullptr /* extra_data */,
         base::DoNothing::Once() /* call_before_attaching_new_document */);
-    
-    //if (impl->SentDidFinishLoad()) {
-        // Setting the frame active to process the tabs correctly
+
+    // if (impl->SentDidFinishLoad()) {
+    // Setting the frame active to process the tabs correctly
     //}
   }
 }
 
-void LoadFrame(WebLocalFrame* frame,
-               const std::string& url) {
+void LoadFrame(WebLocalFrame* frame, const std::string& url) {
   LoadFrameDontWait(frame, url_test_helpers::ToKURL(url));
   PumpPendingRequestsForFrameToLoad(frame);
 }
@@ -264,7 +261,8 @@ void LoadHTMLString(WebLocalFrame* frame,
   PumpPendingRequestsForFrameToLoad(frame);
 }
 
-void LoadHistoryItem(WebLocalFrame* frame, BNSDK::Backend* backend,
+void LoadHistoryItem(WebLocalFrame* frame,
+                     beacon::sdk::Backend* backend,
                      const WebHistoryItem& item,
                      mojom::FetchCacheMode cache_mode) {
   auto* impl = To<WebLocalFrameImpl>(frame);
@@ -301,11 +299,11 @@ void PumpPendingRequestsForFrameToLoad(WebLocalFrame* frame) {
 }
 
 void FillNavigationParamsResponse(WebNavigationParams* params,
-                                  BNSDK::Backend* backend) {
+                                  beacon::sdk::Backend* backend) {
   params->response = WebURLResponse(params->url);
 
-  BNSDK::ResourceRequest resReq(params->url.GetString().Ascii());
-  BNSDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
+  beacon::sdk::ResourceRequest resReq(params->url.GetString().Ascii());
+  beacon::sdk::ResourceResponse resResp = backend->ProcessRequest(resReq);
 
   blink::WebString mimeType =
       blink::WebString::FromASCII(resResp.getMimeType());
@@ -333,10 +331,10 @@ WebMouseEvent CreateMouseEvent(WebInputEvent::Type type,
   return result;
 }
 
-WebMouseWheelEvent CreateMouseWheelEvent(WebMouseWheelEvent::Phase phase, int delta_x,
-    int delta_y,
-    int modifiers) {
-
+WebMouseWheelEvent CreateMouseWheelEvent(WebMouseWheelEvent::Phase phase,
+                                         int delta_x,
+                                         int delta_y,
+                                         int modifiers) {
   auto type = WebInputEvent::Type::kMouseWheel;
   WebMouseWheelEvent result(type, modifiers, base::TimeTicks::Now());
   result.delta_x = delta_x;
@@ -344,7 +342,6 @@ WebMouseWheelEvent CreateMouseWheelEvent(WebMouseWheelEvent::Phase phase, int de
   result.phase = phase;
   return result;
 }
-
 
 WebKeyboardEvent CreateKeyboardEvent(char key_code,
                                      int modifiers,
@@ -517,7 +514,7 @@ WebViewImpl* WebViewHelper::InitializeWithOpener(
     frame->FrameWidget()->Resize(WebSize());
 
   web_view_->MainFrameWidget()->SetAnimationHost(
-    test_web_widget_client_->animation_host());
+      test_web_widget_client_->animation_host());
 
   return web_view_;
 }
@@ -616,11 +613,12 @@ void WebViewHelper::Reset() {
 
 void WebViewHelper::SetFocused() {
   GetWebView()->SetIsActive(true);
-  
-  ((blink::Document*)GetWebView()->MainFrameImpl()
-               ->GetDocument())->GetFrame()->Selection().SetFrameIsFocused(true);
-}
 
+  ((blink::Document*)GetWebView()->MainFrameImpl()->GetDocument())
+      ->GetFrame()
+      ->Selection()
+      .SetFrameIsFocused(true);
+}
 
 WebLocalFrameImpl* WebViewHelper::LocalMainFrame() const {
   return To<WebLocalFrameImpl>(web_view_->MainFrame());
@@ -647,9 +645,9 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
   web_view_->GetSettings()->SetViewportEnabled(viewport_enabled_);
   web_view_->GetSettings()->SetJavaScriptEnabled(true);
   web_view_->GetSettings()->SetPluginsEnabled(true);
-  
-  //auto client = web_view_->Client();
-  //client->FocusNext();
+
+  // auto client = web_view_->Client();
+  // client->FocusNext();
 
   // Enable (mocked) network loads of image URLs, as this simplifies
   // the completion of resource loads upon test shutdown & helps avoid
@@ -672,9 +670,9 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
 
 int TestWebFrameClient::loads_in_progress_ = 0;
 
-TestWebFrameClient::TestWebFrameClient(std::shared_ptr<BNSDK::Backend> backend)
-    : backend(backend), interface_provider_(
-          new service_manager::InterfaceProvider()),
+TestWebFrameClient::TestWebFrameClient(std::shared_ptr<beacon::sdk::Backend> backend)
+    : backend(backend),
+      interface_provider_(new service_manager::InterfaceProvider()),
       associated_interface_provider_(new AssociatedInterfaceProvider(nullptr)),
       effective_connection_type_(WebEffectiveConnectionType::kTypeUnknown) {}
 
@@ -774,12 +772,11 @@ void TestWebFrameClient::DidAddMessageToConsole(
     const WebString& source_name,
     unsigned source_line,
     const WebString& stack_trace) {
-
-    std::cout << message.url.Utf8() << " (ln " << message.line_number << ", col "
+  std::cout << message.url.Utf8() << " (ln " << message.line_number << ", col "
             << message.column_number << "): " << message.text.Utf8()
             << std::endl;
 
-  //console_messages_.push_back(message.text);
+  // console_messages_.push_back(message.text);
 }
 
 WebPlugin* TestWebFrameClient::CreatePlugin(const WebPluginParams& params) {
@@ -831,9 +828,9 @@ TestWebWidgetClient::TestWebWidgetClient(
     scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner,
     scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner,
     blink::scheduler::WebThreadScheduler* my_web_thread_sched) {
-
-  layer_tree_view_ = std::make_unique<content::LayerTreeView>(delegate, mainTaskRunner,
-      composeTaskRunner, new cc::SingleThreadTaskGraphRunner(), my_web_thread_sched);
+  layer_tree_view_ = std::make_unique<content::LayerTreeView>(
+      delegate, mainTaskRunner, composeTaskRunner,
+      new cc::SingleThreadTaskGraphRunner(), my_web_thread_sched);
 
   cc::LayerTreeSettings settings;
   //  Use synchronous compositing so that the MessageLoop becomes idle and
@@ -859,7 +856,8 @@ void TestWebWidgetClient::SetBackgroundColor(SkColor color) {
 void TestWebWidgetClient::SetPageScaleStateAndLimits(
     float page_scale_factor,
     bool is_pinch_gesture_active,
-    float minimum, float maximum) {
+    float minimum,
+    float maximum) {
   layer_tree_host()->SetPageScaleFactorAndLimits(page_scale_factor, minimum,
                                                  maximum);
 }
@@ -873,7 +871,6 @@ void TestWebWidgetClient::InjectGestureScrollEvent(
   InjectedScrollGestureData data{delta, granularity, scrollable_area_element_id,
                                  injected_type};
   injected_scroll_gesture_data_.push_back(data);
-
 }
 
 void TestWebWidgetClient::HandleScrollEvents(WebWidget* widget) {
@@ -895,7 +892,6 @@ void TestWebWidgetClient::HandleScrollEvents(WebWidget* widget) {
   }
   injected_scroll_gesture_data_.clear();
 }
-
 
 void TestWebWidgetClient::SetHaveScrollEventHandlers(bool have_handlers) {
   have_scroll_event_handlers_ = have_handlers;
@@ -931,7 +927,8 @@ void TestWebWidgetClient::RegisterSelection(
   layer_tree_host()->RegisterSelection(selection);
 }
 
-void TestWebWidgetClient::DidMeaningfulLayout(WebMeaningfulLayout meaningful_layout) {
+void TestWebWidgetClient::DidMeaningfulLayout(
+    WebMeaningfulLayout meaningful_layout) {
   std::cout << "TestWebWidgetClient::DidMeaningfulLayout()" << std::endl;
   switch (meaningful_layout) {
     case WebMeaningfulLayout::kVisuallyNonEmpty:
@@ -990,7 +987,7 @@ void TestWebViewClient::FocusPrevious() {
 TestWebWidgetClient::~TestWebWidgetClient() {}
 
 void TestWebWidgetClient::ScheduleAnimation() {
-  //std::cout << "TestWebWidgetClient::ScheduleAnimation()" << std::endl;
+  // std::cout << "TestWebWidgetClient::ScheduleAnimation()" << std::endl;
   animation_scheduled_ = true;
 }
 TestWebViewClient::TestWebViewClient(std::shared_ptr<WebViewHelper> parent) {
@@ -1021,7 +1018,8 @@ WebRemoteFrame* TestWebRemoteFrameClient::Frame() const {
 }
 
 MyWebURLLoader::MyWebURLLoader(
-    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched, std::shared_ptr<BNSDK::Backend> backend)
+    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
+    std::shared_ptr<beacon::sdk::Backend> backend)
     : my_web_thread_sched(my_web_thread_sched), backend(backend) {}
 
 MyWebURLLoader::~MyWebURLLoader() {}
@@ -1040,9 +1038,9 @@ void MyWebURLLoader::LoadSynchronously(const WebURLRequest&,
 void MyWebURLLoader::DoLoadAsynchronously(WebURLRequest request,
                                           WebURLLoaderClient* client) {
   WebURLResponse response;
-  
-  BNSDK::ResourceRequest resReq(request.Url().GetString().Ascii());
-  BNSDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
+
+  beacon::sdk::ResourceRequest resReq(request.Url().GetString().Ascii());
+  beacon::sdk::ResourceResponse resResp = backend->ProcessRequest(resReq);
 
   blink::WebString mimeType =
       blink::WebString::FromASCII(resResp.getMimeType());
@@ -1052,23 +1050,22 @@ void MyWebURLLoader::DoLoadAsynchronously(WebURLRequest request,
 
   client->DidReceiveResponse(response);
   auto& data = resResp.getData();
-  client->DidReceiveData((const char*)&data[0],
-                         (int)data.size());
+  client->DidReceiveData((const char*)&data[0], (int)data.size());
   client->DidFinishLoading(base::TimeTicks::Now(), (int)data.size(),
                            (int)data.size(), (int)data.size(), false);
 }
 
 void MyWebURLLoader::LoadAsynchronously(const WebURLRequest& request,
                                         WebURLLoaderClient* client) {
-    // Saving the request
-    WebURLRequest req = request;
-  
-    // Running the task for request processing
-    PostCrossThreadTask(*GetTaskRunner(), FROM_HERE,
-                        CrossThreadBindOnce(&MyWebURLLoader::DoLoadAsynchronously,
-                                            CrossThreadUnretained(this),
-                                            WTF::Passed(std::move(req)),
-                                            CrossThreadUnretained(client)));
+  // Saving the request
+  WebURLRequest req = request;
+
+  // Running the task for request processing
+  PostCrossThreadTask(*GetTaskRunner(), FROM_HERE,
+                      CrossThreadBindOnce(&MyWebURLLoader::DoLoadAsynchronously,
+                                          CrossThreadUnretained(this),
+                                          WTF::Passed(std::move(req)),
+                                          CrossThreadUnretained(client)));
 }
 
 void MyWebURLLoader::SetDefersLoading(bool defers) {}
@@ -1080,7 +1077,7 @@ scoped_refptr<base::SingleThreadTaskRunner> MyWebURLLoader::GetTaskRunner() {
 
 MyWebURLLoaderFactory::MyWebURLLoaderFactory(
     std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
-    std::shared_ptr<BNSDK::Backend> backend)
+    std::shared_ptr<beacon::sdk::Backend> backend)
     : my_web_thread_sched(my_web_thread_sched), backend(backend) {}
 
 MyWebURLLoaderFactory::~MyWebURLLoaderFactory() {}
@@ -1091,5 +1088,4 @@ std::unique_ptr<WebURLLoader> MyWebURLLoaderFactory::CreateURLLoader(
   return std::make_unique<MyWebURLLoader>(my_web_thread_sched, backend);
 }
 
-}  // namespace my_frame_test_helpers
-}  // namespace blink
+}  // namespace beacon::glue

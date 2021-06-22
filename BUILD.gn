@@ -208,31 +208,39 @@ executable("Beacon") {
   libs = []
   configs -= [ "//build/config/clang:find_bad_constructs" ]
   sources = [
-    "src/main.cpp",
-    "src/BNApp.cpp",
-    "src/BNApp.h",
-    "src/BNBlinkPlatformImpl.cpp",
-    "src/BNBlinkPlatformImpl.h",
-    "src/BNBackendController.cpp",
-    "src/BNBackendController.h",
-    "src/BNFI.cpp",
-    "src/BNFI.h",
 
-    "src/hell/my_frame_test_helpers.cc",
-    "src/hell/my_frame_test_helpers.h",
-    "src/hell/my_blink_platform_impl.cc",
-    "src/hell/my_blink_platform_impl.h",
-    "src/hell/my_webthemeengine_impl_default.cc",
-    "src/hell/my_webthemeengine_impl_default.h",
-    "src/hell/my_webthemeengine_impl_conversions.cc",
-    "src/hell/my_webthemeengine_impl_conversions.h",
-    "src/hell/my_webthemeengine_impl_mac.cc",
-    "src/hell/my_webthemeengine_impl_mac.h",
-    "src/hell/SkLoadICU.cpp",
-    "src/hell/SkLoadICU.h",
+    # SDK sources can depend only on the standard libraries
+    # and other Beacon sources
+    "src/bn/sdk/BNBackendController.cpp",
+    "src/bn/sdk/BNBackendController.h",
+    "src/bn/sdk/BNFI.cpp",
+    "src/bn/sdk/BNFI.h",
+
+    # Implementation sources can depend on SDK sources 
+    # and chromium sources, they implement only SDK interfaces
+    "src/bn/impl/BNApp.cpp",
+    "src/bn/impl/BNApp.h",
+    "src/bn/impl/BNBlinkPlatformImpl.cpp",
+    "src/bn/impl/BNBlinkPlatformImpl.h",
+    "src/bn/impl/main.cpp",
+
+    # The glue sources include classes necessary to communicate with
+    # the chromium sources directly
+    "src/bn/glue/my_frame_test_helpers.cc",
+    "src/bn/glue/my_frame_test_helpers.h",
+    "src/bn/glue/my_blink_platform_impl.cc",
+    "src/bn/glue/my_blink_platform_impl.h",
+    "src/bn/glue/my_webthemeengine_impl_default.cc",
+    "src/bn/glue/my_webthemeengine_impl_default.h",
+    "src/bn/glue/my_webthemeengine_impl_conversions.cc",
+    "src/bn/glue/my_webthemeengine_impl_conversions.h",
+    "src/bn/glue/my_webthemeengine_impl_mac.cc",
+    "src/bn/glue/my_webthemeengine_impl_mac.h",
+    "src/bn/glue/SkLoadICU.cpp",
+    "src/bn/glue/SkLoadICU.h",
 
     # We are borrowing some resources from the "content" library, 
-    # but trying to use it as few as possible
+    # but trying to do that as few as possible
     "../content/renderer/compositor/layer_tree_view.cc",
     "../content/renderer/compositor/layer_tree_view.h",
     "../content/renderer/compositor/layer_tree_view_delegate.h",

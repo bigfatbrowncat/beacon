@@ -1,20 +1,20 @@
 #include "BNBackendController.h"
 
-namespace BNSDK {
+namespace beacon::sdk {
 
-ResourceRequest::ResourceRequest(const std::string& url) : url(url) { }
-ResourceRequest::~ResourceRequest() { }
+ResourceRequest::ResourceRequest(const std::string& url) : url(url) {}
+ResourceRequest::~ResourceRequest() {}
 
 ResourceResponse::ResourceResponse(const std::vector<uint8_t>& data,
-                                 const std::string& mimeType)
-    : data(data), mimeType(mimeType) { }
+                                   const std::string& mimeType)
+    : data(data), mimeType(mimeType) {}
 
 ResourceResponse::ResourceResponse()
-    : data(std::vector<uint8_t>()), mimeType("text/html") { }
+    : data(std::vector<uint8_t>()), mimeType("text/html") {}
 
 ResourceResponse::ResourceResponse(const ResourceResponse& other) = default;
 
-ResourceResponse::~ResourceResponse() { }
+ResourceResponse::~ResourceResponse() {}
 
 ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
   ResourceResponse response;
@@ -73,77 +73,104 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
 
   } else if (request.getUrl() == "mem://index.html") {
     std::string htmlText =
-    "    <html>"
-    "    <head>"
-    "        <title>Beacon</title>"
-    "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
-    "        <link rel=\"stylesheet\" href=\"mem://root.css\" />"
-    "        <style>"
-    "            @keyframes show {"
-    "                0%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
-    "                1%   { max-height: 0pt; opacity: 0; visibility: visible; }"
-    "                100% { max-height: 1000pt; opacity: 1; visibility: visible; }"
-    "            }"
-    "            @keyframes hide {"
-    "                0% { max-height: 500pt; opacity: 1; visibility: visible; }"
-    "                99%   { max-height: 0pt; opacity: 0; visibility: visible; }"
-    "                100%   { max-height: 0pt; opacity: 0; visibility: hidden; }"
-    "            }"
-    "            .hidden { animation: hide 0.3s ease; animation-fill-mode: forwards; }"
-    "            .shown { animation: show 0.3s ease; animation-fill-mode: forwards; }"
-    "        </style>"
-    "    </head>"
-    "    <body>"
-    "        <div class=\"logo\">"
-    "            <img class=\"logo\" src=\"mem://logo.svg\"></img>"
-    "            <div class=\"logo-title\">Beacon's here</div>"
-    "        </div>"
-    "        <div class=\"content-frame\">"
-    "            <div class=\"content-page\">"
-    "                <div class=\"content-page-margins\">"
-    "                    <p class=\"title-item\" onclick=\"toggle('description')\"><b>Description</b></p>"
-    "                    <div id=\"description\" class=\"shown\">"
-    "                        <p><b>Beacon</b> is a framework, that provides <b>the developer</b> with a strong backend for flexible, fast and lightweight user interface development. As soon as <b>Beacon</b> is based on the most popular HTML layout engine in the world called Blink, it has unlimited power under cover with the least excessive efforts possible.</p>"
-    "                        <p><b>Beacon</b> is a framework, that provides <b>the end-user</b> with a modern-looking and fast-paced application interaction experience.</p>" 
-    "                        <p><b>Beacon</b> is the fastest among all the HTML-based UI frameworks such as Electron, NW.js, "
-    "                            CEF and everything else Chromium-based. If you don't believe that, just start resizing this window by dragging its corner randomly with the mouse and compare the visual sense to any application built upon another framework ;)"
-    "                        </p>"
-    "                    </div>"
-    "                    <p class=\"title-item\" onclick=\"toggle('tests')\"><b>Basic tests</b></p>"
-    "                    <div id=\"tests\" class=\"hidden\">"
-    "                        <p id=\"jsout\">Message from JavaScript: </p>"
-    "                        <script>document.getElementById(\"jsout\").innerHTML += \"<span> 3 + 2 = \" + (3+2) + \"</span>\";</script>"
-    "                        <p>UI controls:</p>"
-    "                        <button>I am a button!</button> <input type=\"submit\" value=\"Submit\"></input> <input type=\"text\" class=\"growing\" value=\"Hello!\"></input>"
-    "                        <p>Link: <a href=\"mem://index.html\">I am a hyperref</a></p>"
-    "                        <label for=\"cars\">Choose a car:</label>"
-    "                        <select name=\"cars\" id=\"cars\">"
-    "                            <option value=\"volvo\">Volvo</option>"
-    "                            <option value=\"saab\">Saab</option>"
-    "                            <option value=\"opel\">Opel</option>"
-    "                            <option value=\"audi\">Audi</option>"
-    "                        </select>"
-    "                    </div>"
-    "                </div>"
-    "            </div>"
-    "        </div>"
-    "        <script>"
-    "            function toggle(elementId) {"
-    "                var element = document.getElementById(elementId);"
-    "                if (element.classList.contains(\"hidden\")) {"
-    "                    element.classList.remove(\"hidden\");"
-    "                    element.classList.add(\"shown\");"
-    "                } else {"
-    "                    element.classList.remove(\"shown\");"
-    "                    element.classList.add(\"hidden\");"
-    "                }"
-    "            }"
-    "        </script>"
-    "        <script>"
-    "            print('This is printed from javascript!');"
-    "        </script>"
-    "    </body>"
-    "    </html>";
+        "    <html>"
+        "    <head>"
+        "        <title>Beacon</title>"
+        "        <meta name=\"viewport\" content=\"width=device-width, "
+        "initial-scale=1.0\" />"
+        "        <link rel=\"stylesheet\" href=\"mem://root.css\" />"
+        "        <style>"
+        "            @keyframes show {"
+        "                0%   { max-height: 0pt; opacity: 0; visibility: "
+        "hidden; }"
+        "                1%   { max-height: 0pt; opacity: 0; visibility: "
+        "visible; }"
+        "                100% { max-height: 1000pt; opacity: 1; visibility: "
+        "visible; }"
+        "            }"
+        "            @keyframes hide {"
+        "                0% { max-height: 500pt; opacity: 1; visibility: "
+        "visible; }"
+        "                99%   { max-height: 0pt; opacity: 0; visibility: "
+        "visible; }"
+        "                100%   { max-height: 0pt; opacity: 0; visibility: "
+        "hidden; }"
+        "            }"
+        "            .hidden { animation: hide 0.3s ease; animation-fill-mode: "
+        "forwards; }"
+        "            .shown { animation: show 0.3s ease; animation-fill-mode: "
+        "forwards; }"
+        "        </style>"
+        "    </head>"
+        "    <body>"
+        "        <div class=\"logo\">"
+        "            <img class=\"logo\" src=\"mem://logo.svg\"></img>"
+        "            <div class=\"logo-title\">Beacon's here</div>"
+        "        </div>"
+        "        <div class=\"content-frame\">"
+        "            <div class=\"content-page\">"
+        "                <div class=\"content-page-margins\">"
+        "                    <p class=\"title-item\" "
+        "onclick=\"toggle('description')\"><b>Description</b></p>"
+        "                    <div id=\"description\" class=\"shown\">"
+        "                        <p><b>Beacon</b> is a framework, that "
+        "provides <b>the developer</b> with a strong backend for flexible, "
+        "fast and lightweight user interface development. As soon as "
+        "<b>Beacon</b> is based on the most popular HTML layout engine in the "
+        "world called Blink, it has unlimited power under cover with the least "
+        "excessive efforts possible.</p>"
+        "                        <p><b>Beacon</b> is a framework, that "
+        "provides <b>the end-user</b> with a modern-looking and fast-paced "
+        "application interaction experience.</p>"
+        "                        <p><b>Beacon</b> is the fastest among all the "
+        "HTML-based UI frameworks such as Electron, NW.js, "
+        "                            CEF and everything else Chromium-based. "
+        "If you don't believe that, just start resizing this window by "
+        "dragging its corner randomly with the mouse and compare the visual "
+        "sense to any application built upon another framework ;)"
+        "                        </p>"
+        "                    </div>"
+        "                    <p class=\"title-item\" "
+        "onclick=\"toggle('tests')\"><b>Basic tests</b></p>"
+        "                    <div id=\"tests\" class=\"hidden\">"
+        "                        <p id=\"jsout\">Message from JavaScript: </p>"
+        "                        "
+        "<script>document.getElementById(\"jsout\").innerHTML += \"<span> 3 + "
+        "2 = \" + (3+2) + \"</span>\";</script>"
+        "                        <p>UI controls:</p>"
+        "                        <button>I am a button!</button> <input "
+        "type=\"submit\" value=\"Submit\"></input> <input type=\"text\" "
+        "class=\"growing\" value=\"Hello!\"></input>"
+        "                        <p>Link: <a href=\"mem://index.html\">I am a "
+        "hyperref</a></p>"
+        "                        <label for=\"cars\">Choose a car:</label>"
+        "                        <select name=\"cars\" id=\"cars\">"
+        "                            <option value=\"volvo\">Volvo</option>"
+        "                            <option value=\"saab\">Saab</option>"
+        "                            <option value=\"opel\">Opel</option>"
+        "                            <option value=\"audi\">Audi</option>"
+        "                        </select>"
+        "                    </div>"
+        "                </div>"
+        "            </div>"
+        "        </div>"
+        "        <script>"
+        "            function toggle(elementId) {"
+        "                var element = document.getElementById(elementId);"
+        "                if (element.classList.contains(\"hidden\")) {"
+        "                    element.classList.remove(\"hidden\");"
+        "                    element.classList.add(\"shown\");"
+        "                } else {"
+        "                    element.classList.remove(\"shown\");"
+        "                    element.classList.add(\"hidden\");"
+        "                }"
+        "            }"
+        "        </script>"
+        "        <script>"
+        "            print('This is printed from javascript!');"
+        "        </script>"
+        "    </body>"
+        "    </html>";
 
     std::vector<uint8_t> data(htmlText.begin(), htmlText.end());
     response.setData(data);
@@ -252,7 +279,7 @@ ResourceResponse Backend::ProcessRequest(const ResourceRequest& request) {
   return response;
 }
 
-Backend::Backend() { }
-Backend::~Backend() { }
+Backend::Backend() {}
+Backend::~Backend() {}
 
-}  // namespace SDK
+}  // namespace beacon::sdk

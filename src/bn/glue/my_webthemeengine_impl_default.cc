@@ -13,9 +13,8 @@
 #include "ui/native_theme/overlay_scrollbar_constants_aura.h"
 
 #if defined(OS_WIN)
-#include <windows.h>   // For the scrollbar metrics
+#include <windows.h>  // For the scrollbar metrics
 #endif
-
 
 using blink::WebColorScheme;
 using blink::WebRect;
@@ -39,6 +38,8 @@ int32_t g_horizontal_arrow_bitmap_width;
 #endif
 
 }  // namespace
+
+namespace beacon::glue {
 
 static void GetNativeThemeExtraParams(
     WebThemeEngine::Part part,
@@ -181,8 +182,8 @@ blink::WebSize WebThemeEngineDefault::GetSize(WebThemeEngine::Part part) {
     case ui::NativeTheme::kScrollbarVerticalThumb:
     case ui::NativeTheme::kScrollbarHorizontalTrack:
     case ui::NativeTheme::kScrollbarVerticalTrack: {
-      return blink::WebSize(gfx::Size(g_vertical_scroll_bar_width,
-                       g_vertical_scroll_bar_width));
+      return blink::WebSize(
+          gfx::Size(g_vertical_scroll_bar_width, g_vertical_scroll_bar_width));
     }
 
     default:
@@ -201,8 +202,8 @@ void WebThemeEngineDefault::Paint(
     const WebThemeEngine::ExtraParams* extra_params,
     blink::WebColorScheme color_scheme) {
   ui::NativeTheme::ExtraParams native_theme_extra_params;
-  GetNativeThemeExtraParams(
-      part, state, extra_params, &native_theme_extra_params);
+  GetNativeThemeExtraParams(part, state, extra_params,
+                            &native_theme_extra_params);
   ui::NativeTheme::GetInstanceForNativeUi()->Paint(
       canvas, NativeThemePart(part), NativeThemeState(state), gfx::Rect(rect),
       native_theme_extra_params, NativeColorScheme(color_scheme));
@@ -222,13 +223,15 @@ bool WebThemeEngineDefault::SupportsNinePatch(Part part) const {
 }
 
 blink::WebSize WebThemeEngineDefault::NinePatchCanvasSize(Part part) const {
-  return blink::WebSize(ui::NativeTheme::GetInstanceForNativeUi()->GetNinePatchCanvasSize(
-      NativeThemePart(part)));
+  return blink::WebSize(
+      ui::NativeTheme::GetInstanceForNativeUi()->GetNinePatchCanvasSize(
+          NativeThemePart(part)));
 }
 
 blink::WebRect WebThemeEngineDefault::NinePatchAperture(Part part) const {
-  return blink::WebRect(ui::NativeTheme::GetInstanceForNativeUi()->GetNinePatchAperture(
-      NativeThemePart(part)));
+  return blink::WebRect(
+      ui::NativeTheme::GetInstanceForNativeUi()->GetNinePatchAperture(
+          NativeThemePart(part)));
 }
 
 base::Optional<SkColor> WebThemeEngineDefault::GetSystemColor(
@@ -275,3 +278,5 @@ void WebThemeEngineDefault::SetPreferredColorScheme(
   ui::NativeTheme::GetInstanceForNativeUi()->set_preferred_color_scheme(
       NativePreferredColorScheme(preferred_color_scheme));
 }
+
+}  // namespace beacon::glue

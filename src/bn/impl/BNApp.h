@@ -1,6 +1,7 @@
 #pragma once
 
-#include <chrono>
+#include <bn/glue/my_frame_test_helpers.h>
+#include <bn/sdk/BNBackendController.h>
 
 #include "base/command_line.h"
 #include "base/at_exit.h"
@@ -17,18 +18,19 @@
 #include "app_base/Application.h"
 #include "app_base/Window.h"
 
-#include "BNBackendController.h"
-
-#include "hell/my_frame_test_helpers.h"
+#include <chrono>
 
 class SkCanvas;
 namespace blink {
 class Element;
 }  // namespace blink
 
+namespace beacon::impl {
+
 class BNApp : public app_base::Application, app_base::Window::Layer {
  public:
-  BNApp(int argc, char** argv,
+  BNApp(int argc,
+        char** argv,
         const std::shared_ptr<app_base::PlatformData>& platformData);
   ~BNApp() override;
 
@@ -74,18 +76,18 @@ class BNApp : public app_base::Application, app_base::Window::Layer {
   std::shared_ptr<app_base::PlatformData> platformData;
   bool resizing = false;
   std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
-      discardableSharedMemoryManager;    
+      discardableSharedMemoryManager;
 
   std::chrono::steady_clock::time_point lastBackendInitFailedAttempt =
       std::chrono::steady_clock::now();
 
   std::shared_ptr<blink::Platform> platform;
 
-  std::shared_ptr<BNSDK::Backend> backend;
-  std::shared_ptr<blink::my_frame_test_helpers::WebViewHelper> webViewHelper;
-  std::shared_ptr<blink::my_frame_test_helpers::TestWebFrameClient> wfc;
-  std::shared_ptr<blink::my_frame_test_helpers::TestWebViewClient> wvc;
-  std::shared_ptr<blink::my_frame_test_helpers::TestWebWidgetClient> wwc;
+  std::shared_ptr<beacon::sdk::Backend> backend;
+  std::shared_ptr<beacon::glue::WebViewHelper> webViewHelper;
+  std::shared_ptr<beacon::glue::TestWebFrameClient> wfc;
+  std::shared_ptr<beacon::glue::TestWebViewClient> wvc;
+  std::shared_ptr<beacon::glue::TestWebWidgetClient> wwc;
 
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
   scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner, composeTaskRunner;
@@ -95,7 +97,7 @@ class BNApp : public app_base::Application, app_base::Window::Layer {
       threadController;
 
   blink::WebViewImpl* webView = nullptr;
-  //blink::GraphicsLayer* root_graphics_layer = nullptr;
+  // blink::GraphicsLayer* root_graphics_layer = nullptr;
 
   WTF::Vector<std::shared_ptr<blink::WebInputEvent>> collectedInputEvents;
 
@@ -104,8 +106,8 @@ class BNApp : public app_base::Application, app_base::Window::Layer {
 
   std::shared_ptr<base::AtExitManager> exit_manager;
   std::shared_ptr<mojo::BinderMap> binder_map;
-  
-  std::chrono::time_point<std::chrono::high_resolution_clock> paintTime;
 
-  //bool just_updated;
+  std::chrono::time_point<std::chrono::high_resolution_clock> paintTime;
 };
+
+}  // namespace beacon::impl

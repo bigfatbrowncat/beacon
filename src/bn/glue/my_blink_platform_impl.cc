@@ -4,11 +4,6 @@
 
 #include "my_blink_platform_impl.h"
 
-#include <math.h>
-
-#include <memory>
-#include <vector>
-
 #include "base/bind.h"
 #include "base/files/file_path.h"
 #include "base/location.h"
@@ -54,9 +49,11 @@
 #include "ui/base/layout.h"
 #include "ui/base/ui_base_features.h"
 #include "ui/events/gestures/blink/web_gesture_curve_impl.h"
-
 #include "ui/base/resource/resource_bundle.h"
 
+#include <math.h>
+#include <memory>
+#include <vector>
 
 #if defined(OS_ANDROID)
 #include "my_webthemeengine_impl_android.h"
@@ -78,13 +75,13 @@ namespace {
 
 std::unique_ptr<blink::WebThemeEngine> GetWebThemeEngine() {
 #if defined(OS_ANDROID)
-  return std::make_unique<WebThemeEngineAndroid>();
+  return std::make_unique<beacon::glue::WebThemeEngineAndroid>();
 #elif defined(OS_MACOSX)
   if (features::IsFormControlsRefreshEnabled())
-    return std::make_unique<WebThemeEngineDefault>();
-  return std::make_unique<WebThemeEngineMac>();
+    return std::make_unique<beacon::glue::WebThemeEngineDefault>();
+  return std::make_unique<beacon::glue::WebThemeEngineMac>();
 #else
-  return std::make_unique<WebThemeEngineDefault>();
+  return std::make_unique<beacon::glue::WebThemeEngineDefault>();
 #endif
 }
 
@@ -129,34 +126,38 @@ class NestedMessageLoopRunnerImpl
 
 }  // namespace
 
+namespace beacon::glue {
+
 BlinkPlatformImplBase::BlinkPlatformImplBase(
     scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, app_base::Window* window)
+    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner,
+    app_base::Window* window)
     : main_thread_task_runner_(std::move(main_thread_task_runner)),
       io_thread_task_runner_(std::move(io_thread_task_runner)),
       /*browser_interface_broker_proxy_(
           base::MakeRefCounted<ThreadSafeBrowserInterfaceBrokerProxyImpl>()),*/
       native_theme_engine_(GetWebThemeEngine()) {
 #if defined(__APPLE__)
-        myWebSandboxSupport = std::make_unique<MyWebSandboxSupport>(window);
+  myWebSandboxSupport = std::make_unique<MyWebSandboxSupport>(window);
 #endif
 }
 
 BlinkPlatformImplBase::~BlinkPlatformImplBase() = default;
 
 void BlinkPlatformImplBase::RecordAction(const blink::UserMetricsAction& name) {
-  //if (ChildThread* child_thread = ChildThread::Get())
+  // if (ChildThread* child_thread = ChildThread::Get())
   //  child_thread->RecordComputedAction(name.Action());
 }
 
 WebData BlinkPlatformImplBase::GetDataResource(int resource_id,
-                                           ui::ScaleFactor scale_factor) {
-  //base::StringPiece resource =
+                                               ui::ScaleFactor scale_factor) {
+  // base::StringPiece resource =
   //    GetContentClient()->GetDataResource(resource_id, scale_factor);
-  
-  base::StringPiece resource = ui::ResourceBundle::GetSharedInstance()
-      .GetRawDataResourceForScale(resource_id, scale_factor);
-  
+
+  base::StringPiece resource =
+      ui::ResourceBundle::GetSharedInstance().GetRawDataResourceForScale(
+          resource_id, scale_factor);
+
   return WebData(resource.data(), resource.size());
 }
 
@@ -174,17 +175,15 @@ WebData BlinkPlatformImplBase::UncompressDataResource(int resource_id) {
 WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id) {
   if (resource_id < 0)
     return WebString();
-  return WebString::FromUTF16(
-      GetLocalizedString(resource_id));
+  return WebString::FromUTF16(GetLocalizedString(resource_id));
 }
 
 WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id,
-                                                  const WebString& value) {
+                                                      const WebString& value) {
   if (resource_id < 0)
     return WebString();
 
-  base::string16 format_string =
-      GetLocalizedString(resource_id);
+  base::string16 format_string = GetLocalizedString(resource_id);
 
   // If the ContentClient returned an empty string, e.g. because it's using the
   // default implementation of ContentClient::GetLocalizedString, return an
@@ -201,8 +200,8 @@ WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id,
 }
 
 WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id,
-                                                  const WebString& value1,
-                                                  const WebString& value2) {
+                                                      const WebString& value1,
+                                                      const WebString& value2) {
   if (resource_id < 0)
     return WebString();
   std::vector<base::string16> values;
@@ -215,14 +214,14 @@ WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id,
 
 bool BlinkPlatformImplBase::AllowScriptExtensionForServiceWorker(
     const blink::WebSecurityOrigin& script_origin) {
-  return false; 
+  return false;
   /*GetContentClient()->AllowScriptExtensionForServiceWorker(
       script_origin);*/
 }
 
 blink::WebCrypto* BlinkPlatformImplBase::Crypto() {
   return nullptr;
-   //&web_crypto_;
+  //&web_crypto_;
 }
 
 /*blink::ThreadSafeBrowserInterfaceBrokerProxy*
@@ -234,7 +233,8 @@ WebThemeEngine* BlinkPlatformImplBase::ThemeEngine() {
   return native_theme_engine_.get();
 }
 
-//bool BlinkPlatformImplBase::IsURLSupportedForAppCache(const blink::WebURL& url) {
+// bool BlinkPlatformImplBase::IsURLSupportedForAppCache(const blink::WebURL&
+// url) {
 //  return IsSchemeSupportedForAppCache(url);
 //}
 
@@ -274,8 +274,8 @@ bool BlinkPlatformImplBase::IsLowEndDevice() {
   return base::SysInfo::IsLowEndDevice();
 }
 
-scoped_refptr<base::SingleThreadTaskRunner> BlinkPlatformImplBase::GetIOTaskRunner()
-    const {
+scoped_refptr<base::SingleThreadTaskRunner>
+BlinkPlatformImplBase::GetIOTaskRunner() const {
   return io_thread_task_runner_;
 }
 
@@ -283,3 +283,5 @@ std::unique_ptr<blink::Platform::NestedMessageLoopRunner>
 BlinkPlatformImplBase::CreateNestedMessageLoopRunner() const {
   return std::make_unique<NestedMessageLoopRunnerImpl>();
 }
+
+}  // namespace beacon::glue

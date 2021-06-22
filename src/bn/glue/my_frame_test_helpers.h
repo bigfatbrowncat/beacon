@@ -33,9 +33,9 @@
 
 #define COMPILE_CONTENT_STATICALLY 1
 
+#include <iostream>
 #include <memory>
 #include <string>
-#include <iostream>
 
 #include "base/location.h"
 #include "base/macros.h"
@@ -74,27 +74,7 @@
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
 
-#include "BNBackendController.h"
-
-#define EXPECT_FLOAT_POINT_EQ(expected, actual)    \
-  do {                                             \
-    EXPECT_FLOAT_EQ((expected).X(), (actual).X()); \
-    EXPECT_FLOAT_EQ((expected).Y(), (actual).Y()); \
-  } while (false)
-
-#define EXPECT_FLOAT_SIZE_EQ(expected, actual)               \
-  do {                                                       \
-    EXPECT_FLOAT_EQ((expected).Width(), (actual).Width());   \
-    EXPECT_FLOAT_EQ((expected).Height(), (actual).Height()); \
-  } while (false)
-
-#define EXPECT_FLOAT_RECT_EQ(expected, actual)               \
-  do {                                                       \
-    EXPECT_FLOAT_EQ((expected).X(), (actual).X());           \
-    EXPECT_FLOAT_EQ((expected).Y(), (actual).Y());           \
-    EXPECT_FLOAT_EQ((expected).Width(), (actual).Width());   \
-    EXPECT_FLOAT_EQ((expected).Height(), (actual).Height()); \
-  } while (false)
+#include <bn/sdk/BNBackendController.h>
 
 namespace base {
 class TickClock;
@@ -110,8 +90,12 @@ class WebLocalFrameImpl;
 struct WebNavigationParams;
 class WebRemoteFrameImpl;
 class WebSettings;
+}  // namespace blink
 
-namespace my_frame_test_helpers {
+namespace beacon::glue {
+
+using namespace blink;
+
 class TestWebFrameClient;
 class TestWebRemoteFrameClient;
 class TestWebWidgetClient;
@@ -119,8 +103,7 @@ class TestWebViewClient;
 class WebViewHelper;
 
 // Loads a url into the specified WebLocalFrame for testing purposes.
-void LoadFrameDontWait(WebLocalFrame*,
-                       const WebURL& url);
+void LoadFrameDontWait(WebLocalFrame*, const WebURL& url);
 // Same as above, but also pumps any pending resource requests,
 // as well as waiting for the threaded parser to finish, before returning.
 void LoadFrame(WebLocalFrame*, const std::string& url);
@@ -139,7 +122,7 @@ void ReloadFrameBypassingCache(WebLocalFrame*);
 
 // Fills navigation params if needed. Params should have the proper url set up.
 void FillNavigationParamsResponse(WebNavigationParams* params,
-                                  BNSDK::Backend* backend);
+                                  beacon::sdk::Backend* backend);
 
 // Pumps pending resource requests while waiting for a frame to load. Consider
 // using one of the above helper methods whenever possible.
@@ -260,7 +243,7 @@ class TestWebWidgetClient : public WebWidgetClient {
       content::LayerTreeViewDelegate* delegate = nullptr,
       scoped_refptr<base::SingleThreadTaskRunner> mainTaskRunner = nullptr,
       scoped_refptr<base::SingleThreadTaskRunner> composeTaskRunner = nullptr,
-      blink::scheduler::WebThreadScheduler* my_web_thread_sched = nullptr);
+      scheduler::WebThreadScheduler* my_web_thread_sched = nullptr);
 
   ~TestWebWidgetClient() override;
 
@@ -320,7 +303,6 @@ class TestWebWidgetClient : public WebWidgetClient {
   int FinishedLoadingLayoutCount() const {
     return finished_loading_layout_count_;
   }
-  
 
  private:
   std::unique_ptr<content::LayerTreeView> layer_tree_view_ = nullptr;
@@ -360,13 +342,13 @@ class TestWebViewClient : public WebViewClient {
   WTF::Vector<std::unique_ptr<WebViewHelper>> child_web_views_;
   std::shared_ptr<WebViewHelper> parent;
 
-public:
+ public:
   // Called when a region of the WebView needs to be re-painted. This is only
   // for non-composited WebViews that exist to contribute to a "parent" WebView
   // painting. Otherwise invalidations are transmitted to the compositor through
   // the layers.
   void DidInvalidateRect(const WebRect&) override {
-   std::cout << "DidInvalidateRect()" << std::endl;
+    std::cout << "DidInvalidateRect()" << std::endl;
   }
 };
 
@@ -471,7 +453,6 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
 
   WebViewImpl* web_view_;
 
-
   // The Platform should not change during the lifetime of the test!
   Platform* const platform_;
 
@@ -480,19 +461,20 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
 
 class TestWebFrameClient : public WebLocalFrameClient {
  private:
-  std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-  std::shared_ptr<BNSDK::Backend> backend;
+  std::shared_ptr<scheduler::WebThreadScheduler> my_web_thread_sched;
+  std::shared_ptr<beacon::sdk::Backend> backend;
+
  public:
-  TestWebFrameClient(std::shared_ptr<BNSDK::Backend> backend);
+  TestWebFrameClient(std::shared_ptr<beacon::sdk::Backend> backend);
   ~TestWebFrameClient() override;
 
-  void SetScheduler(std::shared_ptr<blink::scheduler::WebThreadScheduler>
+  void SetScheduler(std::shared_ptr<scheduler::WebThreadScheduler>
                         my_web_thread_sched);
 
   static bool IsLoading() { return loads_in_progress_ > 0; }
   Vector<String>& ConsoleMessages() { return console_messages_; }
 
-  std::shared_ptr<BNSDK::Backend> Backend() { return backend; }
+  std::shared_ptr<beacon::sdk::Backend> Backend() { return backend; }
 
   WebNavigationControl* Frame() const { return frame_; }
   // Pass ownership of the TestWebFrameClient to |self_owned| here if the
@@ -514,7 +496,7 @@ class TestWebFrameClient : public WebLocalFrameClient {
   void DidStartLoading() override;
   void DidStopLoading() override;
   service_manager::InterfaceProvider* GetInterfaceProvider() override;
-  std::unique_ptr<blink::WebURLLoaderFactory> CreateURLLoaderFactory() override;
+  std::unique_ptr<WebURLLoaderFactory> CreateURLLoaderFactory() override;
   void BeginNavigation(std::unique_ptr<WebNavigationInfo> info) override;
   WebEffectiveConnectionType GetEffectiveConnectionType() override;
   void SetEffectiveConnectionTypeForTesting(
@@ -535,7 +517,6 @@ class TestWebFrameClient : public WebLocalFrameClient {
   virtual void DidChangeContents() override {
     std::cout << "DidChangeContents()" << std::endl;
   }
-
 
  private:
   void CommitNavigation(std::unique_ptr<WebNavigationInfo>);
@@ -610,14 +591,15 @@ class MyWebURLRequestWrapper {
 
 class MyWebURLLoader final : public WebURLLoader {
  private:
-  std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-  std::shared_ptr<BNSDK::Backend> backend;
+  std::shared_ptr<scheduler::WebThreadScheduler> my_web_thread_sched;
+  std::shared_ptr<beacon::sdk::Backend> backend;
 
   void DoLoadAsynchronously(WebURLRequest request, WebURLLoaderClient* client);
 
  public:
-  MyWebURLLoader(std::shared_ptr<blink::scheduler::WebThreadScheduler>
-                     my_web_thread_sched, std::shared_ptr<BNSDK::Backend> backend);
+  MyWebURLLoader(
+      std::shared_ptr<scheduler::WebThreadScheduler> my_web_thread_sched,
+      std::shared_ptr<beacon::sdk::Backend> backend);
   ~MyWebURLLoader() override;
 
   void LoadSynchronously(const WebURLRequest&,
@@ -639,20 +621,19 @@ class MyWebURLLoader final : public WebURLLoader {
 
 class MyWebURLLoaderFactory final : public WebURLLoaderFactory {
  private:
-  std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-  std::shared_ptr<BNSDK::Backend> backend;
+  std::shared_ptr<scheduler::WebThreadScheduler> my_web_thread_sched;
+  std::shared_ptr<beacon::sdk::Backend> backend;
 
  public:
   MyWebURLLoaderFactory(
-      std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
-      std::shared_ptr<BNSDK::Backend> backend);
+      std::shared_ptr<scheduler::WebThreadScheduler> my_web_thread_sched,
+      std::shared_ptr<beacon::sdk::Backend> backend);
   ~MyWebURLLoaderFactory() override;
   std::unique_ptr<WebURLLoader> CreateURLLoader(
       const WebURLRequest&,
       std::unique_ptr<scheduler::WebResourceLoadingTaskRunnerHandle>) override;
 };
 
-}  // namespace my_frame_test_helpers
-}  // namespace blink
+}  // namespace beacon::glue
 
 #endif  // THIRD_PARTY_BLINK_RENDERER_CORE_FRAME_FRAME_TEST_HELPERS_H_

@@ -9,6 +9,8 @@
 #include "build/build_config.h"
 #include "third_party/blink/public/platform/web_theme_engine.h"
 
+namespace beacon::glue {
+
 class WebThemeEngineDefault : public blink::WebThemeEngine {
  public:
   // WebThemeEngine methods:
@@ -43,3 +45,5 @@ class WebThemeEngineDefault : public blink::WebThemeEngine {
   void SetPreferredColorScheme(
       const blink::PreferredColorScheme preferred_color_scheme) override;
 };
+
+}  // namespace beacon::glue

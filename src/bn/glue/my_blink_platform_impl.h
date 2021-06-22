@@ -31,43 +31,48 @@
 #include "third_party/blink/public/platform/linux/web_sandbox_support.h"
 #endif
 
-class WebCryptoImpl;
+// class WebCryptoImpl;
+
+namespace beacon::glue {
 
 #if defined(OS_MACOSX)
 class MyWebSandboxSupport : public blink::WebSandboxSupport {
  private:
-    sk_app::Window* window;
-public:
-  MyWebSandboxSupport(sk_app::Window* window) : window(window) { }
-    virtual ~MyWebSandboxSupport() override {}
-    // Given an input font - |srcFont| [which can't be loaded due to sandbox
-    // restrictions]. Return a font belonging to an equivalent font file
-    // that can be used to access the font and a unique identifier corresponding
-    // to the on-disk font file.
-    //
-    // If this function succeeds, the caller assumes ownership of the |out|
-    // parameter and must call CGFontRelease() to unload it when done.
-    //
-    // Returns: true on success, false on error.
-    bool LoadFont(CTFontRef src_font,
-                          CGFontRef* out,
-                          uint32_t* font_id) override { return false; }
-  
-    // Returns the system's preferred value for a named color.
+  sk_app::Window* window;
+
+ public:
+  MyWebSandboxSupport(sk_app::Window* window) : window(window) {}
+  virtual ~MyWebSandboxSupport() override {}
+  // Given an input font - |srcFont| [which can't be loaded due to sandbox
+  // restrictions]. Return a font belonging to an equivalent font file
+  // that can be used to access the font and a unique identifier corresponding
+  // to the on-disk font file.
+  //
+  // If this function succeeds, the caller assumes ownership of the |out|
+  // parameter and must call CGFontRelease() to unload it when done.
+  //
+  // Returns: true on success, false on error.
+  bool LoadFont(CTFontRef src_font,
+                CGFontRef* out,
+                uint32_t* font_id) override {
+    return false;
+  }
+
+  // Returns the system's preferred value for a named color.
   SkColor GetSystemColor(blink::MacSystemColorID colorId) override {
     sk_app::PlatformColors pc = window->GetPlatformColors();
-      switch (colorId) {
+    switch (colorId) {
       case blink::MacSystemColorID::kSelectedText:
-          return pc.selectionTextColorActive;
+        return pc.selectionTextColorActive;
       case blink::MacSystemColorID::kSelectedTextBackground:
-          return pc.selectionBackgroundColorActive;
+        return pc.selectionBackgroundColorActive;
       case blink::MacSystemColorID::kSecondarySelectedControl:
-          return pc.selectionBackgroundColorInactive;
+        return pc.selectionBackgroundColorInactive;
 
       default:
-          return SkColorSetRGB(128, 0, 0);
-      }
+        return SkColorSetRGB(128, 0, 0);
     }
+  }
 };
 #elif defined(OS_WIN)
 // Nothing here
@@ -79,12 +84,13 @@ class BlinkPlatformImplBase : public blink::Platform {
  public:
   explicit BlinkPlatformImplBase(
       scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, app_base::Window* window);
+      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner,
+      app_base::Window* window);
   ~BlinkPlatformImplBase() override;
 
   // Platform methods (partial implementation):
   blink::WebThemeEngine* ThemeEngine() override;
-  //bool IsURLSupportedForAppCache(const blink::WebURL& url) override;
+  // bool IsURLSupportedForAppCache(const blink::WebURL& url) override;
 
   size_t MaxDecodedImageBytes() override;
   bool IsLowEndDevice() override;
@@ -110,8 +116,8 @@ class BlinkPlatformImplBase : public blink::Platform {
   scoped_refptr<base::SingleThreadTaskRunner> GetIOTaskRunner() const override;
   std::unique_ptr<NestedMessageLoopRunner> CreateNestedMessageLoopRunner()
       const override;
-  
-  blink::WebSandboxSupport* GetSandboxSupport() override { 
+
+  blink::WebSandboxSupport* GetSandboxSupport() override {
 #if defined(OS_MACOSX)
     return myWebSandboxSupport.get();
 #elif defined(OS_WIN)
@@ -121,15 +127,15 @@ class BlinkPlatformImplBase : public blink::Platform {
     // TODO Implement this class for Linux
     return nullptr;
 #endif
-
   }
+
  private:
   scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner_;
   scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner_;
-  //const scoped_refptr<blink::ThreadSafeBrowserInterfaceBrokerProxy>
-      //browser_interface_broker_proxy_;
+  // const scoped_refptr<blink::ThreadSafeBrowserInterfaceBrokerProxy>
+  // browser_interface_broker_proxy_;
   std::unique_ptr<blink::WebThemeEngine> native_theme_engine_;
-//  webcrypto::WebCryptoImpl web_crypto_;
+  //  webcrypto::WebCryptoImpl web_crypto_;
   base::string16 GetLocalizedString(int message_id) { return base::string16(); }
 
 #if defined(OS_MACOSX)
@@ -140,6 +146,6 @@ class BlinkPlatformImplBase : public blink::Platform {
   // TODO Implement this class for Linux
   std::unique_ptr<blink::WebSandboxSupport> myWebSandboxSupport;
 #endif
-
 };
 
+}  // namespace beacon::glue

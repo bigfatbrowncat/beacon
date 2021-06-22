@@ -4,6 +4,8 @@
 
 #include "content/child/webthemeengine_impl_conversions.h"
 
+namespace beacon::glue {
+
 // TODO(https://crbug.com/988434): The mapping functions below are duplicated
 // inside Blink and in the Android implementation of WebThemeEngine. They should
 // be implemented in one place where dependencies between Blink and
@@ -138,3 +140,5 @@ blink::PreferredColorScheme WebPreferredColorScheme(
       return blink::PreferredColorScheme::kNoPreference;
   }
 }
+
+}  // namespace beacon::glue

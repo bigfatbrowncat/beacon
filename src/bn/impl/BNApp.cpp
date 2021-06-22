@@ -9,6 +9,7 @@
 #include "include/core/SkSurface.h"
 #include "include/effects/SkGradientShader.h"
 
+#include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
 #include "third_party/blink/renderer/core/animation/document_animations.h"
 #include "third_party/blink/renderer/core/animation/document_timeline.h"
 #include "third_party/blink/renderer/core/events/before_print_event.h"
@@ -47,8 +48,6 @@
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/public/web/web_render_theme.h"
 
-#include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
-
 #include "base/message_loop/message_pump.h"
 #include "base/run_loop.h"
 #include "base/time/default_tick_clock.h"
@@ -78,18 +77,20 @@
 #include "ui/events/blink/web_input_event_builders_win.h"
 #endif
 
-#include "BNApp.h"
-#include "BNBlinkPlatformImpl.h"
+#include <bn/impl/BNApp.h>
+#include <bn/impl/BNBlinkPlatformImpl.h>
 
-#include "hell/SkLoadICU.h"
-#include "hell/my_blink_platform_impl.h"
-#include "hell/my_frame_test_helpers.h"
+#include <bn/glue/SkLoadICU.h>
+#include <bn/glue/my_blink_platform_impl.h>
+#include <bn/glue/my_frame_test_helpers.h>
 
 using namespace app_base;
 using namespace blink;
 
 extern "C" uint8_t blink_resources_pak[];     /* binary data         */
 extern "C" uint32_t blink_resources_pak_size; /* size of binary data */
+
+namespace beacon::impl {
 
 // Extracts a C string from a V8 Utf8Value.
 const char* ToCString(const v8::String::Utf8Value& value) {
@@ -131,7 +132,7 @@ BNApp::BNApp(int argc,
     // Processing toe command line
   }
 
-  if (!SkLoadICU()) {
+  if (!beacon::glue::SkLoadICU()) {
     std::cerr << "Can't load ICU4C data" << std::endl;
   }
 
@@ -191,18 +192,18 @@ BNApp::BNApp(int argc,
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
 
-  backend = std::make_shared<BNSDK::Backend>();
+  backend = std::make_shared<beacon::sdk::Backend>();
 
   webViewHelper =
-      std::make_shared<blink::my_frame_test_helpers::WebViewHelper>();
-  wfc = std::make_shared<blink::my_frame_test_helpers::TestWebFrameClient>(
+      std::make_shared<beacon::glue::WebViewHelper>();
+  wfc = std::make_shared<beacon::glue::TestWebFrameClient>(
       backend);
   wfc->SetScheduler(my_web_thread_sched);
 
-  wvc = std::make_shared<blink::my_frame_test_helpers::TestWebViewClient>(
+  wvc = std::make_shared<beacon::glue::TestWebViewClient>(
       webViewHelper);
-  wwc = std::make_shared<blink::my_frame_test_helpers::TestWebWidgetClient>(
-      new my_frame_test_helpers::StubLayerTreeViewDelegate(),
+  wwc = std::make_shared<beacon::glue::TestWebWidgetClient>(
+      new beacon::glue::StubLayerTreeViewDelegate(),
       my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
       composeTaskRunner, my_web_thread_sched.get());
 
@@ -236,7 +237,7 @@ BNApp::BNApp(int argc,
     v8::HandleScope handle_scope(isolate);
 
     v8::Local<v8::Context> v8context = frm.MainWorldScriptContext();
-    v8::Local<v8::Object> v8proxyProto = frm.GlobalProxy();//->GetPrototype();
+    v8::Local<v8::Object> v8proxyProto = frm.GlobalProxy();  //->GetPrototype();
 
     v8::Local<v8::Value> printKey =
         v8::String::NewFromUtf8(isolate, "print", v8::NewStringType::kNormal)
@@ -324,23 +325,21 @@ void BNApp::UpdateBackend(bool forceFallback) {
   auto newBackendType = fallback ? app_base::Window::kRaster_BackendType
                                  : app_base::Window::kNativeGL_BackendType;
 
-  std::chrono::steady_clock::time_point curTime = 
+  std::chrono::steady_clock::time_point curTime =
       std::chrono::steady_clock::now();
 
   if (forceFallback) {
-    // If we are forcing the fallback, we don't 
+    // If we are forcing the fallback, we don't
     // let the context to upgrade immediately
     lastBackendInitFailedAttempt = curTime;
   }
 
-  if (fBackendType != app_base::Window::kRaster_BackendType && 
-    fWindow->getGrContext() == nullptr) {
-
+  if (fBackendType != app_base::Window::kRaster_BackendType &&
+      fWindow->getGrContext() == nullptr) {
     // If we attempted to initialize GL before, but failed,
     // then falling back to raster
     newBackendType = app_base::Window::kRaster_BackendType;
-
-  } 
+  }
 
   bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
                               curTime - lastBackendInitFailedAttempt)
@@ -349,13 +348,12 @@ void BNApp::UpdateBackend(bool forceFallback) {
   if (fBackendType != newBackendType) {
     if (newBackendType == app_base::Window::kRaster_BackendType ||
         enoughTimePassed) {
-
       std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
       fBackendType = newBackendType;
       fWindow->detach();
 
-      // If we are switching to the raster fallback mode 
-      // or enough time has passed since the previous context 
+      // If we are switching to the raster fallback mode
+      // or enough time has passed since the previous context
       // switching failure, let's try to switch the context
 
       if (!fWindow->attach(fBackendType)) {
@@ -370,8 +368,8 @@ void BNApp::UpdateBackend(bool forceFallback) {
 
 void BNApp::onResize(int width, int height) {
   if (resizing) {
-    // UpdateBackend should not be called on 
-    // window maximization/restoration because that's slow 
+    // UpdateBackend should not be called on
+    // window maximization/restoration because that's slow
     // (and leads to high flicker)
     UpdateBackend(true);
   }
@@ -451,11 +449,11 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
       this->fWindow->IsActive());
 
   bool anything_changed = false;
-  //std::cout << "anything_changed: ";
-  
-  //if (collectedInputEvents.size() > 0) {
+  // std::cout << "anything_changed: ";
+
+  // if (collectedInputEvents.size() > 0) {
   //  anything_changed = true;
-    //std::cout << "events ";
+  // std::cout << "events ";
   //}
 
   // Handling events
@@ -475,8 +473,7 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
 
     if (mtp != WebInputEvent::Type::kMouseMove ||
         !frame_widget->DoingDragAndDrop()) {
-      
-      // Any event except mouse moving without an active 
+      // Any event except mouse moving without an active
       // drag-drop operation is considered a changing operation
       anything_changed = true;
     }
@@ -486,7 +483,7 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
   }
   collectedInputEvents.clear();
 
-  //webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+  // webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
 
   // Updating the state machine
 
@@ -496,10 +493,11 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
   {
     blink::DisableCompositingQueryAsserts disabler;
 
-    //auto root_graphics_layer =
+    // auto root_graphics_layer =
     //    GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
 
-    /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {});*/
+    /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer)
+     * {});*/
 
     auto anims = GetDocument().GetDocumentAnimations().getAnimations();
     int playing_anims = 0;
@@ -507,7 +505,7 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
       if (anims[ii]->Playing())
         playing_anims++;
     }
-    
+
     if (playing_anims > 0) {
       anything_changed = true;
     }
@@ -516,14 +514,12 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
         WebWidget::LifecycleUpdate::kPrePaint,
         WebWidget::LifecycleUpdateReason::kBeginMainFrame);
 
-    //frame_view->UpdateAllLifecyclePhasesExceptPaint();
-
+    // frame_view->UpdateAllLifecyclePhasesExceptPaint();
 
     if (frame_view->GetPaintArtifactCompositor() != nullptr &&
         frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
-
-        anything_changed = true;
-        //std::cout << "compositor ";
+      anything_changed = true;
+      // std::cout << "compositor ";
     }
 
     /* cc::PropertyTrees* pts = frame_view->GetPaintArtifactCompositor()
@@ -546,7 +542,6 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
 
     // PaintArtifactCompositor handles all the changes except animations
 
-    
     /* ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
       if (layer.PaintsContentOrHitTest()) {
         anything_changed = true;
@@ -554,19 +549,14 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
       }
     });*/
 
-    
-
-
-
-
-    //std::cout << std::endl;
+    // std::cout << std::endl;
 
     return anything_changed;
   }
 }
 
 void BNApp::Paint(SkCanvas* canvas) {
-  //std::cout << "BNApp::Paint()" << std::endl;
+  // std::cout << "BNApp::Paint()" << std::endl;
 
   // GetDocument().GetPage()->GetFocusController().SetActive(
   //    this->fWindow->IsActive());
@@ -621,12 +611,12 @@ void BNApp::Paint(SkCanvas* canvas) {
     frame_view->UpdateAllLifecyclePhases(
         DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
 
-    //just_updated = false;
+    // just_updated = false;
     ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
       if (layer.PaintsContentOrHitTest()) {
         auto& artifact = layer.GetPaintController().GetPaintArtifact();
         artifact.Replay(*spc, property_tree_state, IntPoint(0, 0));
-          //just_updated = true;
+        // just_updated = true;
       }
     });
   }
@@ -880,7 +870,7 @@ void BNApp::onIdle() {
   // WebWidgetClient* client = main_frame->LocalRootFrameWidget()->Client();
 
   /* auto my_web_widget_client =
-      dynamic_cast<blink::my_frame_test_helpers::TestWebWidgetClient*>(client);
+      dynamic_cast<beacon::glue::TestWebWidgetClient*>(client);
   if (my_web_widget_client->AnimationScheduled()) {
     needsRepaint = true;
     my_web_widget_client->ClearAnimationScheduled();
@@ -891,7 +881,7 @@ void BNApp::onIdle() {
     fWindow->inval();
   } else {
     std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
-    //fWindow->inval();
+    // fWindow->inval();
   }
   // paintTime = now;
 
@@ -899,3 +889,5 @@ void BNApp::onIdle() {
 }
 
 void BNApp::onAttach(app_base::Window* window) {}
+
+}  // namespace beacon::impl
