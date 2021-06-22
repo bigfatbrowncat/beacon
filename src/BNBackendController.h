@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace SDK {
+namespace BNSDK {
 
 class ResourceRequest {
 private:

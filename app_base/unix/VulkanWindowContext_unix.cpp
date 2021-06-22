@@ -13,12 +13,12 @@
 
 #include "tools/gpu/vk/VkTestUtils.h"
 
-#include "tools/sk_app/VulkanWindowContext.h"
-#include "tools/sk_app/unix/WindowContextFactory_unix.h"
+#include "tools/app_base/VulkanWindowContext.h"
+#include "tools/app_base/unix/WindowContextFactory_unix.h"
 
 #include <X11/Xlib-xcb.h>
 
-namespace sk_app {
+namespace app_base {
 
 namespace window_context_factory {
 
@@ -84,4 +84,4 @@ std::unique_ptr<WindowContext> MakeVulkanForXlib(const XlibWindowInfo& info,
 
 }  // namespace VulkanWindowContextFactory
 
-}  // namespace sk_app
+}  // namespace app_base

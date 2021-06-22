@@ -26,7 +26,7 @@ class SkCanvas;
 class SkSurface;
 class SkSurfaceProps;
 
-namespace sk_app {
+namespace app_base {
 
 class WindowContext;
 
@@ -211,5 +211,5 @@ public:
     bool signalLayers(std::function<bool(Layer*)> visitor);
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 #endif

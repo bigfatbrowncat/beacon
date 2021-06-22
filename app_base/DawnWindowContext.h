@@ -17,7 +17,7 @@
 
 class GrContext;
 
-namespace sk_app {
+namespace app_base {
 
 class DawnWindowContext : public WindowContext {
 public:
@@ -51,6 +51,6 @@ protected:
     std::unique_ptr<dawn_native::Instance> fInstance;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

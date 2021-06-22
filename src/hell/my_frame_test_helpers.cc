@@ -264,7 +264,7 @@ void LoadHTMLString(WebLocalFrame* frame,
   PumpPendingRequestsForFrameToLoad(frame);
 }
 
-void LoadHistoryItem(WebLocalFrame* frame, SDK::Backend* backend,
+void LoadHistoryItem(WebLocalFrame* frame, BNSDK::Backend* backend,
                      const WebHistoryItem& item,
                      mojom::FetchCacheMode cache_mode) {
   auto* impl = To<WebLocalFrameImpl>(frame);
@@ -301,11 +301,11 @@ void PumpPendingRequestsForFrameToLoad(WebLocalFrame* frame) {
 }
 
 void FillNavigationParamsResponse(WebNavigationParams* params,
-                                  SDK::Backend* backend) {
+                                  BNSDK::Backend* backend) {
   params->response = WebURLResponse(params->url);
 
-  SDK::ResourceRequest resReq(params->url.GetString().Ascii());
-  SDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
+  BNSDK::ResourceRequest resReq(params->url.GetString().Ascii());
+  BNSDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
 
   blink::WebString mimeType =
       blink::WebString::FromASCII(resResp.getMimeType());
@@ -672,7 +672,7 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
 
 int TestWebFrameClient::loads_in_progress_ = 0;
 
-TestWebFrameClient::TestWebFrameClient(std::shared_ptr<SDK::Backend> backend)
+TestWebFrameClient::TestWebFrameClient(std::shared_ptr<BNSDK::Backend> backend)
     : backend(backend), interface_provider_(
           new service_manager::InterfaceProvider()),
       associated_interface_provider_(new AssociatedInterfaceProvider(nullptr)),
@@ -1021,7 +1021,7 @@ WebRemoteFrame* TestWebRemoteFrameClient::Frame() const {
 }
 
 MyWebURLLoader::MyWebURLLoader(
-    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched, std::shared_ptr<SDK::Backend> backend)
+    std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched, std::shared_ptr<BNSDK::Backend> backend)
     : my_web_thread_sched(my_web_thread_sched), backend(backend) {}
 
 MyWebURLLoader::~MyWebURLLoader() {}
@@ -1041,8 +1041,8 @@ void MyWebURLLoader::DoLoadAsynchronously(WebURLRequest request,
                                           WebURLLoaderClient* client) {
   WebURLResponse response;
   
-  SDK::ResourceRequest resReq(request.Url().GetString().Ascii());
-  SDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
+  BNSDK::ResourceRequest resReq(request.Url().GetString().Ascii());
+  BNSDK::ResourceResponse resResp = backend->ProcessRequest(resReq);
 
   blink::WebString mimeType =
       blink::WebString::FromASCII(resResp.getMimeType());
@@ -1080,7 +1080,7 @@ scoped_refptr<base::SingleThreadTaskRunner> MyWebURLLoader::GetTaskRunner() {
 
 MyWebURLLoaderFactory::MyWebURLLoaderFactory(
     std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
-    std::shared_ptr<SDK::Backend> backend)
+    std::shared_ptr<BNSDK::Backend> backend)
     : my_web_thread_sched(my_web_thread_sched), backend(backend) {}
 
 MyWebURLLoaderFactory::~MyWebURLLoaderFactory() {}

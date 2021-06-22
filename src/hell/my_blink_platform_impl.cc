@@ -74,8 +74,6 @@ using blink::WebThemeEngine;
 using blink::WebURL;
 using blink::WebURLError;
 
-namespace content {
-
 namespace {
 
 std::unique_ptr<blink::WebThemeEngine> GetWebThemeEngine() {
@@ -131,15 +129,9 @@ class NestedMessageLoopRunnerImpl
 
 }  // namespace
 
-/*BlinkPlatformImpl::BlinkPlatformImpl()
-    : BlinkPlatformImpl(base::ThreadTaskRunnerHandle::IsSet()
-                            ? base::ThreadTaskRunnerHandle::Get()
-                            : nullptr,
-                        nullptr) {}*/
-
-BlinkPlatformImpl::BlinkPlatformImpl(
+BlinkPlatformImplBase::BlinkPlatformImplBase(
     scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, sk_app::Window* window)
+    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, app_base::Window* window)
     : main_thread_task_runner_(std::move(main_thread_task_runner)),
       io_thread_task_runner_(std::move(io_thread_task_runner)),
       /*browser_interface_broker_proxy_(
@@ -150,14 +142,14 @@ BlinkPlatformImpl::BlinkPlatformImpl(
 #endif
 }
 
-BlinkPlatformImpl::~BlinkPlatformImpl() = default;
+BlinkPlatformImplBase::~BlinkPlatformImplBase() = default;
 
-void BlinkPlatformImpl::RecordAction(const blink::UserMetricsAction& name) {
+void BlinkPlatformImplBase::RecordAction(const blink::UserMetricsAction& name) {
   //if (ChildThread* child_thread = ChildThread::Get())
   //  child_thread->RecordComputedAction(name.Action());
 }
 
-WebData BlinkPlatformImpl::GetDataResource(int resource_id,
+WebData BlinkPlatformImplBase::GetDataResource(int resource_id,
                                            ui::ScaleFactor scale_factor) {
   //base::StringPiece resource =
   //    GetContentClient()->GetDataResource(resource_id, scale_factor);
@@ -168,7 +160,7 @@ WebData BlinkPlatformImpl::GetDataResource(int resource_id,
   return WebData(resource.data(), resource.size());
 }
 
-WebData BlinkPlatformImpl::UncompressDataResource(int resource_id) {
+WebData BlinkPlatformImplBase::UncompressDataResource(int resource_id) {
   base::StringPiece resource =
       ui::ResourceBundle::GetSharedInstance().GetRawDataResourceForScale(
           resource_id, ui::SCALE_FACTOR_NONE);
@@ -179,14 +171,14 @@ WebData BlinkPlatformImpl::UncompressDataResource(int resource_id) {
   return WebData(uncompressed.data(), uncompressed.size());
 }
 
-WebString BlinkPlatformImpl::QueryLocalizedString(int resource_id) {
+WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id) {
   if (resource_id < 0)
     return WebString();
   return WebString::FromUTF16(
       GetLocalizedString(resource_id));
 }
 
-WebString BlinkPlatformImpl::QueryLocalizedString(int resource_id,
+WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id,
                                                   const WebString& value) {
   if (resource_id < 0)
     return WebString();
@@ -208,7 +200,7 @@ WebString BlinkPlatformImpl::QueryLocalizedString(int resource_id,
       base::ReplaceStringPlaceholders(format_string, value.Utf16(), nullptr));
 }
 
-WebString BlinkPlatformImpl::QueryLocalizedString(int resource_id,
+WebString BlinkPlatformImplBase::QueryLocalizedString(int resource_id,
                                                   const WebString& value1,
                                                   const WebString& value2) {
   if (resource_id < 0)
@@ -221,32 +213,32 @@ WebString BlinkPlatformImpl::QueryLocalizedString(int resource_id,
       GetLocalizedString(resource_id), values, nullptr));
 }
 
-bool BlinkPlatformImpl::AllowScriptExtensionForServiceWorker(
+bool BlinkPlatformImplBase::AllowScriptExtensionForServiceWorker(
     const blink::WebSecurityOrigin& script_origin) {
   return false; 
   /*GetContentClient()->AllowScriptExtensionForServiceWorker(
       script_origin);*/
 }
 
-blink::WebCrypto* BlinkPlatformImpl::Crypto() {
+blink::WebCrypto* BlinkPlatformImplBase::Crypto() {
   return nullptr;
    //&web_crypto_;
 }
 
 /*blink::ThreadSafeBrowserInterfaceBrokerProxy*
-BlinkPlatformImpl::GetBrowserInterfaceBroker() {
+BlinkPlatformImplBase::GetBrowserInterfaceBroker() {
   return browser_interface_broker_proxy_.get();
 }*/
 
-WebThemeEngine* BlinkPlatformImpl::ThemeEngine() {
+WebThemeEngine* BlinkPlatformImplBase::ThemeEngine() {
   return native_theme_engine_.get();
 }
 
-//bool BlinkPlatformImpl::IsURLSupportedForAppCache(const blink::WebURL& url) {
+//bool BlinkPlatformImplBase::IsURLSupportedForAppCache(const blink::WebURL& url) {
 //  return IsSchemeSupportedForAppCache(url);
 //}
 
-size_t BlinkPlatformImpl::MaxDecodedImageBytes() {
+size_t BlinkPlatformImplBase::MaxDecodedImageBytes() {
 #if defined(OS_ANDROID)
   const int kMB = 1024 * 1024;
   const int kMaxNumberOfBytesPerPixel = 4;
@@ -278,18 +270,16 @@ size_t BlinkPlatformImpl::MaxDecodedImageBytes() {
 #endif
 }
 
-bool BlinkPlatformImpl::IsLowEndDevice() {
+bool BlinkPlatformImplBase::IsLowEndDevice() {
   return base::SysInfo::IsLowEndDevice();
 }
 
-scoped_refptr<base::SingleThreadTaskRunner> BlinkPlatformImpl::GetIOTaskRunner()
+scoped_refptr<base::SingleThreadTaskRunner> BlinkPlatformImplBase::GetIOTaskRunner()
     const {
   return io_thread_task_runner_;
 }
 
 std::unique_ptr<blink::Platform::NestedMessageLoopRunner>
-BlinkPlatformImpl::CreateNestedMessageLoopRunner() const {
+BlinkPlatformImplBase::CreateNestedMessageLoopRunner() const {
   return std::make_unique<NestedMessageLoopRunnerImpl>();
 }
-
-}  // namespace content

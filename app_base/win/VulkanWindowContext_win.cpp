@@ -8,10 +8,10 @@
 
 #include "include/gpu/vk/GrVkVulkan.h"
 
-#include "tools/sk_app/win/WindowContextFactory_win.h"
+#include "tools/app_base/win/WindowContextFactory_win.h"
 
-#include "tools/sk_app/VulkanWindowContext.h"
-#include "tools/sk_app/win/Window_win.h"
+#include "tools/app_base/VulkanWindowContext.h"
+#include "tools/app_base/win/Window_win.h"
 
 #include "src/gpu/vk/GrVkInterface.h"
 #include "src/gpu/vk/GrVkUtil.h"
@@ -20,7 +20,7 @@
 
 #include <Windows.h>
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeVulkanForWin(HWND hwnd, const DisplayParams& params) {
@@ -78,4 +78,4 @@ std::unique_ptr<WindowContext> MakeVulkanForWin(HWND hwnd, const DisplayParams& 
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base

@@ -11,7 +11,7 @@
 #include "app_base/Window.h"
 #include "app_base/android/surface_glue_android.h"
 
-namespace sk_app {
+namespace app_base {
 
 class Window_android : public Window {
 public:
@@ -38,6 +38,6 @@ private:
     BackendType fBackendType;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

@@ -16,7 +16,7 @@
 class SkSurface;
 class GrRenderTarget;
 
-namespace sk_app {
+namespace app_base {
 
 class WindowContext {
 public:
@@ -62,6 +62,6 @@ protected:
     int               fStencilBits;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

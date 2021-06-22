@@ -7,15 +7,15 @@
  */
 
 #include "include/gpu/gl/GrGLInterface.h"
-#include "tools/sk_app/GLWindowContext.h"
-#include "tools/sk_app/ios/WindowContextFactory_ios.h"
+#include "tools/app_base/GLWindowContext.h"
+#include "tools/app_base/ios/WindowContextFactory_ios.h"
 
 #import <OpenGLES/ES3/gl.h>
 #import <UIKit/UIKit.h>
 
-using sk_app::DisplayParams;
-using sk_app::window_context_factory::IOSWindowInfo;
-using sk_app::GLWindowContext;
+using app_base::DisplayParams;
+using app_base::window_context_factory::IOSWindowInfo;
+using app_base::GLWindowContext;
 
 @interface GLView : MainView
 @end
@@ -42,7 +42,7 @@ public:
     void resize(int w, int h) override;
 
 private:
-    sk_app::Window_ios*  fWindow;
+    app_base::Window_ios*  fWindow;
     UIViewController*    fViewController;
     GLView*              fGLView;
     EAGLContext*         fGLContext;
@@ -153,7 +153,7 @@ void GLWindowContext_ios::resize(int w, int h) {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeGLForIOS(const IOSWindowInfo& info,
@@ -166,4 +166,4 @@ std::unique_ptr<WindowContext> MakeGLForIOS(const IOSWindowInfo& info,
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base

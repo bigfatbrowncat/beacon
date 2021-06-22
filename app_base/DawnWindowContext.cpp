@@ -21,7 +21,7 @@ static void PrintDeviceError(WGPUErrorType, const char* message, void*) {
     SkASSERT(false);
 }
 
-namespace sk_app {
+namespace app_base {
 
 DawnWindowContext::DawnWindowContext(const DisplayParams& params,
                                      wgpu::TextureFormat swapChainFormat)
@@ -123,4 +123,4 @@ wgpu::Device DawnWindowContext::createDevice(dawn_native::BackendType type) {
     return nullptr;
 }
 
-}   //namespace sk_app
+}   //namespace app_base

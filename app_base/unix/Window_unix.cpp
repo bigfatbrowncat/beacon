@@ -21,7 +21,7 @@
 #include "tools/timer/Timer.h"
 
 extern "C" {
-    #include "tools/sk_app/unix/keysym2ucs.h"
+    #include "tools/app_base/unix/keysym2ucs.h"
 }
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
@@ -29,7 +29,7 @@ extern "C" {
 //FIXME: remove when Vulkan support is fixed
 #include <iostream>
 
-namespace sk_app {
+namespace app_base {
 
 SkTDynamicHash<Window_unix, XWindow> Window_unix::gWindowMap;
 
@@ -439,4 +439,4 @@ bool Window_unix::IsActive() const {
    return true; //FIXME: implement properly
 }
 
-}   // namespace sk_app
+}   // namespace app_base

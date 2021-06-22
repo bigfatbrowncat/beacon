@@ -2,11 +2,7 @@
 
 #include "BNApp.h"
 
-using namespace sk_app;
-
-Application* Application::Create(
-                                 int argc,
-                                 char** argv,
-                                 const std::shared_ptr<PlatformData>& platformData) {
-  return new LgApp(argc, argv, platformData);
+app_base::Application* app_base::Application::Create(int argc, char** argv,
+                                 const std::shared_ptr<app_base::PlatformData>& platformData) {
+  return new BNApp(argc, argv, platformData);
 }

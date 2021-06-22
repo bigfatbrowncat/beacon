@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CONTENT_CHILD_BLINK_PLATFORM_IMPL_H_
-#define CONTENT_CHILD_BLINK_PLATFORM_IMPL_H_
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -31,8 +30,6 @@
 #else
 #include "third_party/blink/public/platform/linux/web_sandbox_support.h"
 #endif
-
-namespace content {
 
 class WebCryptoImpl;
 
@@ -78,13 +75,12 @@ public:
 // TODO Implement this class for Linux
 #endif
 
-class BlinkPlatformImpl : public blink::Platform {
+class BlinkPlatformImplBase : public blink::Platform {
  public:
-  //BlinkPlatformImpl();
-  explicit BlinkPlatformImpl(
+  explicit BlinkPlatformImplBase(
       scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, sk_app::Window* window);
-  ~BlinkPlatformImpl() override;
+      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, app_base::Window* window);
+  ~BlinkPlatformImplBase() override;
 
   // Platform methods (partial implementation):
   blink::WebThemeEngine* ThemeEngine() override;
@@ -147,6 +143,3 @@ class BlinkPlatformImpl : public blink::Platform {
 
 };
 
-}  // namespace content
-
-#endif  // CONTENT_CHILD_BLINK_PLATFORM_IMPL_H_

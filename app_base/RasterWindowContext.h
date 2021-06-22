@@ -10,7 +10,7 @@
 
 #include "app_base/WindowContext.h"
 
-namespace sk_app {
+namespace app_base {
 
 class RasterWindowContext : public WindowContext {
 public:
@@ -20,6 +20,6 @@ protected:
     bool isGpuContext() override { return false; }
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

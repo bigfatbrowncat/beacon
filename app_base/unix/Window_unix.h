@@ -17,7 +17,7 @@
 
 typedef Window XWindow;
 
-namespace sk_app {
+namespace app_base {
 
 class Window_unix : public Window {
 public:
@@ -106,6 +106,6 @@ private:
     typedef Window INHERITED;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

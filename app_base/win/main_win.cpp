@@ -13,7 +13,7 @@
 #include "app_base/win/Window_win.h"
 #include "tools/timer/Timer.h"
 
-using sk_app::Application;
+using app_base::Application;
 
 static char* tchar_to_utf8(const TCHAR* str) {
 #ifdef _UNICODE
@@ -64,8 +64,8 @@ static int main_common(HINSTANCE hInstance, int show, int argc, char**argv) {
     std::shared_ptr<MSG> msg = std::make_shared<MSG>();
     memset(msg.get(), 0, sizeof(msg));
 
-    std::shared_ptr<sk_app::PlatformData> platformData =
-            std::make_shared<sk_app::PlatformData>(hInstance, msg);
+    std::shared_ptr<app_base::PlatformData> platformData =
+            std::make_shared<app_base::PlatformData>(hInstance, msg);
 
     Application* app = Application::Create(argc, argv, platformData);
 

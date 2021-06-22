@@ -5,15 +5,15 @@
  * found in the LICENSE file.
  */
 
-#include "tools/sk_app/DawnWindowContext.h"
-#include "tools/sk_app/win/WindowContextFactory_win.h"
+#include "tools/app_base/DawnWindowContext.h"
+#include "tools/app_base/win/WindowContextFactory_win.h"
 #include "dawn/webgpu_cpp.h"
 #include "dawn/dawn_wsi.h"
 #include "dawn_native/DawnNative.h"
 #include "dawn_native/D3D12Backend.h"
 #include "common/SwapChainUtils.h"
 
-namespace sk_app {
+namespace app_base {
 
 class DawnD3D12WindowContext : public DawnWindowContext {
 public:
@@ -69,4 +69,4 @@ std::unique_ptr<WindowContext> MakeDawnD3D12ForWin(HWND hwnd,
 
 }
 
-}   //namespace sk_app
+}   //namespace app_base

@@ -16,10 +16,10 @@
 #include "src/image/SkImage_Base.h"
 #include "app_base/MetalWindowContext.h"
 
-using sk_app::DisplayParams;
-using sk_app::MetalWindowContext;
+using app_base::DisplayParams;
+using app_base::MetalWindowContext;
 
-namespace sk_app {
+namespace app_base {
 
 MetalWindowContext::MetalWindowContext(const DisplayParams& params)
     : WindowContext(params)
@@ -88,7 +88,7 @@ sk_sp<SkSurface> MetalWindowContext::getBackbufferSurface() {
 }
 
 void MetalWindowContext::swapBuffers() {
-    // ARC is off in sk_app, so we need to release the CF ref manually
+    // ARC is off in app_base, so we need to release the CF ref manually
     id<CAMetalDrawable> currentDrawable = (id<CAMetalDrawable>)fDrawableHandle;
     CFRelease(fDrawableHandle);
 
@@ -105,4 +105,4 @@ void MetalWindowContext::setDisplayParams(const DisplayParams& params) {
     this->initializeContext();
 }
 
-}   //namespace sk_app
+}   //namespace app_base

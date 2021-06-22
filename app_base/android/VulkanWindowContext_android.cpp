@@ -8,13 +8,13 @@
 
 #include "include/gpu/vk/GrVkVulkan.h"
 
-#include "tools/sk_app/android/WindowContextFactory_android.h"
+#include "tools/app_base/android/WindowContextFactory_android.h"
 
-#include "tools/sk_app/VulkanWindowContext.h"
+#include "tools/app_base/VulkanWindowContext.h"
 
 #include "tools/gpu/vk/VkTestUtils.h"
 
-namespace sk_app {
+namespace app_base {
 
 namespace window_context_factory {
 
@@ -58,4 +58,4 @@ std::unique_ptr<WindowContext> MakeVulkanForAndroid(ANativeWindow* window,
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base

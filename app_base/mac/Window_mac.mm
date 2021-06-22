@@ -13,22 +13,22 @@
 
 @interface WindowDelegate : NSObject<NSWindowDelegate>
 
-- (WindowDelegate*)initWithWindow:(sk_app::Window_mac*)initWindow;
+- (WindowDelegate*)initWithWindow:(app_base::Window_mac*)initWindow;
 - (void)windowDidResize:(NSNotification *)notification;
 
 @end
 
 @interface MainView : NSView
 
-- (MainView*)initWithWindow:(sk_app::Window_mac*)initWindow;
+- (MainView*)initWithWindow:(app_base::Window_mac*)initWindow;
 
 @end
 
 ///////////////////////////////////////////////////////////////////////////////
 
-using sk_app::Window;
+using app_base::Window;
 
-namespace sk_app {
+namespace app_base {
 
 SkTDynamicHash<Window_mac, NSInteger> Window_mac::gWindowMap;
 
@@ -95,7 +95,7 @@ bool Window_mac::initWindow() {
 void Window_mac::closeWindow() {
     if (nil != fWindow) {
         gWindowMap.remove(fWindowNumber);
-        if (sk_app::Window_mac::gWindowMap.count() < 1) {
+        if (app_base::Window_mac::gWindowMap.count() < 1) {
             [NSApp terminate:fWindow];
         }
         [fWindow close];
@@ -204,15 +204,15 @@ bool Window_mac::IsActive() const {
   return [fWindow isKeyWindow];
 }
 
-}   // namespace sk_app
+}   // namespace app_base
 
 ///////////////////////////////////////////////////////////////////////////////
 
 @implementation WindowDelegate {
-    sk_app::Window_mac* fWindow;
+    app_base::Window_mac* fWindow;
 }
 
-- (WindowDelegate*)initWithWindow:(sk_app::Window_mac *)initWindow {
+- (WindowDelegate*)initWithWindow:(app_base::Window_mac *)initWindow {
     fWindow = initWindow;
 
   return self;
@@ -303,12 +303,12 @@ static skui::ModifierKey get_modifiers(const NSEvent* event) {
 }
 
 @implementation MainView {
-    sk_app::Window_mac* fWindow;
+    app_base::Window_mac* fWindow;
     // A TrackingArea prevents us from capturing events outside the view
     NSTrackingArea* fTrackingArea;
 }
 
-- (MainView*)initWithWindow:(sk_app::Window_mac *)initWindow {
+- (MainView*)initWithWindow:(app_base::Window_mac *)initWindow {
     self = [super init];
 
     fWindow = initWindow;

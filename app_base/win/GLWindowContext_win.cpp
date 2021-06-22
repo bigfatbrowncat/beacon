@@ -8,26 +8,26 @@
 
 #include "include/gpu/gl/GrGLInterface.h"
 #include "src/utils/win/SkWGL.h"
-#include "tools/sk_app/GLWindowContext.h"
-#include "tools/sk_app/win/WindowContextFactory_win.h"
+#include "app_base/GLWindowContext.h"
+#include "app_base/win/WindowContextFactory_win.h"
 
 #include <GL/gl.h>
 #include <Windows.h>
 
 #include <iostream>
 
-using sk_app::DisplayParams;
-using sk_app::GLWindowContext;
+using app_base::DisplayParams;
+using app_base::GLWindowContext;
 
 #if defined(_M_ARM64)
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeGLForWin(HWND, const DisplayParams&) { return nullptr; }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base
 
 #else
 
@@ -158,7 +158,7 @@ void GLWindowContext_win::onSwapBuffers() {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeGLForWin(HWND wnd, const DisplayParams& params) {
@@ -170,6 +170,6 @@ std::unique_ptr<WindowContext> MakeGLForWin(HWND wnd, const DisplayParams& param
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

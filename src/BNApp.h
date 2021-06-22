@@ -1,5 +1,4 @@
-#ifndef LgApp_DEFINED
-#define LgApp_DEFINED
+#pragma once
 
 #include <chrono>
 
@@ -27,14 +26,14 @@ namespace blink {
 class Element;
 }  // namespace blink
 
-class LgApp : public sk_app::Application, sk_app::Window::Layer {
+class BNApp : public app_base::Application, app_base::Window::Layer {
  public:
-  LgApp(int argc, char** argv,
-        const std::shared_ptr<sk_app::PlatformData>& platformData);
-  ~LgApp() override;
+  BNApp(int argc, char** argv,
+        const std::shared_ptr<app_base::PlatformData>& platformData);
+  ~BNApp() override;
 
   void onIdle() override;
-  void onAttach(sk_app::Window* window) override;
+  void onAttach(app_base::Window* window) override;
 
   void onBackendCreated() override;
   void onResize(int width, int height) override;
@@ -68,11 +67,11 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
   void Paint(SkCanvas* canvas);
   void UpdatePlatformFontsAndColors();
 
-  sk_app::PlatformFont defaultUIFont;
+  app_base::PlatformFont defaultUIFont;
 
-  sk_app::Window* fWindow;
-  sk_app::Window::BackendType fBackendType;
-  std::shared_ptr<sk_app::PlatformData> platformData;
+  app_base::Window* fWindow;
+  app_base::Window::BackendType fBackendType;
+  std::shared_ptr<app_base::PlatformData> platformData;
   bool resizing = false;
   std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
       discardableSharedMemoryManager;    
@@ -82,7 +81,7 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
 
   std::shared_ptr<blink::Platform> platform;
 
-  std::shared_ptr<SDK::Backend> backend;
+  std::shared_ptr<BNSDK::Backend> backend;
   std::shared_ptr<blink::my_frame_test_helpers::WebViewHelper> webViewHelper;
   std::shared_ptr<blink::my_frame_test_helpers::TestWebFrameClient> wfc;
   std::shared_ptr<blink::my_frame_test_helpers::TestWebViewClient> wvc;
@@ -110,5 +109,3 @@ class LgApp : public sk_app::Application, sk_app::Window::Layer {
 
   //bool just_updated;
 };
-
-#endif  /* LgApp_DEFINED */

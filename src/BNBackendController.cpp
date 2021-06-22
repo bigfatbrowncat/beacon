@@ -1,6 +1,6 @@
 #include "BNBackendController.h"
 
-namespace SDK {
+namespace BNSDK {
 
 ResourceRequest::ResourceRequest(const std::string& url) : url(url) { }
 ResourceRequest::~ResourceRequest() { }

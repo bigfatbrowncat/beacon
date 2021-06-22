@@ -12,7 +12,7 @@
 
 #include <windows.h>
 
-namespace sk_app {
+namespace app_base {
 
 class Window_win : public Window {
 public:
@@ -54,6 +54,6 @@ public:
     typedef Window INHERITED;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

@@ -4,7 +4,7 @@
 #include <windows.h>
 #endif
 
-namespace sk_app {
+namespace app_base {
 
 #ifdef WIN32
     PlatformData::PlatformData(HINSTANCE hInstance, std::shared_ptr<MSG> msg)
@@ -14,4 +14,4 @@ namespace sk_app {
         : display(display) {}
 #endif
 
-}   // namespace sk_app
+}   // namespace app_base

@@ -11,9 +11,9 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAConstraintLayoutManager.h>
 
-using sk_app::DisplayParams;
-using sk_app::window_context_factory::MacWindowInfo;
-using sk_app::MetalWindowContext;
+using app_base::DisplayParams;
+using app_base::window_context_factory::MacWindowInfo;
+using app_base::MetalWindowContext;
 
 namespace {
 
@@ -88,7 +88,7 @@ void MetalWindowContext_mac::resize(int w, int h) {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeMetalForMac(const MacWindowInfo& info,
@@ -101,4 +101,4 @@ std::unique_ptr<WindowContext> MakeMetalForMac(const MacWindowInfo& info,
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base

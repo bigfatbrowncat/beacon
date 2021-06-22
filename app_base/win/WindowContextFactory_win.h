@@ -13,7 +13,7 @@
 
 #include <memory>
 
-namespace sk_app {
+namespace app_base {
 
 class WindowContext;
 struct DisplayParams;
@@ -34,6 +34,6 @@ std::unique_ptr<WindowContext> MakeRasterForWin(HWND, const DisplayParams&);
 
 }  // namespace window_context_factory
 
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

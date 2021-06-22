@@ -15,7 +15,7 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
-namespace sk_app {
+namespace app_base {
 
 class MetalWindowContext : public WindowContext {
 public:
@@ -47,6 +47,6 @@ protected:
     GrMTLHandle                 fDrawableHandle;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

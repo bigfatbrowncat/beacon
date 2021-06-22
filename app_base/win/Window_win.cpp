@@ -32,7 +32,7 @@ namespace wf = Windows::Foundation;
 #include "app_base/VulkanWindowContext.h"
 #endif
 
-namespace sk_app {
+namespace app_base {
 
 static int gWindowX = CW_USEDEFAULT;
 static int gWindowY = 0;
@@ -501,4 +501,4 @@ int Window_win::GetFontSize(const LOGFONT& font) {
   return nFontSize;
 }
 
-}   // namespace sk_app
+}   // namespace app_base

@@ -18,7 +18,7 @@
 
 class GrContext;
 
-namespace sk_app {
+namespace app_base {
 
 class GLWindowContext : public WindowContext {
 public:
@@ -50,6 +50,6 @@ protected:
     sk_sp<SkSurface>           fSurface;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

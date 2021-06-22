@@ -5,15 +5,15 @@
  * found in the LICENSE file.
  */
 
-#include "tools/sk_app/MetalWindowContext.h"
-#include "tools/sk_app/ios/WindowContextFactory_ios.h"
+#include "tools/app_base/MetalWindowContext.h"
+#include "tools/app_base/ios/WindowContextFactory_ios.h"
 
 #import <Metal/Metal.h>
 #import <UIKit/UIKit.h>
 
-using sk_app::DisplayParams;
-using sk_app::window_context_factory::IOSWindowInfo;
-using sk_app::MetalWindowContext;
+using app_base::DisplayParams;
+using app_base::window_context_factory::IOSWindowInfo;
+using app_base::MetalWindowContext;
 
 @interface MetalView : MainView
 @end
@@ -38,7 +38,7 @@ public:
     void resize(int w, int h) override;
 
 private:
-    sk_app::Window_ios*  fWindow;
+    app_base::Window_ios*  fWindow;
     UIViewController*    fViewController;
     MetalView*           fMetalView;
 
@@ -99,7 +99,7 @@ void MetalWindowContext_ios::resize(int w, int h) {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeMetalForIOS(const IOSWindowInfo& info,
@@ -112,4 +112,4 @@ std::unique_ptr<WindowContext> MakeMetalForIOS(const IOSWindowInfo& info,
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base

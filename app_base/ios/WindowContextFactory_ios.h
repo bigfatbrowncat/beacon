@@ -17,14 +17,14 @@
 
 #include <memory>
 
-namespace sk_app {
+namespace app_base {
 
 struct DisplayParams;
 
 namespace window_context_factory {
 
 struct IOSWindowInfo {
-    sk_app::Window_ios* fWindow;
+    app_base::Window_ios* fWindow;
     UIViewController*   fViewController;
 };
 
@@ -41,6 +41,6 @@ std::unique_ptr<WindowContext> MakeRasterForIOS(const IOSWindowInfo&, const Disp
 
 }  // namespace window_context_factory
 
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

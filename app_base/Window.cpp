@@ -11,7 +11,7 @@
 #include "include/core/SkSurface.h"
 #include "app_base/WindowContext.h"
 
-namespace sk_app {
+namespace app_base {
 
 Window::Window() {}
 
@@ -185,4 +185,4 @@ float Window::getScale() {
   return 1;    // Default scaling value
 }
 
-}   // namespace sk_app
+}   // namespace app_base

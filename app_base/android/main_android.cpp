@@ -10,10 +10,10 @@
 
 #include <android_native_app_glue.h>
 
-#include "tools/sk_app/Application.h"
+#include "tools/app_base/Application.h"
 #include "tools/timer/Timer.h"
 
-using sk_app::Application;
+using app_base::Application;
 
 /**
  * This is the main entry point of a native application that is using

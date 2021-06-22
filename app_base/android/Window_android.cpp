@@ -5,11 +5,11 @@
 * found in the LICENSE file.
 */
 
-#include "tools/sk_app/WindowContext.h"
-#include "tools/sk_app/android/WindowContextFactory_android.h"
-#include "tools/sk_app/android/Window_android.h"
+#include "tools/app_base/WindowContext.h"
+#include "tools/app_base/android/WindowContextFactory_android.h"
+#include "tools/app_base/android/Window_android.h"
 
-namespace sk_app {
+namespace app_base {
 
 Window* Window::CreateNativeWindow(void* platformData) {
     Window_android* window = new Window_android();
@@ -82,4 +82,4 @@ void Window_android::paintIfNeeded() {
     }
 }
 
-}   // namespace sk_app
+}   // namespace app_base

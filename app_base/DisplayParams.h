@@ -11,7 +11,7 @@
 #include "include/core/SkSurfaceProps.h"
 #include "include/gpu/GrContextOptions.h"
 
-namespace sk_app {
+namespace app_base {
 
 struct DisplayParams {
     DisplayParams()
@@ -30,6 +30,6 @@ struct DisplayParams {
     bool                fDisableVsync;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

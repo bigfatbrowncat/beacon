@@ -22,7 +22,6 @@ using blink::WebRect;
 using blink::WebScrollbarOverlayColorTheme;
 using blink::WebThemeEngine;
 
-namespace content {
 namespace {
 
 #if defined(OS_WIN)
@@ -276,5 +275,3 @@ void WebThemeEngineDefault::SetPreferredColorScheme(
   ui::NativeTheme::GetInstanceForNativeUi()->set_preferred_color_scheme(
       NativePreferredColorScheme(preferred_color_scheme));
 }
-
-}  // namespace content

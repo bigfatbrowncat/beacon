@@ -85,7 +85,7 @@
 #include "hell/my_blink_platform_impl.h"
 #include "hell/my_frame_test_helpers.h"
 
-using namespace sk_app;
+using namespace app_base;
 using namespace blink;
 
 extern "C" uint8_t blink_resources_pak[];     /* binary data         */
@@ -115,10 +115,10 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
   std::cout << std::endl;
 }
 
-LgApp::LgApp(int argc,
+BNApp::BNApp(int argc,
              char** argv,
              const std::shared_ptr<PlatformData>& platformData)
-    : fBackendType(sk_app::Window::kRaster_BackendType),
+    : fBackendType(app_base::Window::kRaster_BackendType),
       platformData(platformData),
       paintTime(std::chrono::high_resolution_clock::now()) {
   exit_manager = std::make_shared<base::AtExitManager>();
@@ -172,10 +172,10 @@ LgApp::LgApp(int argc,
 
   SkGraphics::Init();
 
-  fWindow = sk_app::Window::CreateNativeWindow(platformData);
+  fWindow = app_base::Window::CreateNativeWindow(platformData);
   fWindow->setRequestedDisplayParams(DisplayParams());
 
-  platform = std::make_unique<LgBlinkPlatformImpl>(
+  platform = std::make_unique<BNBlinkPlatformImpl>(
       my_web_thread_sched->DefaultTaskRunner(),
       my_web_thread_sched->DefaultTaskRunner(), fWindow);
 
@@ -191,7 +191,7 @@ LgApp::LgApp(int argc,
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
 
-  backend = std::make_shared<SDK::Backend>();
+  backend = std::make_shared<BNSDK::Backend>();
 
   webViewHelper =
       std::make_shared<blink::my_frame_test_helpers::WebViewHelper>();
@@ -252,7 +252,7 @@ LgApp::LgApp(int argc,
   webView->Resize(WebSize(page_size));
 }
 
-LgApp::~LgApp() {
+BNApp::~BNApp() {
   fWindow->detach();
   delete fWindow;
 
@@ -265,7 +265,7 @@ LgApp::~LgApp() {
   my_web_thread_sched = nullptr;
 }
 
-void LgApp::updateTitle() {
+void BNApp::updateTitle() {
   if (!fWindow /*|| fWindow->sampleCount() <= 1*/) {
     return;
   }
@@ -282,21 +282,20 @@ void LgApp::updateTitle() {
   }
   SkString skTitle(title.Utf8().c_str());
   skTitle.append(" [");
-  skTitle.append(sk_app::Window::kRaster_BackendType == fBackendType
+  skTitle.append(app_base::Window::kRaster_BackendType == fBackendType
                      ? "Raster"
                      : "OpenGL");
   skTitle.append("]");
   fWindow->setTitle(skTitle.c_str());
 }
 
-void LgApp::onBackendCreated() {
-  std::cout << "LgApp::onBackendCreated" << std::endl;
+void BNApp::onBackendCreated() {
   this->updateTitle();
   fWindow->show();
   fWindow->inval();
 }
 
-Document& LgApp::GetDocument() {
+Document& BNApp::GetDocument() {
   return *((blink::Document*)webViewHelper->GetWebView()
                ->MainFrameImpl()
                ->GetDocument());
@@ -310,7 +309,7 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
     ForAllGraphicsLayers(*child, function);
 }
 
-void LgApp::UpdateBackend(bool forceFallback) {
+void BNApp::UpdateBackend(bool forceFallback) {
   bool fallback = forceFallback;
 
   if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
@@ -322,8 +321,8 @@ void LgApp::UpdateBackend(bool forceFallback) {
     fallback = true;
   }
 
-  auto newBackendType = fallback ? sk_app::Window::kRaster_BackendType
-                                 : sk_app::Window::kNativeGL_BackendType;
+  auto newBackendType = fallback ? app_base::Window::kRaster_BackendType
+                                 : app_base::Window::kNativeGL_BackendType;
 
   std::chrono::steady_clock::time_point curTime = 
       std::chrono::steady_clock::now();
@@ -334,12 +333,12 @@ void LgApp::UpdateBackend(bool forceFallback) {
     lastBackendInitFailedAttempt = curTime;
   }
 
-  if (fBackendType != sk_app::Window::kRaster_BackendType && 
+  if (fBackendType != app_base::Window::kRaster_BackendType && 
     fWindow->getGrContext() == nullptr) {
 
     // If we attempted to initialize GL before, but failed,
     // then falling back to raster
-    newBackendType = sk_app::Window::kRaster_BackendType;
+    newBackendType = app_base::Window::kRaster_BackendType;
 
   } 
 
@@ -348,10 +347,10 @@ void LgApp::UpdateBackend(bool forceFallback) {
                               .count() > 1000;
 
   if (fBackendType != newBackendType) {
-    if (newBackendType == sk_app::Window::kRaster_BackendType ||
+    if (newBackendType == app_base::Window::kRaster_BackendType ||
         enoughTimePassed) {
 
-      std::cout << "LgApp::UpdateBackend: updating backend" << std::endl;
+      std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
       fBackendType = newBackendType;
       fWindow->detach();
 
@@ -369,8 +368,7 @@ void LgApp::UpdateBackend(bool forceFallback) {
   }
 }
 
-void LgApp::onResize(int width, int height) {
-  std::cout << "LgApp::onResize" << std::endl;
+void BNApp::onResize(int width, int height) {
   if (resizing) {
     // UpdateBackend should not be called on 
     // window maximization/restoration because that's slow 
@@ -386,19 +384,17 @@ void LgApp::onResize(int width, int height) {
   fWindow->inval();
 }
 
-void LgApp::onBeginResizing() {
-  std::cout << "LgApp::onBeginResizing" << std::endl;
+void BNApp::onBeginResizing() {
   resizing = true;
   UpdateBackend(true);
 }
 
-void LgApp::onEndResizing() {
-  std::cout << "LgApp::onEndResizing" << std::endl;
+void BNApp::onEndResizing() {
   resizing = false;
   UpdateBackend(true);
 }
 
-void LgApp::onPaint(SkSurface* surface) {
+void BNApp::onPaint(SkSurface* surface) {
   auto* canvas = surface->getCanvas();
 
   canvas->save();
@@ -415,7 +411,7 @@ void LgApp::onPaint(SkSurface* surface) {
   canvas->restore();
 }
 
-void LgApp::UpdatePlatformFontsAndColors() {
+void BNApp::UpdatePlatformFontsAndColors() {
   // Updating fonts
 #if defined(OS_WIN)
   blink::FontCache::SetAntialiasedTextEnabled(true);
@@ -450,7 +446,7 @@ void LgApp::UpdatePlatformFontsAndColors() {
   blink::ColorSchemeChanged();
 }
 
-bool LgApp::UpdateViewIfNeededAndBeginFrame() {
+bool BNApp::UpdateViewIfNeededAndBeginFrame() {
   GetDocument().GetPage()->GetFocusController().SetActive(
       this->fWindow->IsActive());
 
@@ -490,7 +486,7 @@ bool LgApp::UpdateViewIfNeededAndBeginFrame() {
   }
   collectedInputEvents.clear();
 
-  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+  //webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
 
   // Updating the state machine
 
@@ -569,8 +565,8 @@ bool LgApp::UpdateViewIfNeededAndBeginFrame() {
   }
 }
 
-void LgApp::Paint(SkCanvas* canvas) {
-  //std::cout << "LgApp::Paint()" << std::endl;
+void BNApp::Paint(SkCanvas* canvas) {
+  //std::cout << "BNApp::Paint()" << std::endl;
 
   // GetDocument().GetPage()->GetFocusController().SetActive(
   //    this->fWindow->IsActive());
@@ -636,7 +632,7 @@ void LgApp::Paint(SkCanvas* canvas) {
   }
 }
 
-bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
+bool BNApp::onMouse(const ui::PlatformEvent& platformEvent,
                     int,
                     int,
                     skui::InputState,
@@ -715,7 +711,7 @@ bool LgApp::onMouse(const ui::PlatformEvent& platformEvent,
   return false;
 }
 
-bool LgApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
+bool BNApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
                          float delta,
                          skui::ModifierKey modKey) {
   std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
@@ -805,7 +801,7 @@ bool LgApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
   return false;
 }
 
-bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
+bool BNApp::onKey(const ui::PlatformEvent& platformEvent,
                   uint64_t key,
                   skui::InputState inState,
                   skui::ModifierKey modKey) {
@@ -856,13 +852,13 @@ bool LgApp::onKey(const ui::PlatformEvent& platformEvent,
   return false;
 }
 
-bool LgApp::onChar(const ui::PlatformEvent& platformEvent,
+bool BNApp::onChar(const ui::PlatformEvent& platformEvent,
                    SkUnichar c,
                    skui::ModifierKey modifiers) {
   return false;
 }
 
-void LgApp::onIdle() {
+void BNApp::onIdle() {
   UpdateBackend(false);
 
   // Processing the pending commands
@@ -902,4 +898,4 @@ void LgApp::onIdle() {
   //}
 }
 
-void LgApp::onAttach(sk_app::Window* window) {}
+void BNApp::onAttach(app_base::Window* window) {}

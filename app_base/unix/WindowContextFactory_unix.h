@@ -20,7 +20,7 @@
 
 typedef Window XWindow;
 
-namespace sk_app {
+namespace app_base {
 
 class WindowContext;
 struct DisplayParams;
@@ -48,6 +48,6 @@ std::unique_ptr<WindowContext> MakeRasterForXlib(const XlibWindowInfo&, const Di
 
 }  // namespace window_context_factory
 
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

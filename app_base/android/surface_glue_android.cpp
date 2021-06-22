@@ -5,7 +5,7 @@
 * found in the LICENSE file.
 */
 
-#include "tools/sk_app/android/surface_glue_android.h"
+#include "tools/app_base/android/surface_glue_android.h"
 
 #include <jni.h>
 #include <pthread.h>
@@ -24,11 +24,11 @@
 #include "include/private/SkTo.h"
 #include "src/utils/SkUTF.h"
 #include "tools/ResourceFactory.h"
-#include "tools/sk_app/Application.h"
-#include "tools/sk_app/android/Window_android.h"
+#include "tools/app_base/Application.h"
+#include "tools/app_base/android/Window_android.h"
 
 
-namespace sk_app {
+namespace app_base {
 
 static void config_resource_mgr(JNIEnv* env, jobject assetManager) {
     static AAssetManager* gAAssetManager = nullptr;
@@ -305,4 +305,4 @@ extern "C" JNIEXPORT void JNICALL Java_org_skia_viewer_ViewerActivity_onUIStateC
     env->ReleaseStringUTFChars(stateValue, valueChars);
 }
 
-}  // namespace sk_app
+}  // namespace app_base

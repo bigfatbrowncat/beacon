@@ -17,7 +17,7 @@
 #include "app_base/Application.h"
 #include "app_base/Window.h"
 
-namespace sk_app {
+namespace app_base {
 
 enum MessageType {
     kUndefined,
@@ -74,6 +74,6 @@ private:
     static void* pthread_main(void*);
 };
 
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

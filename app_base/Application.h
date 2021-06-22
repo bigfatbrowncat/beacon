@@ -17,7 +17,7 @@
 typedef struct _XDisplay Display;
 #endif
 
-namespace sk_app {
+namespace app_base {
 
 #if defined(WIN32)
 
@@ -52,6 +52,6 @@ public:
     virtual void onIdle() = 0;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

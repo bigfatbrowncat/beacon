@@ -139,7 +139,7 @@ void ReloadFrameBypassingCache(WebLocalFrame*);
 
 // Fills navigation params if needed. Params should have the proper url set up.
 void FillNavigationParamsResponse(WebNavigationParams* params,
-                                  SDK::Backend* backend);
+                                  BNSDK::Backend* backend);
 
 // Pumps pending resource requests while waiting for a frame to load. Consider
 // using one of the above helper methods whenever possible.
@@ -481,9 +481,9 @@ class WebViewHelper /*: public ScopedMockOverlayScrollbars*/ {
 class TestWebFrameClient : public WebLocalFrameClient {
  private:
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-  std::shared_ptr<SDK::Backend> backend;
+  std::shared_ptr<BNSDK::Backend> backend;
  public:
-  TestWebFrameClient(std::shared_ptr<SDK::Backend> backend);
+  TestWebFrameClient(std::shared_ptr<BNSDK::Backend> backend);
   ~TestWebFrameClient() override;
 
   void SetScheduler(std::shared_ptr<blink::scheduler::WebThreadScheduler>
@@ -492,7 +492,7 @@ class TestWebFrameClient : public WebLocalFrameClient {
   static bool IsLoading() { return loads_in_progress_ > 0; }
   Vector<String>& ConsoleMessages() { return console_messages_; }
 
-  std::shared_ptr<SDK::Backend> Backend() { return backend; }
+  std::shared_ptr<BNSDK::Backend> Backend() { return backend; }
 
   WebNavigationControl* Frame() const { return frame_; }
   // Pass ownership of the TestWebFrameClient to |self_owned| here if the
@@ -611,13 +611,13 @@ class MyWebURLRequestWrapper {
 class MyWebURLLoader final : public WebURLLoader {
  private:
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-  std::shared_ptr<SDK::Backend> backend;
+  std::shared_ptr<BNSDK::Backend> backend;
 
   void DoLoadAsynchronously(WebURLRequest request, WebURLLoaderClient* client);
 
  public:
   MyWebURLLoader(std::shared_ptr<blink::scheduler::WebThreadScheduler>
-                     my_web_thread_sched, std::shared_ptr<SDK::Backend> backend);
+                     my_web_thread_sched, std::shared_ptr<BNSDK::Backend> backend);
   ~MyWebURLLoader() override;
 
   void LoadSynchronously(const WebURLRequest&,
@@ -640,12 +640,12 @@ class MyWebURLLoader final : public WebURLLoader {
 class MyWebURLLoaderFactory final : public WebURLLoaderFactory {
  private:
   std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched;
-  std::shared_ptr<SDK::Backend> backend;
+  std::shared_ptr<BNSDK::Backend> backend;
 
  public:
   MyWebURLLoaderFactory(
       std::shared_ptr<blink::scheduler::WebThreadScheduler> my_web_thread_sched,
-      std::shared_ptr<SDK::Backend> backend);
+      std::shared_ptr<BNSDK::Backend> backend);
   ~MyWebURLLoaderFactory() override;
   std::unique_ptr<WebURLLoader> CreateURLLoader(
       const WebURLRequest&,

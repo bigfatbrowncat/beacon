@@ -39,8 +39,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-using sk_app::Application;
-using sk_app::Window_mac;
+using app_base::Application;
+using app_base::Window_mac;
 
 int main(int argc, char * argv[]) {
 #if MAC_OS_X_VERSION_MAX_ALLOWED < 1070
@@ -74,8 +74,8 @@ int main(int argc, char * argv[]) {
     AppDelegate* appDelegate = [[AppDelegate alloc] init];
     [NSApp setDelegate:appDelegate];
 
-    std::shared_ptr<sk_app::PlatformData> platformData =
-        std::make_shared<sk_app::PlatformData>();
+    std::shared_ptr<app_base::PlatformData> platformData =
+        std::make_shared<app_base::PlatformData>();
 
     Application* app = Application::Create(argc, argv, platformData);
 

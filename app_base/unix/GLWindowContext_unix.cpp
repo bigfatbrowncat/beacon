@@ -12,9 +12,9 @@
 
 #include <GL/gl.h>
 
-using sk_app::window_context_factory::XlibWindowInfo;
-using sk_app::DisplayParams;
-using sk_app::GLWindowContext;
+using app_base::window_context_factory::XlibWindowInfo;
+using app_base::DisplayParams;
+using app_base::GLWindowContext;
 
 namespace {
 
@@ -178,7 +178,7 @@ void GLWindowContext_xlib::onSwapBuffers() {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 
 namespace window_context_factory {
 
@@ -193,4 +193,4 @@ std::unique_ptr<WindowContext> MakeGLForXlib(const XlibWindowInfo& winInfo,
 
 }  // namespace window_context_factory
 
-}  // namespace sk_app
+}  // namespace app_base

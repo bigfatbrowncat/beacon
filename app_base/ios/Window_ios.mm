@@ -5,20 +5,20 @@
 * found in the LICENSE file.
 */
 
-#include "tools/sk_app/ios/WindowContextFactory_ios.h"
-#include "tools/sk_app/ios/Window_ios.h"
+#include "tools/app_base/ios/WindowContextFactory_ios.h"
+#include "tools/app_base/ios/Window_ios.h"
 
 @interface WindowViewController : UIViewController
 
-- (WindowViewController*)initWithWindow:(sk_app::Window_ios*)initWindow;
+- (WindowViewController*)initWithWindow:(app_base::Window_ios*)initWindow;
 
 @end
 
 ///////////////////////////////////////////////////////////////////////////////
 
-using sk_app::Window;
+using app_base::Window;
 
-namespace sk_app {
+namespace app_base {
 
 Window_ios* Window_ios::gWindow = nullptr;
 
@@ -106,15 +106,15 @@ void Window_ios::onInval() {
     // TODO: send expose event
 }
 
-}   // namespace sk_app
+}   // namespace app_base
 
 ///////////////////////////////////////////////////////////////////////////////
 
 @implementation WindowViewController {
-    sk_app::Window_ios* fWindow;
+    app_base::Window_ios* fWindow;
 }
 
-- (WindowViewController*)initWithWindow:(sk_app::Window_ios *)initWindow {
+- (WindowViewController*)initWithWindow:(app_base::Window_ios *)initWindow {
     fWindow = initWindow;
 
     return self;
@@ -137,7 +137,7 @@ void Window_ios::onInval() {
 ///////////////////////////////////////////////////////////////////////////////
 
 @implementation MainView {
-    sk_app::Window_ios* fWindow;
+    app_base::Window_ios* fWindow;
 }
 
 - (IBAction)panGestureAction:(UIGestureRecognizer*)sender {
@@ -212,7 +212,7 @@ void Window_ios::onInval() {
     }
 }
 
-- (MainView*)initWithWindow:(sk_app::Window_ios *)initWindow {
+- (MainView*)initWithWindow:(app_base::Window_ios *)initWindow {
     self = [super init];
 
     UIPanGestureRecognizer* panGestureRecognizer = [[UIPanGestureRecognizer alloc] init];

@@ -4,12 +4,12 @@
 
 #include "third_party/blink/public/platform/web_string.h"
 
-class LgBlinkPlatformImpl : public content::BlinkPlatformImpl {
+class BNBlinkPlatformImpl : public BlinkPlatformImplBase {
 public:
-  LgBlinkPlatformImpl(
+  BNBlinkPlatformImpl(
                              scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-                    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, sk_app::Window* window) :
-  BlinkPlatformImpl(main_thread_task_runner, io_thread_task_runner, window) { }
+                    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner, app_base::Window* window) :
+  BlinkPlatformImplBase(main_thread_task_runner, io_thread_task_runner, window) { }
 
   
   blink::WebString DefaultLocale() override { return blink::WebString("en-US"); }

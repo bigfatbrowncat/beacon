@@ -12,11 +12,11 @@
 #include <EGL/eglext.h>
 #include "include/gpu/gl/GrGLAssembleInterface.h"
 #include "src/gpu/gl/GrGLDefines.h"
-#include "tools/sk_app/GLWindowContext.h"
-#include "tools/sk_app/win/WindowContextFactory_win.h"
+#include "tools/app_base/GLWindowContext.h"
+#include "tools/app_base/win/WindowContextFactory_win.h"
 
-using sk_app::GLWindowContext;
-using sk_app::DisplayParams;
+using app_base::GLWindowContext;
+using app_base::DisplayParams;
 
 namespace {
 
@@ -164,7 +164,7 @@ void ANGLEGLWindowContext_win::onSwapBuffers() {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeANGLEForWin(HWND wnd, const DisplayParams& params) {
@@ -176,4 +176,4 @@ std::unique_ptr<WindowContext> MakeANGLEForWin(HWND wnd, const DisplayParams& pa
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base

@@ -15,7 +15,7 @@
 
 #include <memory>
 
-namespace sk_app {
+namespace app_base {
 
 struct DisplayParams;
 
@@ -47,6 +47,6 @@ std::unique_ptr<WindowContext> MakeMetalForMac(const MacWindowInfo&, const Displ
 
 }  // namespace window_context_factory
 
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

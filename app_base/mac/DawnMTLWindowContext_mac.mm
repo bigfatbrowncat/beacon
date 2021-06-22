@@ -17,9 +17,9 @@
 #import <QuartzCore/CAMetalLayer.h>
 #import <Cocoa/Cocoa.h>
 
-namespace sk_app {
+namespace app_base {
 
-using sk_app::window_context_factory::MacWindowInfo;
+using app_base::window_context_factory::MacWindowInfo;
 
 class DawnMTLWindowContext : public DawnWindowContext {
 public:
@@ -143,4 +143,4 @@ std::unique_ptr<WindowContext> MakeDawnMTLForMac(const MacWindowInfo& winInfo,
 
 }
 
-}   //namespace sk_app
+}   //namespace app_base

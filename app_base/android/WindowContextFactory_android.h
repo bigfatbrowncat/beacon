@@ -13,7 +13,7 @@
 
 #include <memory>
 
-namespace sk_app {
+namespace app_base {
 
 class WindowContext;
 struct DisplayParams;
@@ -28,6 +28,6 @@ std::unique_ptr<WindowContext> MakeRasterForAndroid(ANativeWindow*, const Displa
 
 }  // namespace window_context_factory
 
-}  // namespace sk_app
+}  // namespace app_base
 
 #endif

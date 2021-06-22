@@ -10,11 +10,11 @@
 
 #include "include/private/SkChecksum.h"
 #include "src/core/SkTDynamicHash.h"
-#include "tools/sk_app/Window.h"
+#include "tools/app_base/Window.h"
 
 #import <UIKit/UIKit.h>
 
-namespace sk_app {
+namespace app_base {
 
 class Window_ios : public Window {
 public:
@@ -48,13 +48,13 @@ private:
     typedef Window INHERITED;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 //////////////////////////////////////////////////////////////////////////
 
 @interface MainView : UIView
 
-- (MainView*)initWithWindow:(sk_app::Window_ios*)initWindow;
+- (MainView*)initWithWindow:(app_base::Window_ios*)initWindow;
 
 @end
 

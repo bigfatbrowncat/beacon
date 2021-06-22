@@ -18,7 +18,7 @@
 #include "src/image/SkImage_Base.h"
 #include "app_base/GLWindowContext.h"
 
-namespace sk_app {
+namespace app_base {
 
 GLWindowContext::GLWindowContext(const DisplayParams& params)
     : WindowContext(params)
@@ -101,4 +101,4 @@ void GLWindowContext::setDisplayParams(const DisplayParams& params) {
     this->initializeContext();
 }
 
-}   //namespace sk_app
+}   //namespace app_base

@@ -5,8 +5,8 @@
  * found in the LICENSE file.
  */
 
-#include "tools/sk_app/DawnWindowContext.h"
-#include "tools/sk_app/unix/WindowContextFactory_unix.h"
+#include "tools/app_base/DawnWindowContext.h"
+#include "tools/app_base/unix/WindowContextFactory_unix.h"
 #include "dawn_native/DawnNative.h"
 #include "dawn_native/VulkanBackend.h"
 #include "src/ports/SkOSLibrary.h"
@@ -15,11 +15,11 @@
 #include <vulkan/vulkan.h>
 #include <X11/Xlib-xcb.h>
 
-using sk_app::window_context_factory::XlibWindowInfo;
-using sk_app::DisplayParams;
-using sk_app::DawnWindowContext;
+using app_base::window_context_factory::XlibWindowInfo;
+using app_base::DisplayParams;
+using app_base::DawnWindowContext;
 
-namespace sk_app {
+namespace app_base {
 
 class DawnVulkanWindowContext_xlib : public DawnWindowContext {
 public:
@@ -104,4 +104,4 @@ std::unique_ptr<WindowContext> MakeDawnVulkanForXlib(const XlibWindowInfo& winIn
 
 }
 
-}  // namespace sk_app
+}  // namespace app_base

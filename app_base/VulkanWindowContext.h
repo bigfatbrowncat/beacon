@@ -21,7 +21,7 @@
 
 class GrRenderTarget;
 
-namespace sk_app {
+namespace app_base {
 
 class VulkanWindowContext : public WindowContext {
 public:
@@ -114,7 +114,7 @@ private:
     uint32_t               fCurrentBackbufferIndex;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif // SK_VULKAN
 

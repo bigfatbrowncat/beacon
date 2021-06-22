@@ -7,13 +7,13 @@
 
 #include "include/core/SkTypes.h"
 #include "include/private/SkTHash.h"
-#include "tools/sk_app/Application.h"
-#include "tools/sk_app/ios/Window_ios.h"
+#include "tools/app_base/Application.h"
+#include "tools/app_base/ios/Window_ios.h"
 #include "tools/timer/Timer.h"
 
 #import <UIKit/UIKit.h>
 
-using sk_app::Application;
+using app_base::Application;
 
 ////////////////////////////////////////////////////////////////////
 
@@ -60,7 +60,7 @@ using sk_app::Application;
     }
     free(argv);
 
-    sk_app::Window_ios* mainWindow = sk_app::Window_ios::MainWindow();
+    app_base::Window_ios* mainWindow = app_base::Window_ios::MainWindow();
     if (!mainWindow) {
         return;
     }
@@ -83,7 +83,7 @@ using sk_app::Application;
         // Rather than depending on an iOS event to drive this, we treat our window
         // invalidation flag as a separate event stream. Window::onPaint() will clear
         // the invalidation flag, effectively removing it from the stream.
-        sk_app::Window_ios::PaintWindow();
+        app_base::Window_ios::PaintWindow();
 
         app->onIdle();
     }

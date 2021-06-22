@@ -17,10 +17,10 @@ int main(int argc, char**argv) {
     XInitThreads();
     Display* display = XOpenDisplay(nullptr);
 
-    std::shared_ptr<sk_app::PlatformData> platformData =
-            std::make_shared<sk_app::PlatformData>(display);
+    std::shared_ptr<app_base::PlatformData> platformData =
+            std::make_shared<app_base::PlatformData>(display);
 
-    sk_app::Application* app = sk_app::Application::Create(argc, argv, platformData);
+    app_base::Application* app = app_base::Application::Create(argc, argv, platformData);
 
     // Get the file descriptor for the X display
     const int x11_fd = ConnectionNumber(display);
@@ -48,13 +48,13 @@ int main(int argc, char**argv) {
         // Only handle a finite number of events before finishing resize and paint..
         if (int count = XPending(display)) {
             // collapse any Expose and Resize events.
-            std::set<sk_app::Window_unix*> pendingWindows;
-            //SkTHashSet<sk_app::Window_unix*> pendingWindows;
+            std::set<app_base::Window_unix*> pendingWindows;
+            //SkTHashSet<app_base::Window_unix*> pendingWindows;
             while (count-- && !done) {
                 XEvent event;
                 XNextEvent(display, &event);
 
-                sk_app::Window_unix* win = sk_app::Window_unix::gWindowMap.find(event.xany.window);
+                app_base::Window_unix* win = app_base::Window_unix::gWindowMap.find(event.xany.window);
                 if (!win) {
                     continue;
                 }
@@ -79,8 +79,8 @@ int main(int argc, char**argv) {
                     break;
                 }
             }
-	    std::for_each(pendingWindows.begin(), pendingWindows.end(), [](sk_app::Window_unix* win){
-            //pendingWindows.foreach([](sk_app::Window_unix* win) {
+	    std::for_each(pendingWindows.begin(), pendingWindows.end(), [](app_base::Window_unix* win){
+            //pendingWindows.foreach([](app_base::Window_unix* win) {
                 win->finishResize();
                 win->finishPaint();
             });

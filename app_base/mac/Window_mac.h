@@ -13,7 +13,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-namespace sk_app {
+namespace app_base {
 
 class Window_mac : public Window {
 public:
@@ -59,6 +59,6 @@ private:
     typedef Window INHERITED;
 };
 
-}   // namespace sk_app
+}   // namespace app_base
 
 #endif

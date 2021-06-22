@@ -6,7 +6,7 @@
  * found in the LICENSE file.
  */
 
-#include "tools/sk_app/VulkanWindowContext.h"
+#include "tools/app_base/VulkanWindowContext.h"
 
 #include "include/core/SkSurface.h"
 #include "include/gpu/GrBackendSemaphore.h"
@@ -27,7 +27,7 @@
 #define GET_PROC(F) f ## F = (PFN_vk ## F) fGetInstanceProcAddr(fInstance, "vk" #F)
 #define GET_DEV_PROC(F) f ## F = (PFN_vk ## F) fGetDeviceProcAddr(fDevice, "vk" #F)
 
-namespace sk_app {
+namespace app_base {
 
 VulkanWindowContext::VulkanWindowContext(const DisplayParams& params,
                                          CreateVkSurfaceFn createVkSurface,
@@ -543,4 +543,4 @@ void VulkanWindowContext::swapBuffers() {
     fQueuePresentKHR(fPresentQueue, &presentInfo);
 }
 
-}   //namespace sk_app
+}   //namespace app_base

@@ -7,13 +7,13 @@
 
 #include "include/core/SkSurface.h"
 #include "src/core/SkAutoMalloc.h"
-#include "tools/sk_app/RasterWindowContext.h"
-#include "tools/sk_app/win/WindowContextFactory_win.h"
+#include "app_base/RasterWindowContext.h"
+#include "app_base/win/WindowContextFactory_win.h"
 
 #include <Windows.h>
 
-using sk_app::RasterWindowContext;
-using sk_app::DisplayParams;
+using app_base::RasterWindowContext;
+using app_base::DisplayParams;
 
 namespace {
 
@@ -91,7 +91,7 @@ void RasterWindowContext_win::swapBuffers() {
 
 }  // anonymous namespace
 
-namespace sk_app {
+namespace app_base {
 namespace window_context_factory {
 
 std::unique_ptr<WindowContext> MakeRasterForWin(HWND wnd, const DisplayParams& params) {
@@ -103,4 +103,4 @@ std::unique_ptr<WindowContext> MakeRasterForWin(HWND wnd, const DisplayParams& p
 }
 
 }  // namespace window_context_factory
-}  // namespace sk_app
+}  // namespace app_base
