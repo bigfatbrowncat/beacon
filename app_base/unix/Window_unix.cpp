@@ -21,7 +21,7 @@
 #include "tools/timer/Timer.h"
 
 extern "C" {
-    #include "tools/app_base/unix/keysym2ucs.h"
+    #include "app_base/unix/keysym2ucs.h"
 }
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>

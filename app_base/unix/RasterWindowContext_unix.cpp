@@ -6,8 +6,8 @@
  */
 
 #include "include/core/SkSurface.h"
-#include "tools/app_base/RasterWindowContext.h"
-#include "tools/app_base/unix/WindowContextFactory_unix.h"
+#include "app_base/RasterWindowContext.h"
+#include "app_base/unix/WindowContextFactory_unix.h"
 
 using app_base::RasterWindowContext;
 using app_base::DisplayParams;
