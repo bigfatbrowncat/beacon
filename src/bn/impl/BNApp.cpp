@@ -312,7 +312,6 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
 
 void BNApp::UpdateBackend(bool forceFallback) {
   bool fallback = forceFallback;
-
   if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
     // Checking if we need a fallback to Raster renderer.
     // Fallback is effective for small screens and weak videochips
@@ -344,12 +343,24 @@ void BNApp::UpdateBackend(bool forceFallback) {
   bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
                               curTime - lastBackendInitFailedAttempt)
                               .count() > 1000;
+  
+  bool enoughTimePassedSinceSizeChange = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              curTime - lastSizeChange)
+                              .count() > 1000;
+
+  if (enoughTimePassedSinceSizeChange) {
+    // If long time passed since the last size shange, 
+    // we are assuming that the resizing has finished
+    lastSizeChange = curTime;
+    resizing = false;
+  }
 
   if (fBackendType != newBackendType) {
     if (newBackendType == app_base::Window::kRaster_BackendType ||
         enoughTimePassed) {
       std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
       fBackendType = newBackendType;
+
       fWindow->detach();
 
       // If we are switching to the raster fallback mode
@@ -367,6 +378,12 @@ void BNApp::UpdateBackend(bool forceFallback) {
 }
 
 void BNApp::onResize(int width, int height) {
+  if (width != oldWidth || height != oldHeight) {
+    resizing = true;
+    oldWidth = width;
+    oldHeight = height;
+  }
+
   if (resizing) {
     // UpdateBackend should not be called on
     // window maximization/restoration because that's slow

@@ -65,6 +65,8 @@ class BNApp : public app_base::Application, app_base::Window::Layer {
   void UpdateBackend(bool forceFallback);
 
  private:
+  int oldWidth, oldHeight;  
+
   void updateTitle();
   void Paint(SkCanvas* canvas);
   void UpdatePlatformFontsAndColors();
@@ -79,6 +81,8 @@ class BNApp : public app_base::Application, app_base::Window::Layer {
       discardableSharedMemoryManager;
 
   std::chrono::steady_clock::time_point lastBackendInitFailedAttempt =
+      std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point lastSizeChange =
       std::chrono::steady_clock::now();
 
   std::shared_ptr<blink::Platform> platform;
