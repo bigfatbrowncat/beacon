@@ -7,7 +7,7 @@
 
 #include "third_party/blink/public/platform/web_theme_engine.h"
 
-namespace content {
+namespace beacon::glue {
 
 class WebThemeEngineMac : public blink::WebThemeEngine {
  public:
@@ -20,6 +20,6 @@ class WebThemeEngineMac : public blink::WebThemeEngine {
       const blink::PreferredColorScheme preferred_color_scheme) override;
 };
 
-}  // namespace content
+}  // namespace beacon::glue
 
 #endif  // CONTENT_CHILD_WEBTHEMEENGINE_IMPL_MAC_H_

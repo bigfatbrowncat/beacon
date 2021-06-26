@@ -7,7 +7,7 @@
 #include "my_webthemeengine_impl_conversions.h"
 #include "ui/native_theme/native_theme.h"
 
-namespace content {
+namespace beacon::glue {
 
 blink::ForcedColors WebThemeEngineMac::GetForcedColors() const {
   return ui::NativeTheme::GetInstanceForWeb()->UsesHighContrastColors()
@@ -33,4 +33,4 @@ void WebThemeEngineMac::SetPreferredColorScheme(
       NativePreferredColorScheme(preferred_color_scheme));
 }
 
-}  // namespace content
+}  // namespace beacon::glue

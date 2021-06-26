@@ -38,10 +38,10 @@ namespace beacon::glue {
 #if defined(OS_MACOSX)
 class MyWebSandboxSupport : public blink::WebSandboxSupport {
  private:
-  sk_app::Window* window;
+  app_base::Window* window;
 
  public:
-  MyWebSandboxSupport(sk_app::Window* window) : window(window) {}
+  MyWebSandboxSupport(app_base::Window* window) : window(window) {}
   virtual ~MyWebSandboxSupport() override {}
   // Given an input font - |srcFont| [which can't be loaded due to sandbox
   // restrictions]. Return a font belonging to an equivalent font file
@@ -60,7 +60,7 @@ class MyWebSandboxSupport : public blink::WebSandboxSupport {
 
   // Returns the system's preferred value for a named color.
   SkColor GetSystemColor(blink::MacSystemColorID colorId) override {
-    sk_app::PlatformColors pc = window->GetPlatformColors();
+    app_base::PlatformColors pc = window->GetPlatformColors();
     switch (colorId) {
       case blink::MacSystemColorID::kSelectedText:
         return pc.selectionTextColorActive;
