@@ -27,63 +27,137 @@ class Element;
 
 namespace beacon::impl {
 
-class BNApp : public app_base::Application, app_base::Window::Layer {
+class BNLayer : private app_base::Window::Layer {
  public:
-  BNApp(int argc,
-        char** argv,
-        const std::shared_ptr<app_base::PlatformData>& platformData);
-  ~BNApp() override;
+  BNLayer(app_base::Window::BackendType BackendType) : fBackendType(BackendType)
+  { }
 
-  void onIdle() override;
-  void onAttach(app_base::Window* window) override;
+  virtual ~BNLayer() {
+    assert(fWindow != nullptr);
+    fWindow->detach();
+    delete fWindow;
+  }
 
-  void onBackendCreated() override;
-  void onResize(int width, int height) override;
-  void onBeginResizing() override;
-  void onEndResizing() override;
-
-  bool UpdateViewIfNeededAndBeginFrame();
-  void onPaint(SkSurface*) override;
+  void onAttach(app_base::Window* window) override { 
+    fWindow = window;
+  }
 
   bool onMouse(const ui::PlatformEvent& platformEvent,
-               int x,
-               int y,
-               skui::InputState,
-               skui::ModifierKey) override;
+               int x, int y,
+               skui::InputState, skui::ModifierKey) override {
+    return onEvent(platformEvent);
+  }
   bool onMouseWheel(const ui::PlatformEvent& platformEvent,
-                    float delta,
-                    skui::ModifierKey) override;
+      float delta, skui::ModifierKey) override {
+    return onEvent(platformEvent);
+  }
   bool onKey(const ui::PlatformEvent& platformEvent,
-             uint64_t,
-             skui::InputState,
-             skui::ModifierKey) override;
+      uint64_t, skui::InputState, skui::ModifierKey) override {
+    return onEvent(platformEvent);
+  }
   bool onChar(const ui::PlatformEvent& platformEvent,
-              SkUnichar c,
-              skui::ModifierKey modifiers) override;
+      SkUnichar c, skui::ModifierKey modifiers) override {
+    return onEvent(platformEvent);
+  }
 
-  blink::Document& GetDocument();
-  void UpdateBackend(bool forceFallback);
+  void onBackendCreated() override {
+    this->updateTitle();
+    fWindow->show();
+    fWindow->inval();
+  }
+
+  void onResize(int width, int height) override { 
+      fWindow->inval();
+  }
+
+  void onBeginResizing() override {
+    // Careful! This method is currently only called on Windows
+    resizing = true;
+    UpdateBackend(true);
+  }
+
+  void onEndResizing() override {
+    // Careful! This method is currently only called on Windows
+    resizing = false;
+    UpdateBackend(true);
+  }
+
+  // To be defined in the implementation
+  virtual std::string getTitle() = 0;
+  virtual bool UpdateViewIfNeededAndBeginFrame() = 0;
+  virtual bool onEvent(const ui::PlatformEvent& platformEvent) = 0;
+  virtual void Paint(SkCanvas* canvas) = 0;
+
+ protected:
+  void connectWindow(app_base::Window* window) {
+    fWindow = window;
+    window->pushLayer(this);
+    window->attach(fBackendType);
+  }
+  app_base::Window::BackendType getBackendType() {
+    return fBackendType;
+  }
+  void setWindowTitle(const std::string& title) {
+    fWindow->setTitle(title.c_str());
+  }
+  bool isWindowConnected() {
+    return fWindow != nullptr;
+  }
+  bool isWindowActive() { 
+    assert(isWindowConnected());
+    return fWindow->IsActive();
+  }
+
+  void onPaint(SkSurface* surface) override;
+  void DoFrame();
 
  private:
-  int oldWidth, oldHeight;  
+  //int oldWidth, oldHeight;  
 
   void updateTitle();
-  void Paint(SkCanvas* canvas);
+  void UpdateBackend(bool forceFallback);
   void UpdatePlatformFontsAndColors();
 
-  app_base::PlatformFont defaultUIFont;
-
-  app_base::Window* fWindow;
+  app_base::Window* fWindow = nullptr;
   app_base::Window::BackendType fBackendType;
-  std::shared_ptr<app_base::PlatformData> platformData;
-  bool resizing = false;
-  std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
-      discardableSharedMemoryManager;
 
+  bool resizing = false;
+
+  app_base::PlatformFont defaultUIFont;
   std::chrono::steady_clock::time_point lastBackendInitFailedAttempt =
       std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point lastSizeChange =
       std::chrono::steady_clock::now();
+};
+
+class BNApp : public app_base::Application, BNLayer {
+ public:
+  BNApp(int argc,
+        char** argv,
+        const std::shared_ptr<app_base::PlatformData>& platformData);
+  virtual ~BNApp() override;
+
+  void onIdle() override;
+  void onAttach(app_base::Window* window) override;
+
+  void onResize(int width, int height) override;
+
+  bool onEvent(const ui::PlatformEvent& platformEvent) override;
+
+
+  std::string getTitle() override;
+  void Paint(SkCanvas* canvas) override;
+
+
+  blink::Document& GetDocument();
+  
+ private:
+  bool UpdateViewIfNeededAndBeginFrame() override;
+
+
+  std::shared_ptr<app_base::PlatformData> platformData;
+  std::shared_ptr<discardable_memory::DiscardableSharedMemoryManager>
+      discardableSharedMemoryManager;
 
   std::shared_ptr<blink::Platform> platform;
 

@@ -116,10 +116,186 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
   std::cout << std::endl;
 }
 
+
+void BNLayer::updateTitle() {
+  if (!isWindowConnected() /*|| fWindow->sampleCount() <= 1*/) {
+    return;
+  }
+
+  std::string title = getTitle();
+
+  SkString skTitle(title.c_str());
+  skTitle.append(" [");
+  skTitle.append(app_base::Window::kRaster_BackendType == getBackendType()
+                     ? "Raster"
+                     : "OpenGL");
+  skTitle.append("]");
+
+  setWindowTitle(skTitle.c_str());
+}
+
+void BNLayer::UpdatePlatformFontsAndColors() {
+  // Updating fonts
+#if defined(OS_WIN)
+  blink::FontCache::SetAntialiasedTextEnabled(true);
+
+  if (!this->fWindow->GetDefaultUIFont(defaultUIFont)) {
+    // Fallback. I don't know which disaster should happen to Windows
+    // that makes it fail to determine the system metrics, but we are prepared
+    // here.
+    defaultUIFont.typeface = "Arial";
+    defaultUIFont.heightPt = 10;
+  }
+
+  // On Windows blink determines the UI font as the default Menu font (no idea
+  // why not Message font). So, if we want "system-ui" typeface to work
+  // properly, we need to set it here
+  std::wstring wsTypeface;
+  base::UTF8ToWide(defaultUIFont.typeface.c_str(),
+                   defaultUIFont.typeface.size(), &wsTypeface);
+  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface.c_str(),
+                                              defaultUIFont.heightPt);
+#else
+  // On other platforms we just load the default UI font
+  this->fWindow->GetDefaultUIFont(defaultUIFont);
+#endif
+
+  // Updating colors
+  PlatformColors pc = this->fWindow->GetPlatformColors();
+  blink::SetFocusRingColor(pc.GetFocusRingColor(this->fWindow->IsActive()));
+  blink::SetSelectionColors(
+      pc.GetSelectionBackgroundColor(true), pc.GetSelectionTextColor(true),
+      pc.GetSelectionBackgroundColor(false), pc.GetSelectionTextColor(false));
+  blink::ColorSchemeChanged();
+}
+
+void BNLayer::UpdateBackend(bool forceFallback) {
+  bool fallback = forceFallback;
+  if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
+    // Checking if we need a fallback to Raster renderer.
+    // Fallback is effective for small screens and weak videochips
+
+    // Also, OpenGL context slows down the resizing process.
+    // So we are changing the backend to software raster during resizing
+    fallback = true;
+  }
+
+  auto newBackendType = fallback ? app_base::Window::kRaster_BackendType
+                                 : app_base::Window::kNativeGL_BackendType;
+
+  std::chrono::steady_clock::time_point curTime =
+      std::chrono::steady_clock::now();
+
+  if (forceFallback) {
+    // If we are forcing the fallback, we don't
+    // let the context to upgrade immediately
+    lastBackendInitFailedAttempt = curTime;
+  }
+
+  if (fBackendType != app_base::Window::kRaster_BackendType &&
+      fWindow->getGrContext() == nullptr) {
+    // If we attempted to initialize GL before, but failed,
+    // then falling back to raster
+    newBackendType = app_base::Window::kRaster_BackendType;
+  }
+
+  bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              curTime - lastBackendInitFailedAttempt)
+                              .count() > 1000;
+
+  bool enoughTimePassedSinceSizeChange =
+      std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
+                                                            lastSizeChange)
+          .count() > 1000;
+
+  if (enoughTimePassedSinceSizeChange) {
+    // If long time passed since the last size shange,
+    // we are assuming that the resizing has finished
+    lastSizeChange = curTime;
+    resizing = false;
+  }
+
+  if (fBackendType != newBackendType) {
+    if (newBackendType == app_base::Window::kRaster_BackendType ||
+        enoughTimePassed) {
+      std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
+      fBackendType = newBackendType;
+
+      fWindow->detach();
+
+      // If we are switching to the raster fallback mode
+      // or enough time has passed since the previous context
+      // switching failure, let's try to switch the context
+
+      if (!fWindow->attach(fBackendType)) {
+        // Oops, we've failed...
+        // Let's record the last failure time
+        lastBackendInitFailedAttempt = curTime;
+      }
+      updateTitle();
+    }
+  }
+}
+
+void BNLayer::onPaint(SkSurface* surface) {
+  auto* canvas = surface->getCanvas();
+
+  canvas->save();
+
+  updateTitle();
+
+  // Updating fonts and colors.
+  // TODO Don't run this code on every frame. Put it to a system update event
+  // instead
+  UpdatePlatformFontsAndColors();
+
+  Paint(canvas);
+
+  canvas->restore();
+}
+
+void BNLayer::DoFrame() {
+  UpdateBackend(false);
+  // Just re-paint continously
+  int FPS = this->isWindowActive() ? 60 : 30;
+
+  // auto now = std::chrono::high_resolution_clock::now();
+  // auto span =
+  //    std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
+  // if (span > 1.0 / FPS) {
+  // std::cout << "Span: " << span << std::endl;
+
+  bool needsRepaint = UpdateViewIfNeededAndBeginFrame();
+
+  // WebLocalFrameImpl* main_frame = webView->MainFrameImpl();
+  // WebWidgetClient* client = main_frame->LocalRootFrameWidget()->Client();
+
+  /* auto my_web_widget_client =
+      dynamic_cast<beacon::glue::TestWebWidgetClient*>(client);
+  if (my_web_widget_client->AnimationScheduled()) {
+    needsRepaint = true;
+    my_web_widget_client->ClearAnimationScheduled();
+  }*/
+
+  // std::cout << "just_updated: " << just_updated << std::endl;
+  if (needsRepaint /* || just_updated*/) {
+    fWindow->inval();
+  } else {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
+    // fWindow->inval();
+  }
+  // paintTime = now;
+
+  //}
+}
+
+
+
+
 BNApp::BNApp(int argc,
              char** argv,
              const std::shared_ptr<PlatformData>& platformData)
-    : fBackendType(app_base::Window::kRaster_BackendType),
+    : BNLayer(app_base::Window::kRaster_BackendType),
       platformData(platformData),
       paintTime(std::chrono::high_resolution_clock::now()) {
   exit_manager = std::make_shared<base::AtExitManager>();
@@ -173,7 +349,7 @@ BNApp::BNApp(int argc,
 
   SkGraphics::Init();
 
-  fWindow = app_base::Window::CreateNativeWindow(platformData);
+  auto fWindow = app_base::Window::CreateNativeWindow(platformData);
   fWindow->setRequestedDisplayParams(DisplayParams());
 
   platform = std::make_unique<BNBlinkPlatformImpl>(
@@ -212,12 +388,12 @@ BNApp::BNApp(int argc,
   ui::DeviceDataManagerX11::CreateInstance();
 #endif
 
-  webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(),
+  webView = webViewHelper->InitializeAndLoad(
+      "mem://index.html", wfc.get(),
                                              wvc.get(), wwc.get());
 
   // register callbacks
-  fWindow->pushLayer(this);
-  fWindow->attach(fBackendType);
+  connectWindow(fWindow);
 
   // Setting the WebView scaling factor according to the screen DPI
   float scaleFactor = fWindow->getScale();
@@ -254,8 +430,6 @@ BNApp::BNApp(int argc,
 }
 
 BNApp::~BNApp() {
-  fWindow->detach();
-  delete fWindow;
 
   // Resetting the WebViewHelper
   webViewHelper->Reset();
@@ -266,11 +440,8 @@ BNApp::~BNApp() {
   my_web_thread_sched = nullptr;
 }
 
-void BNApp::updateTitle() {
-  if (!fWindow /*|| fWindow->sampleCount() <= 1*/) {
-    return;
-  }
 
+std::string BNApp::getTitle() {
   WTF::String title = "Blink window";
   if (GetDocument() != nullptr && GetDocument().head() != nullptr) {
     // Search for <title> tags in the <head>
@@ -281,20 +452,9 @@ void BNApp::updateTitle() {
       title = titleEls->item(0)->innerText();
     }
   }
-  SkString skTitle(title.Utf8().c_str());
-  skTitle.append(" [");
-  skTitle.append(app_base::Window::kRaster_BackendType == fBackendType
-                     ? "Raster"
-                     : "OpenGL");
-  skTitle.append("]");
-  fWindow->setTitle(skTitle.c_str());
+  return std::string(title.Utf8().c_str());
 }
 
-void BNApp::onBackendCreated() {
-  this->updateTitle();
-  fWindow->show();
-  fWindow->inval();
-}
 
 Document& BNApp::GetDocument() {
   return *((blink::Document*)webViewHelper->GetWebView()
@@ -310,160 +470,21 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
     ForAllGraphicsLayers(*child, function);
 }
 
-void BNApp::UpdateBackend(bool forceFallback) {
-  bool fallback = forceFallback;
-  if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
-    // Checking if we need a fallback to Raster renderer.
-    // Fallback is effective for small screens and weak videochips
 
-    // Also, OpenGL context slows down the resizing process.
-    // So we are changing the backend to software raster during resizing
-    fallback = true;
-  }
-
-  auto newBackendType = fallback ? app_base::Window::kRaster_BackendType
-                                 : app_base::Window::kNativeGL_BackendType;
-
-  std::chrono::steady_clock::time_point curTime =
-      std::chrono::steady_clock::now();
-
-  if (forceFallback) {
-    // If we are forcing the fallback, we don't
-    // let the context to upgrade immediately
-    lastBackendInitFailedAttempt = curTime;
-  }
-
-  if (fBackendType != app_base::Window::kRaster_BackendType &&
-      fWindow->getGrContext() == nullptr) {
-    // If we attempted to initialize GL before, but failed,
-    // then falling back to raster
-    newBackendType = app_base::Window::kRaster_BackendType;
-  }
-
-  bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              curTime - lastBackendInitFailedAttempt)
-                              .count() > 1000;
-  
-  bool enoughTimePassedSinceSizeChange = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              curTime - lastSizeChange)
-                              .count() > 1000;
-
-  if (enoughTimePassedSinceSizeChange) {
-    // If long time passed since the last size shange, 
-    // we are assuming that the resizing has finished
-    lastSizeChange = curTime;
-    resizing = false;
-  }
-
-  if (fBackendType != newBackendType) {
-    if (newBackendType == app_base::Window::kRaster_BackendType ||
-        enoughTimePassed) {
-      std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
-      fBackendType = newBackendType;
-
-      fWindow->detach();
-
-      // If we are switching to the raster fallback mode
-      // or enough time has passed since the previous context
-      // switching failure, let's try to switch the context
-
-      if (!fWindow->attach(fBackendType)) {
-        // Oops, we've failed...
-        // Let's record the last failure time
-        lastBackendInitFailedAttempt = curTime;
-      }
-      updateTitle();
-    }
-  }
-}
 
 void BNApp::onResize(int width, int height) {
-  if (width != oldWidth || height != oldHeight) {
-    resizing = true;
-    oldWidth = width;
-    oldHeight = height;
-  }
-
-  if (resizing) {
-    // UpdateBackend should not be called on
-    // window maximization/restoration because that's slow
-    // (and leads to high flicker)
-    UpdateBackend(true);
-  }
-
   int kPageWidth = width;
   int kPageHeight = height;
   IntSize page_size(kPageWidth, kPageHeight);
 
   webView->Resize(WebSize(page_size));
-  fWindow->inval();
+
+  BNLayer::onResize(width, height);
 }
 
-void BNApp::onBeginResizing() {
-  resizing = true;
-  UpdateBackend(true);
-}
-
-void BNApp::onEndResizing() {
-  resizing = false;
-  UpdateBackend(true);
-}
-
-void BNApp::onPaint(SkSurface* surface) {
-  auto* canvas = surface->getCanvas();
-
-  canvas->save();
-
-  updateTitle();
-
-  // Updating fonts and colors.
-  // TODO Don't run this code on every frame. Put it to a system update event
-  // instead
-  UpdatePlatformFontsAndColors();
-
-  Paint(canvas);
-
-  canvas->restore();
-}
-
-void BNApp::UpdatePlatformFontsAndColors() {
-  // Updating fonts
-#if defined(OS_WIN)
-  blink::FontCache::SetAntialiasedTextEnabled(true);
-
-  if (!this->fWindow->GetDefaultUIFont(defaultUIFont)) {
-    // Fallback. I don't know which disaster should happen to Windows
-    // that makes it fail to determine the system metrics, but we are prepared
-    // here.
-    defaultUIFont.typeface = "Arial";
-    defaultUIFont.heightPt = 10;
-  }
-
-  // On Windows blink determines the UI font as the default Menu font (no idea
-  // why not Message font). So, if we want "system-ui" typeface to work
-  // properly, we need to set it here
-  std::wstring wsTypeface;
-  base::UTF8ToWide(defaultUIFont.typeface.c_str(),
-                   defaultUIFont.typeface.size(), &wsTypeface);
-  blink::WebFontRendering::SetMenuFontMetrics(wsTypeface.c_str(),
-                                              defaultUIFont.heightPt);
-#else
-  // On other platforms we just load the default UI font
-  this->fWindow->GetDefaultUIFont(defaultUIFont);
-#endif
-
-  // Updating colors
-  PlatformColors pc = this->fWindow->GetPlatformColors();
-  blink::SetFocusRingColor(pc.GetFocusRingColor(this->fWindow->IsActive()));
-  blink::SetSelectionColors(
-      pc.GetSelectionBackgroundColor(true), pc.GetSelectionTextColor(true),
-      pc.GetSelectionBackgroundColor(false), pc.GetSelectionTextColor(false));
-  blink::ColorSchemeChanged();
-}
 
 bool BNApp::UpdateViewIfNeededAndBeginFrame() {
-  GetDocument().GetPage()->GetFocusController().SetActive(
-      this->fWindow->IsActive());
+  GetDocument().GetPage()->GetFocusController().SetActive(isWindowActive());
 
   bool anything_changed = false;
   // std::cout << "anything_changed: ";
@@ -531,12 +552,16 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
         WebWidget::LifecycleUpdate::kPrePaint,
         WebWidget::LifecycleUpdateReason::kBeginMainFrame);
 
-    // frame_view->UpdateAllLifecyclePhasesExceptPaint();
-
     if (frame_view->GetPaintArtifactCompositor() != nullptr &&
         frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
+      // If the compositor thinks we need to update -- we need to update indeed
       anything_changed = true;
-      // std::cout << "compositor ";
+    }
+
+    const LocalFrameView::ScrollableAreaSet* anim_scrolls = frame_view->AnimatingScrollableAreas();
+    if (anim_scrolls != nullptr && anim_scrolls->size() > 0) {
+      // If there is an animating scrollbar, we need to update
+      anything_changed = true;
     }
 
     /* cc::PropertyTrees* pts = frame_view->GetPaintArtifactCompositor()
@@ -639,88 +664,8 @@ void BNApp::Paint(SkCanvas* canvas) {
   }
 }
 
-bool BNApp::onMouse(const ui::PlatformEvent& platformEvent,
-                    int,
-                    int,
-                    skui::InputState,
-                    skui::ModifierKey) {
-  std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
-  if (evt == nullptr)
-    return false;
+bool BNApp::onEvent(const ui::PlatformEvent& platformEvent) {
 
-  std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
-  if (evt->IsMouseEvent()) {
-    ui::MouseEvent* mseEvt = evt->AsMouseEvent();
-    std::shared_ptr<blink::WebMouseEvent> bMseEvent;
-    WebInputEvent::Type mtp;
-
-    switch (mseEvt->type()) {
-      case ui::ET_MOUSE_PRESSED:
-        mtp = WebInputEvent::Type::kMouseDown;
-        break;
-      case ui::ET_MOUSE_RELEASED:
-        mtp = WebInputEvent::Type::kMouseUp;
-        break;
-      case ui::ET_MOUSE_MOVED:
-      case ui::ET_MOUSE_DRAGGED:
-        mtp = WebInputEvent::Type::kMouseMove;
-        break;
-      case ui::ET_MOUSE_ENTERED:
-        mtp = WebInputEvent::Type::kMouseEnter;
-        break;
-      case ui::ET_MOUSE_EXITED:
-        mtp = WebInputEvent::Type::kMouseLeave;
-        break;
-
-      default:
-        return false;
-    }
-
-    WebPointerProperties::Button button;
-    switch (mseEvt->button_flags()) {
-      case ui::EF_LEFT_MOUSE_BUTTON:
-        button = WebPointerProperties::Button::kLeft;
-        break;
-      case ui::EF_MIDDLE_MOUSE_BUTTON:
-        button = WebPointerProperties::Button::kMiddle;
-        break;
-      case ui::EF_RIGHT_MOUSE_BUTTON:
-        button = WebPointerProperties::Button::kRight;
-        break;
-      default:
-        button = WebPointerProperties::Button::kNoButton;
-    }
-
-    int modifiers = 0;
-    if (evt->IsShiftDown())
-      modifiers |= WebInputEvent::kShiftKey;
-    if (evt->IsControlDown())
-      modifiers |= WebInputEvent::kControlKey;
-    if (evt->IsAltDown() || evt->IsAltGrDown())
-      modifiers |= WebInputEvent::kAltKey;
-    if (evt->IsCommandDown())
-      modifiers |= WebInputEvent::kMetaKey;
-
-    int click_count_param = mseEvt->GetClickCount();
-    WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0, base::TimeTicks());
-    bMseEvent = std::make_shared<blink::WebMouseEvent>(
-        mtp, std::move(ge), button, click_count_param, modifiers,
-        base::TimeTicks());
-    bMseEvent->SetPositionInWidget(mseEvt->location_f());
-
-    bEvent = bMseEvent;
-  }
-
-  if (evt->IsMouseEvent()) {
-    collectedInputEvents.push_back(bEvent);
-    return true;
-  }
-  return false;
-}
-
-bool BNApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
-                         float delta,
-                         skui::ModifierKey modKey) {
   std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
   if (evt == nullptr)
     return false;
@@ -735,6 +680,7 @@ bool BNApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
   if (evt->IsCommandDown())
     modifiers |= WebInputEvent::kMetaKey;
 
+  std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
   if (evt->IsMouseWheelEvent() || evt->IsScrollEvent()) {
     std::shared_ptr<blink::WebGestureEvent> bGstEvent;
 
@@ -803,31 +749,60 @@ bool BNApp::onMouseWheel(const ui::PlatformEvent& platformEvent,
     }
 
     return true;
-  }
 
-  return false;
-}
+  } else if (evt->IsMouseEvent()) {     // Any mouse event except the wheel
+    ui::MouseEvent* mseEvt = evt->AsMouseEvent();
+    std::shared_ptr<blink::WebMouseEvent> bMseEvent;
+    WebInputEvent::Type mtp;
 
-bool BNApp::onKey(const ui::PlatformEvent& platformEvent,
-                  uint64_t key,
-                  skui::InputState inState,
-                  skui::ModifierKey modKey) {
-  std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
-  if (evt == nullptr)
-    return false;
+    switch (mseEvt->type()) {
+      case ui::ET_MOUSE_PRESSED:
+        mtp = WebInputEvent::Type::kMouseDown;
+        break;
+      case ui::ET_MOUSE_RELEASED:
+        mtp = WebInputEvent::Type::kMouseUp;
+        break;
+      case ui::ET_MOUSE_MOVED:
+      case ui::ET_MOUSE_DRAGGED:
+        mtp = WebInputEvent::Type::kMouseMove;
+        break;
+      case ui::ET_MOUSE_ENTERED:
+        mtp = WebInputEvent::Type::kMouseEnter;
+        break;
+      case ui::ET_MOUSE_EXITED:
+        mtp = WebInputEvent::Type::kMouseLeave;
+        break;
 
-  int modifiers = 0;
-  if (evt->IsShiftDown())
-    modifiers |= WebInputEvent::kShiftKey;
-  if (evt->IsControlDown())
-    modifiers |= WebInputEvent::kControlKey;
-  if (evt->IsAltDown() || evt->IsAltGrDown())
-    modifiers |= WebInputEvent::kAltKey;
-  if (evt->IsCommandDown())
-    modifiers |= WebInputEvent::kMetaKey;
+      default:
+        return false;
+    }
 
-  std::shared_ptr<blink::WebInputEvent> bEvent = nullptr;
-  if (evt->IsKeyEvent()) {
+    WebPointerProperties::Button button;
+    switch (mseEvt->button_flags()) {
+      case ui::EF_LEFT_MOUSE_BUTTON:
+        button = WebPointerProperties::Button::kLeft;
+        break;
+      case ui::EF_MIDDLE_MOUSE_BUTTON:
+        button = WebPointerProperties::Button::kMiddle;
+        break;
+      case ui::EF_RIGHT_MOUSE_BUTTON:
+        button = WebPointerProperties::Button::kRight;
+        break;
+      default:
+        button = WebPointerProperties::Button::kNoButton;
+    }
+
+    int click_count_param = mseEvt->GetClickCount();
+    WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0, base::TimeTicks());
+    bMseEvent = std::make_shared<blink::WebMouseEvent>(
+        mtp, std::move(ge), button, click_count_param, modifiers,
+        base::TimeTicks());
+    bMseEvent->SetPositionInWidget(mseEvt->location_f());
+
+    bEvent = bMseEvent;
+    collectedInputEvents.push_back(bEvent);
+
+  } else if (evt->IsKeyEvent()) {
     auto* keyEvt = evt->AsKeyEvent();
     std::shared_ptr<blink::WebKeyboardEvent> bKbdEvent;
     WebInputEvent::Type mtp;
@@ -850,59 +825,21 @@ bool BNApp::onKey(const ui::PlatformEvent& platformEvent,
     bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
 
     bEvent = bKbdEvent;
-  }
-
-  if (evt->IsKeyEvent() /* || evt.IsMouseEvent() || evt.IsTouchEvent()*/) {
     collectedInputEvents.push_back(bEvent);
     return true;
   }
+
   return false;
 }
 
-bool BNApp::onChar(const ui::PlatformEvent& platformEvent,
-                   SkUnichar c,
-                   skui::ModifierKey modifiers) {
-  return false;
-}
 
 void BNApp::onIdle() {
-  UpdateBackend(false);
 
   // Processing the pending commands
   base::RunLoop run_loop;
   run_loop.RunUntilIdle();
 
-  // Just re-paint continously
-  int FPS = this->fWindow->IsActive() ? 60 : 30;
-
-  // auto now = std::chrono::high_resolution_clock::now();
-  // auto span =
-  //    std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
-  // if (span > 1.0 / FPS) {
-  // std::cout << "Span: " << span << std::endl;
-
-  bool needsRepaint = UpdateViewIfNeededAndBeginFrame();
-
-  // WebLocalFrameImpl* main_frame = webView->MainFrameImpl();
-  // WebWidgetClient* client = main_frame->LocalRootFrameWidget()->Client();
-
-  /* auto my_web_widget_client =
-      dynamic_cast<beacon::glue::TestWebWidgetClient*>(client);
-  if (my_web_widget_client->AnimationScheduled()) {
-    needsRepaint = true;
-    my_web_widget_client->ClearAnimationScheduled();
-  }*/
-
-  // std::cout << "just_updated: " << just_updated << std::endl;
-  if (needsRepaint /* || just_updated*/) {
-    fWindow->inval();
-  } else {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
-    // fWindow->inval();
-  }
-  // paintTime = now;
-
-  //}
+  DoFrame();
 }
 
 void BNApp::onAttach(app_base::Window* window) {}
