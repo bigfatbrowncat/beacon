@@ -220,6 +220,8 @@ executable("Beacon") {
     # and chromium sources, they implement only SDK interfaces
     "src/bn/impl/BNApp.cpp",
     "src/bn/impl/BNApp.h",
+    "src/bn/impl/BNLayer.cpp",
+    "src/bn/impl/BNLayer.h",
     "src/bn/impl/BNBlinkPlatformImpl.cpp",
     "src/bn/impl/BNBlinkPlatformImpl.h",
     "src/bn/impl/main.cpp",
