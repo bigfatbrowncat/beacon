@@ -49,8 +49,16 @@ class BNLayer : private app_base::Window::Layer {
     fWindow->inval();
   }
 
-  void onResize(int width, int height) override { 
-      fWindow->inval();
+  void onResize(int width, int height) override {
+    if (width != oldWidth || height != oldHeight) {
+      resizing = true;
+      oldWidth = width; oldHeight = height;
+
+      std::chrono::steady_clock::time_point curTime =
+          std::chrono::steady_clock::now();
+      lastSizeChange = curTime;
+    }
+    fWindow->inval();
   }
 
   void onBeginResizing() override {
@@ -95,7 +103,7 @@ class BNLayer : private app_base::Window::Layer {
   void DoFrame();
 
  private:
-  //int oldWidth, oldHeight;  
+  int oldWidth, oldHeight;  
 
   void updateTitle();
   void UpdateBackend(bool forceFallback);

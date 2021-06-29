@@ -121,7 +121,7 @@ BNApp::BNApp(int argc,
              char** argv,
              const std::shared_ptr<PlatformData>& platformData)
     :
-#ifdef WIN32
+#ifndef __APPLE__
       BNLayer(app_base::Window::kRaster_BackendType),
 #else
       BNLayer(app_base::Window::kNativeGL_BackendType),

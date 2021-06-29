@@ -333,6 +333,7 @@ bool Window_unix::handleEvent(const XEvent& event) {
 }
 
 void Window_unix::setTitle(const char* title) {
+    std::cout << "Title: " << title << std::endl;
     XTextProperty textproperty;
     XStringListToTextProperty(const_cast<char**>(&title), 1, &textproperty);
     XSetWMName(fDisplay, fWindow, &textproperty);
