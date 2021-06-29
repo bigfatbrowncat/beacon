@@ -120,9 +120,15 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
 BNApp::BNApp(int argc,
              char** argv,
              const std::shared_ptr<PlatformData>& platformData)
-    : BNLayer(app_base::Window::kRaster_BackendType),
+    :
+#ifdef WIN32
+      BNLayer(app_base::Window::kRaster_BackendType),
+#else
+      BNLayer(app_base::Window::kNativeGL_BackendType),
+#endif
       platformData(platformData),
       paintTime(std::chrono::high_resolution_clock::now()) {
+  
   exit_manager = std::make_shared<base::AtExitManager>();
 
   base::CommandLine::Init(argc, argv);
