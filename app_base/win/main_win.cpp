@@ -72,9 +72,12 @@ static int main_common(HINSTANCE hInstance, int show, int argc, char**argv) {
     bool idled = false;
 
     // Main message loop
-    while (WM_QUIT != msg->message) {
+    while (!app->isQuitPending()) {
         if (PeekMessage(msg.get(), nullptr, 0, 0, PM_REMOVE)) {
             TranslateMessage(msg.get());
+          if (WM_QUIT == msg->message) {
+              app->onUserQuit();
+          } else
 
             if (WM_PAINT == msg->message) {
                 // Ensure that call onIdle at least once per WM_PAINT, or mouse events can

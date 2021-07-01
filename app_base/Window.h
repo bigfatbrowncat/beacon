@@ -75,6 +75,9 @@ public:
 
     virtual void setTitle(const char*) = 0;
     virtual void show() = 0;
+    
+    void Close() { closePending = true; }
+    bool isClosePending() { return closePending; }
 
     // JSON-formatted UI state for Android. Do nothing by default
     virtual void setUIState(const char*) {}
@@ -141,8 +144,11 @@ public:
         virtual void onPrePaint() {}
         virtual void onPaint(SkSurface*) {}
         virtual void onResize(int width, int height) {}
+        
+        // These events supported only on Windows now
         virtual void onBeginResizing() {}
         virtual void onEndResizing() {}
+        virtual void onUserClose() {}
 
     private:
         friend class Window;
@@ -172,6 +178,7 @@ public:
     void onResize(int width, int height);
     void onBeginResizing();
     void onEndResizing();
+    void onUserClose();
 
     int width() const;
     int height() const;
@@ -199,6 +206,8 @@ public:
     DisplayParams          fRequestedDisplayParams;
 
     std::unique_ptr<WindowContext> fWindowContext;
+
+    bool closePending = false;
 
     virtual void onInval() = 0;
 

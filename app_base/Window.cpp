@@ -124,6 +124,14 @@ void Window::onEndResizing() {
     this->visitLayers([=](Layer* layer) { layer->onEndResizing(); });
 }
 
+void Window::onUserClose() {
+  if (!fWindowContext) {
+    return;
+  }
+  this->visitLayers([=](Layer* layer) { layer->onUserClose(); });
+}
+
+
 
 int Window::width() const {
     if (!fWindowContext) {

@@ -203,7 +203,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
 
         case WM_CLOSE:
-            PostQuitMessage(0);
+            //PostQuitMessage(0);
+            window->onUserClose();
             eventHandled = true;
             break;
 

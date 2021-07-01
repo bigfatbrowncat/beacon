@@ -130,13 +130,13 @@ namespace beacon::glue {
 
 BlinkPlatformImplBase::BlinkPlatformImplBase(
     scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner,
-    app_base::Window* window)
+    scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner)
     : main_thread_task_runner_(std::move(main_thread_task_runner)),
       io_thread_task_runner_(std::move(io_thread_task_runner)),
-      /*browser_interface_broker_proxy_(
-          base::MakeRefCounted<ThreadSafeBrowserInterfaceBrokerProxyImpl>()),*/
       native_theme_engine_(GetWebThemeEngine()) {
+}
+
+void BlinkPlatformImplBase::TakeExampleWindow(app_base::Window* window) {
 #if defined(__APPLE__)
   myWebSandboxSupport = std::make_unique<MyWebSandboxSupport>(window);
 #endif

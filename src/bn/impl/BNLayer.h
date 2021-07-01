@@ -73,13 +73,23 @@ class BNLayer : private app_base::Window::Layer {
     UpdateBackend(true);
   }
 
+  void onUserClose() override { 
+    // Doing nothing, just requesting the closure
+    fWindow->Close();
+  }
+
   // To be defined in the implementation
   virtual std::string getTitle() = 0;
   virtual bool UpdateViewIfNeededAndBeginFrame() = 0;
   virtual bool onEvent(const ui::PlatformEvent& platformEvent) = 0;
-  virtual void Paint(SkCanvas* canvas) = 0;
+
+  bool isClosePending() { return fWindow->isClosePending(); }
+
+  void DoFrame();
 
  protected:
+  virtual void Paint(SkCanvas* canvas) = 0;
+
   void connectWindow(app_base::Window* window) {
     fWindow = window;
     window->pushLayer(this);
@@ -100,7 +110,6 @@ class BNLayer : private app_base::Window::Layer {
   }
 
   void onPaint(SkSurface* surface) override;
-  void DoFrame();
 
  private:
   int oldWidth, oldHeight;  

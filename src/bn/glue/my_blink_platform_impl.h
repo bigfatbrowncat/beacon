@@ -84,9 +84,10 @@ class BlinkPlatformImplBase : public blink::Platform {
  public:
   explicit BlinkPlatformImplBase(
       scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner,
-      app_base::Window* window);
+      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner);
   ~BlinkPlatformImplBase() override;
+
+  void TakeExampleWindow(app_base::Window* window);
 
   // Platform methods (partial implementation):
   blink::WebThemeEngine* ThemeEngine() override;

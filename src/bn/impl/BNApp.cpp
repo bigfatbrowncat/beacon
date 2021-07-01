@@ -116,82 +116,18 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
   std::cout << std::endl;
 }
 
-
-BNApp::BNApp(int argc,
-             char** argv,
-             const std::shared_ptr<PlatformData>& platformData)
-    :
+BNViewLayerWindow::BNViewLayerWindow(BNApp& app) :
 #ifndef __APPLE__
       BNLayer(app_base::Window::kRaster_BackendType),
 #else
       BNLayer(app_base::Window::kNativeGL_BackendType),
 #endif
-      platformData(platformData),
-      paintTime(std::chrono::high_resolution_clock::now()) {
-  
-  exit_manager = std::make_shared<base::AtExitManager>();
+      app(app) {
 
-  base::CommandLine::Init(argc, argv);
-  base::CommandLine::StringVector parsedArgs =
-      base::CommandLine::ForCurrentProcess()->GetArgs();
-
-  if (parsedArgs.size() > 0) {
-    // Processing toe command line
-  }
-
-  if (!beacon::glue::SkLoadICU()) {
-    std::cerr << "Can't load ICU4C data" << std::endl;
-  }
-
-  mojo::core::Init();
-
-  if (!ui::ResourceBundle::HasSharedInstance()) {
-    ui::ResourceBundle::InitSharedInstanceWithLocale(
-        "en-US", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
-
-    // Adding the blink_resources.pak embeded into the binary
-    base::StringPiece blink_pak_memory((char*)blink_resources_pak,
-                                       blink_resources_pak_size);
-
-    ui::ResourceBundle::GetSharedInstance().AddDataPackFromBuffer(
-        blink_pak_memory, ui::SCALE_FACTOR_100P);
-  }
-
-  // Creating a thread pool
-  base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
-
-  // Creating a thread for composer (this thread will issue CSS animation tasks
-  // for instance)
-  base::TaskTraits default_traits = {base::ThreadPool()};
-  composeTaskRunner = base::CreateSingleThreadTaskRunner(default_traits);
-
-  my_web_thread_sched =
-      blink::scheduler::WebThreadScheduler::CreateMainThreadScheduler(
-          base::MessagePump::Create(base::MessagePumpType::DEFAULT),
-          base::Optional<base::Time>());
-
-  binder_map = std::make_unique<mojo::BinderMap>();
-
-  // Creating a discardable memory allocator
-  discardableSharedMemoryManager =
-      std::make_shared<discardable_memory::DiscardableSharedMemoryManager>();
-  base::DiscardableMemoryAllocator::SetInstance(
-      discardableSharedMemoryManager.get());
-
-  SkGraphics::Init();
-
-  auto fWindow = app_base::Window::CreateNativeWindow(platformData);
+  auto fWindow = app_base::Window::CreateNativeWindow(app.getPlatformData());
   fWindow->setRequestedDisplayParams(DisplayParams());
 
-  platform = std::make_unique<BNBlinkPlatformImpl>(
-      my_web_thread_sched->DefaultTaskRunner(),
-      my_web_thread_sched->DefaultTaskRunner(), fWindow);
-
-  blink::Initialize(platform.get(), binder_map.get(),
-                    /*scheduler::WebThreadScheduler * main_thread_scheduler*/
-                    my_web_thread_sched.get());
-
-  blink::InitializePlatformLanguage();
+  getApplication().getPlatform()->TakeExampleWindow(fWindow);
 
   // Tuin
   /*blink::WebFontRenderStyle::SetAutoHint(true);
@@ -199,28 +135,29 @@ BNApp::BNApp(int argc,
   blink::WebFontRenderStyle::SetSubpixelRendering(true);
   blink::WebFontRenderStyle::SetSubpixelPositioning(true);*/
 
+  // Creating a thread for composer
+  // (this thread will issue CSS animation tasks, for instance)
+  base::TaskTraits default_traits = {base::ThreadPool()};
+  composeTaskRunner = base::CreateSingleThreadTaskRunner(default_traits);
+
   backend = std::make_shared<beacon::sdk::Backend>();
 
-  webViewHelper =
-      std::make_shared<beacon::glue::WebViewHelper>();
-  wfc = std::make_shared<beacon::glue::TestWebFrameClient>(
-      backend);
-  wfc->SetScheduler(my_web_thread_sched);
+  webViewHelper = std::make_shared<beacon::glue::WebViewHelper>();
+  wfc = std::make_shared<beacon::glue::TestWebFrameClient>(backend);
+  wfc->SetScheduler(getApplication().getThreadScheduler());
 
-  wvc = std::make_shared<beacon::glue::TestWebViewClient>(
-      webViewHelper);
+  wvc = std::make_shared<beacon::glue::TestWebViewClient>(webViewHelper);
   wwc = std::make_shared<beacon::glue::TestWebWidgetClient>(
       new beacon::glue::StubLayerTreeViewDelegate(),
-      my_web_thread_sched->DefaultTaskRunner(),  // mainTaskRunner,
-      composeTaskRunner, my_web_thread_sched.get());
+      getApplication().getThreadScheduler()->DefaultTaskRunner(),  // mainTaskRunner,
+      composeTaskRunner, getApplication().getThreadScheduler().get());
 
 #ifdef __linux__
   // needed for proper XEvent handling like mouse scrolling
   ui::DeviceDataManagerX11::CreateInstance();
 #endif
 
-  webView = webViewHelper->InitializeAndLoad(
-      "mem://index.html", wfc.get(),
+  webView = webViewHelper->InitializeAndLoad("mem://index.html", wfc.get(),
                                              wvc.get(), wwc.get());
 
   // register callbacks
@@ -260,19 +197,87 @@ BNApp::BNApp(int argc,
   webView->Resize(WebSize(page_size));
 }
 
-BNApp::~BNApp() {
 
+BNApp::BNApp(int argc,
+             char** argv,
+             const std::shared_ptr<PlatformData>& platformData)
+    : platformData(platformData) {
+  
+  exit_manager = std::make_shared<base::AtExitManager>();
+
+  base::CommandLine::Init(argc, argv);
+  base::CommandLine::StringVector parsedArgs =
+      base::CommandLine::ForCurrentProcess()->GetArgs();
+
+  if (parsedArgs.size() > 0) {
+    // Processing the command line
+  }
+
+  if (!beacon::glue::SkLoadICU()) {
+    std::cerr << "Can't load ICU4C data" << std::endl;
+  }
+
+  mojo::core::Init();
+
+  if (!ui::ResourceBundle::HasSharedInstance()) {
+    ui::ResourceBundle::InitSharedInstanceWithLocale(
+        "en-US", nullptr, ui::ResourceBundle::DO_NOT_LOAD_COMMON_RESOURCES);
+
+    // Adding the blink_resources.pak embeded into the binary
+    base::StringPiece blink_pak_memory((char*)blink_resources_pak,
+                                       blink_resources_pak_size);
+
+    ui::ResourceBundle::GetSharedInstance().AddDataPackFromBuffer(
+        blink_pak_memory, ui::SCALE_FACTOR_100P);
+  }
+
+  // Creating a thread pool
+  base::ThreadPoolInstance::CreateAndStartWithDefaultParams("MainThreadPool");
+
+  
+  binder_map = std::make_unique<mojo::BinderMap>();
+
+  SkGraphics::Init();
+
+  my_web_thread_sched =
+      blink::scheduler::WebThreadScheduler::CreateMainThreadScheduler(
+          base::MessagePump::Create(base::MessagePumpType::DEFAULT),
+          base::Optional<base::Time>());
+
+  platform = std::make_unique<BNBlinkPlatformImpl>(
+      getThreadScheduler()->DefaultTaskRunner(),
+      getThreadScheduler()->DefaultTaskRunner());
+
+  blink::Initialize(platform.get(), binder_map.get(),
+                    /*scheduler::WebThreadScheduler * main_thread_scheduler*/
+                    my_web_thread_sched.get());
+
+  blink::InitializePlatformLanguage();
+
+  // Creating a discardable memory allocator
+  discardableSharedMemoryManager =
+      std::make_shared<discardable_memory::DiscardableSharedMemoryManager>();
+  base::DiscardableMemoryAllocator::SetInstance(
+      discardableSharedMemoryManager.get());
+
+  viewLayerWindow = std::make_shared<BNViewLayerWindow>(*this);
+}
+
+BNViewLayerWindow::~BNViewLayerWindow() {
   // Resetting the WebViewHelper
   webViewHelper->Reset();
   webViewHelper = nullptr;
+}
+
+BNApp::~BNApp() {
+  viewLayerWindow = nullptr;
 
   // Shutting down the thread scheduler
   my_web_thread_sched->Shutdown();
   my_web_thread_sched = nullptr;
 }
 
-
-std::string BNApp::getTitle() {
+std::string BNViewLayerWindow::getTitle() {
   WTF::String title = "Blink window";
   if (GetDocument() != nullptr && GetDocument().head() != nullptr) {
     // Search for <title> tags in the <head>
@@ -287,7 +292,7 @@ std::string BNApp::getTitle() {
 }
 
 
-Document& BNApp::GetDocument() {
+Document& BNViewLayerWindow::GetDocument() {
   return *((blink::Document*)webViewHelper->GetWebView()
                ->MainFrameImpl()
                ->GetDocument());
@@ -303,7 +308,7 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
 
 
 
-void BNApp::onResize(int width, int height) {
+void BNViewLayerWindow::onResize(int width, int height) {
   int kPageWidth = width;
   int kPageHeight = height;
   IntSize page_size(kPageWidth, kPageHeight);
@@ -314,7 +319,7 @@ void BNApp::onResize(int width, int height) {
 }
 
 
-bool BNApp::UpdateViewIfNeededAndBeginFrame() {
+bool BNViewLayerWindow::UpdateViewIfNeededAndBeginFrame() {
   GetDocument().GetPage()->GetFocusController().SetActive(isWindowActive());
 
   bool anything_changed = false;
@@ -428,7 +433,7 @@ bool BNApp::UpdateViewIfNeededAndBeginFrame() {
   }
 }
 
-void BNApp::Paint(SkCanvas* canvas) {
+void BNViewLayerWindow::Paint(SkCanvas* canvas) {
   // std::cout << "BNApp::Paint()" << std::endl;
 
   // GetDocument().GetPage()->GetFocusController().SetActive(
@@ -495,7 +500,7 @@ void BNApp::Paint(SkCanvas* canvas) {
   }
 }
 
-bool BNApp::onEvent(const ui::PlatformEvent& platformEvent) {
+bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
 
   std::unique_ptr<ui::Event> evt = ui::EventFromNative(platformEvent);
   if (evt == nullptr)
@@ -663,16 +668,38 @@ bool BNApp::onEvent(const ui::PlatformEvent& platformEvent) {
   return false;
 }
 
-
 void BNApp::onIdle() {
 
   // Processing the pending commands
   base::RunLoop run_loop;
   run_loop.RunUntilIdle();
 
-  DoFrame();
+  viewLayerWindow->DoFrame();
+
+  // Checking if the window is closed
+  if (viewLayerWindow->isClosePending()) {
+    // ... and closing it
+    viewLayerWindow = nullptr;
+
+    // The next behaviour differs in dependency to the OS tradition
+    // When the last window is closed, Windows and Linux close the
+    // application while macOS can leave an icon on the Dock...
+    //
+    // But as soon as our application doesn't support a possibility 
+    // to open a window after it was closed, it is useless even on macOS
+//#ifndef __APPLE__
+    Quit();
+//#endif
+
+  }
+
 }
 
-void BNApp::onAttach(app_base::Window* window) {}
+void BNApp::onUserQuit() {
+  // No questions here yet. Just destroying the window
+  Quit();
+}
+
+void BNViewLayerWindow::onAttach(app_base::Window* window) {}
 
 }  // namespace beacon::impl

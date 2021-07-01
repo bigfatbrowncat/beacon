@@ -11,11 +11,9 @@ class BNBlinkPlatformImpl : public beacon::glue::BlinkPlatformImplBase {
  public:
   BNBlinkPlatformImpl(
       scoped_refptr<base::SingleThreadTaskRunner> main_thread_task_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner,
-      app_base::Window* window)
+      scoped_refptr<base::SingleThreadTaskRunner> io_thread_task_runner)
       : beacon::glue::BlinkPlatformImplBase(main_thread_task_runner,
-                              io_thread_task_runner,
-                              window) {}
+                              io_thread_task_runner) {}
 
   blink::WebString DefaultLocale() override;
 };
