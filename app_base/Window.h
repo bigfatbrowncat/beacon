@@ -148,7 +148,10 @@ public:
         // These events supported only on Windows now
         virtual void onBeginResizing() {}
         virtual void onEndResizing() {}
-        virtual bool onUserCloseKeepWindow() {}
+        virtual bool onUserCloseKeepWindow() { 
+            // Default behaviour -- let the user close the window
+            return false; 
+        }
 
     private:
         friend class Window;
