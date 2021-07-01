@@ -264,7 +264,9 @@ bool Window_unix::handleEvent(const XEvent& event) {
         case ClientMessage:
             if ((Atom)event.xclient.data.l[0] == fWmDeleteMessage &&
                 gWindowMap.count() == 1) {
-                return true;
+
+                // "return true" means close the window, "return false" means keep it
+                return !this->onUserCloseKeepWindow();
             }
             break;
 

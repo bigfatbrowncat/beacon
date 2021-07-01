@@ -73,9 +73,10 @@ class BNLayer : private app_base::Window::Layer {
     UpdateBackend(true);
   }
 
-  void onUserClose() override { 
+  bool onUserCloseKeepWindow() override { 
     // Doing nothing, just requesting the closure
-    fWindow->Close();
+    //fWindow->Close();
+    return false;
   }
 
   // To be defined in the implementation

@@ -124,11 +124,11 @@ void Window::onEndResizing() {
     this->visitLayers([=](Layer* layer) { layer->onEndResizing(); });
 }
 
-void Window::onUserClose() {
+bool Window::onUserCloseKeepWindow() {
   if (!fWindowContext) {
-    return;
+    return false;
   }
-  this->visitLayers([=](Layer* layer) { layer->onUserClose(); });
+  return this->signalLayers([=](Layer* layer) { return layer->onUserCloseKeepWindow(); });
 }
 
 

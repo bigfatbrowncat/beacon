@@ -148,7 +148,7 @@ public:
         // These events supported only on Windows now
         virtual void onBeginResizing() {}
         virtual void onEndResizing() {}
-        virtual void onUserClose() {}
+        virtual bool onUserCloseKeepWindow() {}
 
     private:
         friend class Window;
@@ -178,7 +178,7 @@ public:
     void onResize(int width, int height);
     void onBeginResizing();
     void onEndResizing();
-    void onUserClose();
+    bool onUserCloseKeepWindow();
 
     int width() const;
     int height() const;
