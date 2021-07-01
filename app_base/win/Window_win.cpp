@@ -203,11 +203,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
 
         case WM_CLOSE:
-          if (!window->onUserCloseKeepWindow()) {
+            if (!window->onUserCloseKeepWindow()) {
               // Setting the close flag for the window
-            window->Close();
-            //PostQuitMessage(0);
-          }
+              window->Close();
+              //PostQuitMessage(0);
+            }
             eventHandled = true;
             break;
 

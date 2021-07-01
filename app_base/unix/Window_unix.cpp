@@ -265,8 +265,18 @@ bool Window_unix::handleEvent(const XEvent& event) {
             if ((Atom)event.xclient.data.l[0] == fWmDeleteMessage &&
                 gWindowMap.count() == 1) {
 
-                // "return true" means close the window, "return false" means keep it
-                return !this->onUserCloseKeepWindow();
+                if (!this->onUserCloseKeepWindow()) {
+                  // Setting the close flag for the window
+                  std::cout << "calling close()" << std::endl;
+                  this->Close();
+                }
+
+                // "return false" means "don't close the window via the 
+                // default system mechanism". 
+                // We have asked the window to close
+                // gracefully
+                std::cout << "returning false" << std::endl;
+                return false;
             }
             break;
 

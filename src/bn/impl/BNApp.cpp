@@ -674,24 +674,28 @@ void BNApp::onIdle() {
   base::RunLoop run_loop;
   run_loop.RunUntilIdle();
 
-  viewLayerWindow->DoFrame();
+  if (viewLayerWindow != nullptr) {
+    viewLayerWindow->DoFrame();
 
-  // Checking if the window is closed
-  if (viewLayerWindow->isClosePending()) {
-    // ... and closing it
-    viewLayerWindow = nullptr;
+    // Checking if the window is closed
+    if (viewLayerWindow->isClosePending()) {
+      // ... and closing it
+      viewLayerWindow = nullptr;
 
-    // The next behaviour differs in dependency to the OS tradition
-    // When the last window is closed, Windows and Linux close the
-    // application while macOS can leave an icon on the Dock...
-    //
-    // But as soon as our application doesn't support a possibility 
-    // to open a window after it was closed, it is useless even on macOS
+      // The next behaviour differs in dependency to the OS tradition
+      // When the last window is closed, Windows and Linux close the
+      // application while macOS can leave an icon on the Dock...
+      //
+      // But as soon as our application doesn't support a possibility 
+      // to open a window after it was closed, it is useless even on macOS
 //#ifndef __APPLE__
-    Quit();
+      Quit();
 //#endif
 
   }
+
+  }
+
 
 }
 

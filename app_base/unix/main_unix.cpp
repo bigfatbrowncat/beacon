@@ -26,7 +26,7 @@ int main(int argc, char**argv) {
     const int x11_fd = ConnectionNumber(display);
 
     bool done = false;
-    while (!done) {
+    while (!done && !app->isQuitPending()) {
         if (0 == XPending(display)) {
             // Only call select() when we have no events.
 
