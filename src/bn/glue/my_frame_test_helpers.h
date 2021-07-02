@@ -75,6 +75,11 @@
 #include "third_party/blink/renderer/platform/wtf/vector.h"
 
 #include <bn/sdk/BNBackendController.h>
+#include <bn/impl/BNLayer.h>
+
+namespace beacon::impl {
+  class BNLayer;
+}
 
 namespace base {
 class TickClock;
@@ -272,6 +277,12 @@ class TestWebWidgetClient : public WebWidgetClient {
   void StartDeferringCommits(base::TimeDelta timeout) override;
   void StopDeferringCommits(cc::PaintHoldingCommitTrigger) override;
   void DidMeaningfulLayout(WebMeaningfulLayout) override;
+  
+  // Called to show the widget according to the given policy.
+  void Show(WebNavigationPolicy) override {
+    std::cout << "TestWebWidgetClient::Show()" << std::endl;
+  }
+
   void SetBrowserControlsShownRatio(float top_ratio,
                                     float bottom_ratio) override;
   void SetBrowserControlsParams(cc::BrowserControlsParams) override;
@@ -463,9 +474,10 @@ class TestWebFrameClient : public WebLocalFrameClient {
  private:
   std::shared_ptr<scheduler::WebThreadScheduler> my_web_thread_sched;
   std::shared_ptr<beacon::sdk::Backend> backend;
-
+  beacon::impl::BNLayer* window;
  public:
-  TestWebFrameClient(std::shared_ptr<beacon::sdk::Backend> backend);
+  TestWebFrameClient(std::shared_ptr<beacon::sdk::Backend> backend,
+                     beacon::impl::BNLayer* window);
   ~TestWebFrameClient() override;
 
   void SetScheduler(std::shared_ptr<scheduler::WebThreadScheduler>
@@ -495,6 +507,10 @@ class TestWebFrameClient : public WebLocalFrameClient {
                                   FrameOwnerElementType) override;
   void DidStartLoading() override;
   void DidStopLoading() override;
+
+  // The frame's document and all of its subresources succeeded to load.
+  void DidFinishLoad() override;
+
   service_manager::InterfaceProvider* GetInterfaceProvider() override;
   std::unique_ptr<WebURLLoaderFactory> CreateURLLoaderFactory() override;
   void BeginNavigation(std::unique_ptr<WebNavigationInfo> info) override;

@@ -69,6 +69,14 @@ void BNLayer::UpdatePlatformFontsAndColors() {
 
 void BNLayer::UpdateBackend(bool forceFallback) {
   bool fallback = forceFallback;
+
+#ifdef __APPLE__
+  // On Apple the "raster" is the same OpenGl renderer
+  // but switching contexts takes time and makes a black flicker
+  // so avoiding it
+  fallback = true;
+#endif
+
   if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
     // Checking if we need a fallback to Raster renderer.
     // Fallback is effective for small screens and weak videochips
@@ -77,7 +85,7 @@ void BNLayer::UpdateBackend(bool forceFallback) {
     // So we are changing the backend to software raster during resizing
     fallback = true;
   }
-
+  
   auto newBackendType = fallback ? app_base::Window::kRaster_BackendType
                                  : app_base::Window::kNativeGL_BackendType;
 
@@ -154,6 +162,7 @@ void BNLayer::onPaint(SkSurface* surface) {
 
 void BNLayer::DoFrame() {
   UpdateBackend(false);
+  
   // Just re-paint continously
   int FPS = this->isWindowActive() ? 60 : 30;
 

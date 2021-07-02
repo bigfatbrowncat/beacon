@@ -45,7 +45,7 @@ class BNLayer : private app_base::Window::Layer {
 
   void onBackendCreated() override {
     this->updateTitle();
-    fWindow->show();
+    //fWindow->show();
     fWindow->inval();
   }
 
@@ -74,8 +74,7 @@ class BNLayer : private app_base::Window::Layer {
   }
 
   bool onUserCloseKeepWindow() override { 
-    // Doing nothing, just requesting the closure
-    //fWindow->Close();
+    // Don't keep the windows by default
     return false;
   }
 
@@ -83,7 +82,12 @@ class BNLayer : private app_base::Window::Layer {
   virtual std::string getTitle() = 0;
   virtual bool UpdateViewIfNeededAndBeginFrame() = 0;
   virtual bool onEvent(const ui::PlatformEvent& platformEvent) = 0;
-
+  
+  void ShowWindow() {
+    fWindow->inval();
+    fWindow->show();
+  }
+  
   bool isClosePending() { return fWindow->isClosePending(); }
 
   void DoFrame();

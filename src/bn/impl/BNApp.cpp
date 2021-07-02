@@ -143,7 +143,7 @@ BNViewLayerWindow::BNViewLayerWindow(BNApp& app) :
   backend = std::make_shared<beacon::sdk::Backend>();
 
   webViewHelper = std::make_shared<beacon::glue::WebViewHelper>();
-  wfc = std::make_shared<beacon::glue::TestWebFrameClient>(backend);
+  wfc = std::make_shared<beacon::glue::TestWebFrameClient>(backend, static_cast<beacon::impl::BNViewLayerWindow *>(this));
   wfc->SetScheduler(getApplication().getThreadScheduler());
 
   wvc = std::make_shared<beacon::glue::TestWebViewClient>(webViewHelper);
@@ -670,10 +670,6 @@ bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
 
 void BNApp::onIdle() {
 
-  // Processing the pending commands
-  base::RunLoop run_loop;
-  run_loop.RunUntilIdle();
-
   if (viewLayerWindow != nullptr) {
     viewLayerWindow->DoFrame();
 
@@ -692,16 +688,27 @@ void BNApp::onIdle() {
       Quit();
 //#endif
 
+    }
   }
-
-  }
-
+  
+  // Processing the pending commands
+  base::RunLoop run_loop;
+  run_loop.RunUntilIdle();
 
 }
 
 void BNApp::onUserQuit() {
-  // No questions here yet. Just destroying the window
-  Quit();
+  bool keep_any_window = false;
+  if (viewLayerWindow != nullptr) {
+    if (viewLayerWindow->onUserCloseKeepWindow()) {
+      keep_any_window = true;
+    }
+  }
+  
+  if (!keep_any_window) {
+    // If no window could be kept, quitting the app
+    Quit();
+  }
 }
 
 void BNViewLayerWindow::onAttach(app_base::Window* window) {}

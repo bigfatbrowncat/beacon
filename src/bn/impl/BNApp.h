@@ -26,14 +26,15 @@
 
 
 class SkCanvas;
+
 namespace blink {
 class Element;
 }  // namespace blink
 
-namespace beacon::impl {
+namespace beacon {
+namespace impl {
 
 class BNViewLayerWindow;
-
 
 class BNApp : public app_base::Application {
  public:
@@ -99,6 +100,12 @@ class BNViewLayerWindow : public BNLayer {
   blink::Document& GetDocument();
   BNApp& getApplication() { return app; }
   
+  bool onUserCloseKeepWindow() override {
+    std::cout << "BNViewLayerWindow::onUserCloseKeepWindow()" << std::endl;
+    // Don't keep the windows by default
+    return false;
+  }
+  
  private:
   bool UpdateViewIfNeededAndBeginFrame() override;
 
@@ -122,4 +129,5 @@ class BNViewLayerWindow : public BNLayer {
 
 };
 
-}  // namespace beacon::impl
+}  // namespace impl
+}  // namespace beacon

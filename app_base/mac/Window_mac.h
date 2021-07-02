@@ -1,9 +1,9 @@
 /*
-* Copyright 2016 Google Inc.
-*
-* Use of this source code is governed by a BSD-style license that can be
-* found in the LICENSE file.
-*/
+ * Copyright 2016 Google Inc.
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
 
 #ifndef Window_mac_DEFINED
 #define Window_mac_DEFINED
@@ -14,51 +14,51 @@
 #import <Cocoa/Cocoa.h>
 
 namespace app_base {
-
-class Window_mac : public Window {
-public:
+  
+  class Window_mac : public Window {
+  public:
     Window_mac()
-            : INHERITED()
-            , fWindow(nil) {}
+    : INHERITED()
+    , fWindow(nil) {}
     ~Window_mac() override {
-        this->closeWindow();
+      this->closeWindow();
     }
-
+    
     bool initWindow();
-
+    
     void setTitle(const char*) override;
     void show() override;
-
+    
     bool attach(BackendType) override;
-
+    
     void onInval() override {}
-
+    
     static void PaintWindows();
-
+    
     static const NSInteger& GetKey(const Window_mac& w) {
-        return w.fWindowNumber;
+      return w.fWindowNumber;
     }
-
+    
     static uint32_t Hash(const NSInteger& windowNumber) {
-        return windowNumber;
+      return windowNumber;
     }
-
+    
     NSWindow* window() { return fWindow; }
     void closeWindow();
-  
+    
     bool GetDefaultUIFont(PlatformFont& result) override;
     PlatformColors GetPlatformColors() const override;
     bool IsActive() const override;
-
-private:
+    
+  private:
     NSWindow*    fWindow;
     NSInteger    fWindowNumber;
-
+    
     static SkTDynamicHash<Window_mac, NSInteger> gWindowMap;
-
+    
     typedef Window INHERITED;
-};
-
+  };
+  
 }   // namespace app_base
 
 #endif

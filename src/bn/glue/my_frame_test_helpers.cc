@@ -73,6 +73,8 @@
 #include "ui/events/keycodes/dom/dom_key.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
 
+#include <bn/impl/BNApp.h>
+
 // We need this for WTF::Passed(std::move(blink::WebURLRequest))
 namespace WTF {
 template <>
@@ -670,8 +672,9 @@ void WebViewHelper::InitializeWebView(TestWebViewClient* web_view_client,
 
 int TestWebFrameClient::loads_in_progress_ = 0;
 
-TestWebFrameClient::TestWebFrameClient(std::shared_ptr<beacon::sdk::Backend> backend)
-    : backend(backend),
+  TestWebFrameClient::TestWebFrameClient(std::shared_ptr<beacon::sdk::Backend> backend,
+                                         beacon::impl::BNLayer* window)
+    : backend(backend), window(window),
       interface_provider_(new service_manager::InterfaceProvider()),
       associated_interface_provider_(new AssociatedInterfaceProvider(nullptr)),
       effective_connection_type_(WebEffectiveConnectionType::kTypeUnknown) {}
@@ -725,6 +728,11 @@ void TestWebFrameClient::DidStopLoading() {
   DCHECK_GT(loads_in_progress_, 0);
   --loads_in_progress_;
 }
+  
+  void TestWebFrameClient::DidFinishLoad() {
+    std::cout << "DidFinishLoad() showing the window" << std::endl;
+    window->ShowWindow();
+  }
 
 void TestWebFrameClient::BeginNavigation(
     std::unique_ptr<WebNavigationInfo> info) {

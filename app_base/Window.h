@@ -144,14 +144,15 @@ public:
         virtual void onPrePaint() {}
         virtual void onPaint(SkSurface*) {}
         virtual void onResize(int width, int height) {}
-        
-        // These events supported only on Windows now
+        virtual bool onUserCloseKeepWindow() {
+          // Default behaviour -- let the user close the window
+          return false;
+        }
+
+        // These events are not supported on Linux now
         virtual void onBeginResizing() {}
         virtual void onEndResizing() {}
-        virtual bool onUserCloseKeepWindow() { 
-            // Default behaviour -- let the user close the window
-            return false; 
-        }
+      
 
     private:
         friend class Window;
