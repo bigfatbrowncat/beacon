@@ -654,14 +654,19 @@ bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
         return false;
     }
 
-    bKbdEvent = std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers,
-                                                          base::TimeTicks());
-    bKbdEvent->text[0] = keyEvt->GetText();
-    bKbdEvent->windows_key_code = keyEvt->key_code();
-    bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
+    if (!keyEvt->is_char()) {
+      // We are just ignoring the Character events for now
+      // TODO Process them properly
 
-    bEvent = bKbdEvent;
-    collectedInputEvents.push_back(bEvent);
+      bKbdEvent = std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers,
+                                                            base::TimeTicks());
+      bKbdEvent->text[0] = keyEvt->GetText();
+      bKbdEvent->windows_key_code = keyEvt->key_code();
+      bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
+
+      bEvent = bKbdEvent;
+      collectedInputEvents.push_back(bEvent);
+    }
     return true;
   }
 

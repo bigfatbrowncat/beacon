@@ -441,7 +441,9 @@ static SkColor GetHighlightColor() {
                            .Get(),
                        &settings);
   ABI::Windows::UI::Color color;
-  settings->GetColorValue(abi_vm::UIColorType_Accent, &color);
+  if (settings != nullptr) {
+      settings->GetColorValue(abi_vm::UIColorType_Accent, &color);
+  }
 
   return SkColorSetARGB(color.A, color.R, color.G, color.B);
 #else
