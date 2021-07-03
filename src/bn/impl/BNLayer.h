@@ -40,7 +40,10 @@ class BNLayer : private app_base::Window::Layer {
   }
   bool onChar(const ui::PlatformEvent& platformEvent,
       SkUnichar c, skui::ModifierKey modifiers) override {
-    return onEvent(platformEvent);
+
+    // Don't process onChar. The ui:: does this well by itself
+    return false;
+    //return onEvent(platformEvent);
   }
 
   void onBackendCreated() override {

@@ -242,18 +242,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         } break;
 
         case WM_KEYDOWN:
-        case WM_SYSKEYDOWN:
+        /* case WM_SYSKEYDOWN:*/
             eventHandled = window->onKey(msg, (uint64_t)wParam, 
                                             skui::InputState::kDown,
                                             get_modifiers(message, wParam, lParam));
             break;
 
         case WM_KEYUP:
-        case WM_SYSKEYUP:
+        /* case WM_SYSKEYUP:*/
             eventHandled = window->onKey(msg, (uint64_t)wParam, 
                                             skui::InputState::kUp,
                                             get_modifiers(message, wParam, lParam));
             break;
+
+        // System keys should be processed both by the app and the system
+        // TODO Provide the app an ability to override the system key handler
+        case WM_SYSKEYDOWN:
+          window->onKey(msg, (uint64_t)wParam, skui::InputState::kDown,
+                            get_modifiers(message, wParam, lParam));
+          eventHandled = DefWindowProc(hWnd, message, wParam, lParam);
+          break;
+
+        case WM_SYSKEYUP:
+          window->onKey(msg, (uint64_t)wParam, skui::InputState::kUp,
+                            get_modifiers(message, wParam, lParam));
+          eventHandled = DefWindowProc(hWnd, message, wParam, lParam);
+          break;
+
+
 
         case WM_LBUTTONDOWN:
         case WM_LBUTTONDBLCLK: {

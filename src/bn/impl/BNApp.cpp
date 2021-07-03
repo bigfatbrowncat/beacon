@@ -629,7 +629,8 @@ bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
     }
 
     int click_count_param = mseEvt->GetClickCount();
-    WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0, base::TimeTicks());
+    WebGestureEvent ge(WebInputEvent::Type::kUndefined, 0,
+                       ui::EventTimeFromNative(platformEvent));
     bMseEvent = std::make_shared<blink::WebMouseEvent>(
         mtp, std::move(ge), button, click_count_param, modifiers,
         base::TimeTicks());
@@ -640,6 +641,9 @@ bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
 
   } else if (evt->IsKeyEvent()) {
     auto* keyEvt = evt->AsKeyEvent();
+    
+    keyEvt->NormalizeFlags();
+    
     std::shared_ptr<blink::WebKeyboardEvent> bKbdEvent;
     WebInputEvent::Type mtp;
 
@@ -654,19 +658,27 @@ bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
         return false;
     }
 
-    if (!keyEvt->is_char()) {
-      // We are just ignoring the Character events for now
-      // TODO Process them properly
+    bKbdEvent = std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers,
+                                                          ui::EventTimeFromNative(platformEvent));
+    bKbdEvent->dom_code = (int)keyEvt->code();
+    bKbdEvent->dom_key = keyEvt->GetDomKey();
 
-      bKbdEvent = std::make_shared<blink::WebKeyboardEvent>(mtp, modifiers,
-                                                            base::TimeTicks());
-      bKbdEvent->text[0] = keyEvt->GetText();
-      bKbdEvent->windows_key_code = keyEvt->key_code();
-      bKbdEvent->dom_key = keyEvt->GetDomKey();  // GetCharacter();
+    bKbdEvent->native_key_code = keyEvt->key_code();
+    // TODO There should be some difference to native_key_code
+    bKbdEvent->windows_key_code = keyEvt->key_code();  
 
-      bEvent = bKbdEvent;
-      collectedInputEvents.push_back(bEvent);
+    if ((bKbdEvent->GetModifiers() & ~WebInputEvent::kShiftKey) == 0) {
+        // No modifiers are pressed except Shift...
+        
+        // The keys, that have any modifier except Shift,
+        // should not produce a "keypress" event (and a pure symbol)
+        bKbdEvent->text[0] = keyEvt->GetText();
+        bKbdEvent->unmodified_text[0] = keyEvt->GetUnmodifiedText();
     }
+
+    bEvent = bKbdEvent;
+    collectedInputEvents.push_back(bEvent);
+
     return true;
   }
 
