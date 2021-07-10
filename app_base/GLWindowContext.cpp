@@ -18,6 +18,10 @@
 #include "src/image/SkImage_Base.h"
 #include "app_base/GLWindowContext.h"
 
+#include <Windows.h>
+
+#include <iostream>
+
 namespace app_base {
 
 GLWindowContext::GLWindowContext(const DisplayParams& params)
@@ -90,9 +94,18 @@ void GLWindowContext::swapBuffers() {
     this->onSwapBuffers();
 }
 
+void GLWindowContext::activate() {
+    // Do nothing here
+}
+
 void GLWindowContext::resize(int w, int h) {
-    this->destroyContext();
-    this->initializeContext();
+  std::cout << "GLWindowContext::resize(" << w << ", " << h << ")" << std::endl;
+  
+  fWidth = w;
+  fHeight = h;
+
+  fSurface.reset(nullptr);
+  fContext->resetContext();
 }
 
 void GLWindowContext::setDisplayParams(const DisplayParams& params) {

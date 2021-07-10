@@ -11,6 +11,8 @@
 #include "include/core/SkSurface.h"
 #include "app_base/WindowContext.h"
 
+#include <iostream>
+
 namespace app_base {
 
 Window::Window() {}
@@ -86,16 +88,32 @@ void Window::onPaint() {
     if (!fWindowContext) {
         return;
     }
+    //if (!fIsContentInvalidated)
+    //  return;
+
+    std::cout << "Window[" << this << "]::onPaint(), w: " << fWindowContext->width()
+              << ", h: " << fWindowContext->height() << std::endl;
+    
+    bool wasInvalidated = fIsContentInvalidated;
     markInvalProcessed();
     this->visitLayers([](Layer* layer) { layer->onPrePaint(); });
     sk_sp<SkSurface> backbuffer = fWindowContext->getBackbufferSurface();
     if (backbuffer) {
+        fWindowContext->activate();
         // draw into the canvas of this surface
         this->visitLayers([=](Layer* layer) { layer->onPaint(backbuffer.get()); });
 
         backbuffer->flush();
 
-        fWindowContext->swapBuffers();
+        //if (wasInvalidated) {
+          // For some strange reason when the window is just created, 
+          // before it was resized or minimized by the user for the first time,
+          // it spams WM_PAINT messages from the swapBuffers call.
+          // 
+          // To prevent spontaneous redrawing without the notification from the
+          // WebViews let's prevent swapBuffers for uninvalidated calls
+          fWindowContext->swapBuffers();
+        //}
     } else {
         printf("no backbuffer!?\n");
         // try recreating testcontext

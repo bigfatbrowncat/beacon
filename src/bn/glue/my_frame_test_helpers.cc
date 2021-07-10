@@ -731,6 +731,7 @@ void TestWebFrameClient::DidStopLoading() {
   
   void TestWebFrameClient::DidFinishLoad() {
     std::cout << "DidFinishLoad() showing the window" << std::endl;
+
     window->ShowWindow();
   }
 

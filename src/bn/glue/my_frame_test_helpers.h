@@ -316,7 +316,7 @@ class TestWebWidgetClient : public WebWidgetClient {
   }
 
  private:
-  std::unique_ptr<content::LayerTreeView> layer_tree_view_ = nullptr;
+  std::unique_ptr<content::LayerTreeView> layer_tree_view_ = nullptr;       // TODO: replace with LayerTreeHostImpl
   cc::AnimationHost* animation_host_ = nullptr;
   // LayerTreeViewFactory layer_tree_view_factory_;
   Vector<InjectedScrollGestureData> injected_scroll_gesture_data_;

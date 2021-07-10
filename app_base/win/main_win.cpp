@@ -13,6 +13,8 @@
 #include "app_base/win/Window_win.h"
 #include "tools/timer/Timer.h"
 
+#include <iostream>
+
 using app_base::Application;
 
 static char* tchar_to_utf8(const TCHAR* str) {
@@ -73,24 +75,25 @@ static int main_common(HINSTANCE hInstance, int show, int argc, char**argv) {
 
     // Main message loop
     while (!app->isQuitPending()) {
-        if (PeekMessage(msg.get(), nullptr, 0, 0, PM_REMOVE)) {
+        while (PeekMessage(msg.get(), nullptr, 0, 0, PM_REMOVE)) {
             TranslateMessage(msg.get());
-          if (WM_QUIT == msg->message) {
-              app->onUserQuit();
-          } else
-
-            if (WM_PAINT == msg->message) {
+            /*if (WM_QUIT == msg->message) {
+                app->onUserQuit();
+            } else if (WM_PAINT == msg->message) {
                 // Ensure that call onIdle at least once per WM_PAINT, or mouse events can
                 // overwhelm the message processing loop, and prevent animation from running.
                 if (!idled) {
                     app->onIdle();
                 }
                 idled = false;
-            }
+            }*/
             DispatchMessage(msg.get());
-        } else {
+        }
+        
+        {
             app->onIdle();
             idled = true;
+            WaitMessage();
         }
     }
 

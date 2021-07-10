@@ -1,8 +1,3 @@
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <thread>
-
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkGraphics.h"
@@ -84,6 +79,12 @@
 #include <bn/glue/my_blink_platform_impl.h>
 #include <bn/glue/my_frame_test_helpers.h>
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <thread>
+#include <list>
+
 using namespace app_base;
 using namespace blink;
 
@@ -117,11 +118,11 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }
 
 BNViewLayerWindow::BNViewLayerWindow(BNApp& app) :
-#ifndef __APPLE__
-      BNLayer(app_base::Window::kRaster_BackendType),
-#else
+//#ifndef __APPLE__
+      //BNLayer(app_base::Window::kRaster_BackendType),
+//#else
       BNLayer(app_base::Window::kNativeGL_BackendType),
-#endif
+//#endif
       app(app) {
 
   auto fWindow = app_base::Window::CreateNativeWindow(app.getPlatformData());
@@ -137,6 +138,7 @@ BNViewLayerWindow::BNViewLayerWindow(BNApp& app) :
 
   // Creating a thread for composer
   // (this thread will issue CSS animation tasks, for instance)
+
   base::TaskTraits default_traits = {base::ThreadPool()};
   composeTaskRunner = base::CreateSingleThreadTaskRunner(default_traits);
 
@@ -193,8 +195,14 @@ BNViewLayerWindow::BNViewLayerWindow(BNApp& app) :
   }
 
   // Setting the initial size
-  IntSize page_size(fWindow->width(), fWindow->height());
+  IntSize page_size(1, 1);//fWindow->width(), fWindow->height());
   webView->Resize(WebSize(page_size));
+
+
+  LocalFrameView* frame_view =
+      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+  frame_view->UpdateAllLifecyclePhases(
+      DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
 }
 
 
@@ -260,7 +268,9 @@ BNApp::BNApp(int argc,
   base::DiscardableMemoryAllocator::SetInstance(
       discardableSharedMemoryManager.get());
 
-  viewLayerWindow = std::make_shared<BNViewLayerWindow>(*this);
+  // Two windows
+  viewLayerWindows.push_back(std::make_shared<BNViewLayerWindow>(*this));
+  //viewLayerWindows.push_back(std::make_shared<BNViewLayerWindow>(*this));
 }
 
 BNViewLayerWindow::~BNViewLayerWindow() {
@@ -270,7 +280,7 @@ BNViewLayerWindow::~BNViewLayerWindow() {
 }
 
 BNApp::~BNApp() {
-  viewLayerWindow = nullptr;
+  viewLayerWindows.clear();
 
   // Shutting down the thread scheduler
   my_web_thread_sched->Shutdown();
@@ -309,6 +319,8 @@ static void ForAllGraphicsLayers(GraphicsLayer& layer,
 
 
 void BNViewLayerWindow::onResize(int width, int height) {
+  std::cout << "BNViewLayerWindow::onResize(" << width << ", " << height << ")"
+            << std::endl;
   int kPageWidth = width;
   int kPageHeight = height;
   IntSize page_size(kPageWidth, kPageHeight);
@@ -320,156 +332,115 @@ void BNViewLayerWindow::onResize(int width, int height) {
 
 
 bool BNViewLayerWindow::UpdateViewIfNeededAndBeginFrame() {
-  GetDocument().GetPage()->GetFocusController().SetActive(isWindowActive());
+  if (webView != nullptr && isWindowConnected()) {
+    GetDocument().GetPage()->GetFocusController().SetActive(isWindowActive());
 
-  bool anything_changed = false;
-  // std::cout << "anything_changed: ";
+    bool anything_changed = false;
+    // std::cout << "anything_changed: ";
 
-  // if (collectedInputEvents.size() > 0) {
-  //  anything_changed = true;
-  // std::cout << "events ";
-  //}
+    // if (collectedInputEvents.size() > 0) {
+    //  anything_changed = true;
+    // std::cout << "events ";
+    //}
 
-  // Handling events
-  webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
-      webView->MainFrameWidget());
+    // Handling events
+    webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
+        webView->MainFrameWidget());
 
-  for (auto& p : collectedInputEvents) {
-    WebInputEvent& theEvent = *p;
-    auto mtp = theEvent.GetType();
+    for (auto& p : collectedInputEvents) {
+      WebInputEvent& theEvent = *p;
+      auto mtp = theEvent.GetType();
 
-    auto frame_widget =
-        ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget());
-    if (mtp == WebInputEvent::Type::kMouseUp) {
-      // Ending drag on mouse up event. That prevents input disabling
-      frame_widget->DragSourceSystemDragEnded();
-    }
-
-    if (mtp != WebInputEvent::Type::kMouseMove ||
-        !frame_widget->DoingDragAndDrop()) {
-      // Any event except mouse moving without an active
-      // drag-drop operation is considered a changing operation
-      anything_changed = true;
-    }
-
-    webView->MainFrameWidget()->HandleInputEvent(
-        WebCoalescedInputEvent(theEvent));
-  }
-  collectedInputEvents.clear();
-
-  // webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
-
-  // Updating the state machine
-
-  LocalFrameView* frame_view =
-      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
-
-  {
-    blink::DisableCompositingQueryAsserts disabler;
-
-    // auto root_graphics_layer =
-    //    GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
-
-    /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer)
-     * {});*/
-
-    auto anims = GetDocument().GetDocumentAnimations().getAnimations();
-    int playing_anims = 0;
-    for (WTF::wtf_size_t ii = 0; ii < anims.size(); ii++) {
-      if (anims[ii]->Playing())
-        playing_anims++;
-    }
-
-    if (playing_anims > 0) {
-      anything_changed = true;
-    }
-
-    webView->MainFrameWidget()->UpdateLifecycle(
-        WebWidget::LifecycleUpdate::kPrePaint,
-        WebWidget::LifecycleUpdateReason::kBeginMainFrame);
-
-    if (frame_view->GetPaintArtifactCompositor() != nullptr &&
-        frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
-      // If the compositor thinks we need to update -- we need to update indeed
-      anything_changed = true;
-    }
-
-    const LocalFrameView::ScrollableAreaSet* anim_scrolls = frame_view->AnimatingScrollableAreas();
-    if (anim_scrolls != nullptr && anim_scrolls->size() > 0) {
-      // If there is an animating scrollbar, we need to update
-      anything_changed = true;
-    }
-
-    /* cc::PropertyTrees* pts = frame_view->GetPaintArtifactCompositor()
-                                 ->GetPropertyTreesForDirectUpdate();
-    if (pts->changed) {
-      anything_changed = true;
-      std::cout << "changed" << std::endl;
-    }*/
-
-    /*frame_view->GetFrame().LocalFrameRoot().View()->UpdateLifecyclePhases(
-        DocumentLifecycle::kPrePaintClean, reason);*/
-
-    // PropertyTreeState property_tree_state =
-    //    frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
-
-    // if (frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
-    // auto layout_view = GetDocument().GetLayoutView();
-    // auto compositor = layout_view->Compositor();
-    // compositor->UpdateIfNeededRecursive(DocumentLifecycle::LifecycleState::kInPrePaint);
-
-    // PaintArtifactCompositor handles all the changes except animations
-
-    /* ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
-      if (layer.PaintsContentOrHitTest()) {
-        anything_changed = true;
-        std::cout << "layer";
+      auto frame_widget =
+          ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget());
+      if (mtp == WebInputEvent::Type::kMouseUp) {
+        // Ending drag on mouse up event. That prevents input disabling
+        frame_widget->DragSourceSystemDragEnded();
       }
-    });*/
 
-    // std::cout << std::endl;
+      if (mtp != WebInputEvent::Type::kMouseMove ||
+          !frame_widget->DoingDragAndDrop()) {
+        // Any event except mouse moving without an active
+        // drag-drop operation is considered a changing operation
+        anything_changed = true;
+      }
 
-    return anything_changed;
+      webView->MainFrameWidget()->HandleInputEvent(
+          WebCoalescedInputEvent(theEvent));
+    }
+    collectedInputEvents.clear();
+
+    // webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+
+    // Updating the state machine
+
+    LocalFrameView* frame_view =
+        webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+
+    {
+      blink::DisableCompositingQueryAsserts disabler;
+
+      // auto root_graphics_layer =
+      //    GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+
+      /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer)
+       * {});*/
+
+      webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+
+      /* bool scheduled = wwc->AnimationScheduled();
+      std::cout << "scheduled = " << scheduled << std::endl;
+      if (scheduled) {
+        anything_changed = true;
+      }*/
+
+      auto anims = GetDocument().GetDocumentAnimations().getAnimations();
+      int playing_anims = 0;
+      for (WTF::wtf_size_t ii = 0; ii < anims.size(); ii++) {
+        if (anims[ii]->Playing() && !anims[ii]->Limited())
+          playing_anims++;
+      }
+
+      if (playing_anims > 0) {
+        anything_changed = true;
+      } else {
+        wwc->ClearAnimationScheduled();
+      }
+
+      /* webView->MainFrameWidget()->UpdateLifecycle(
+          WebWidget::LifecycleUpdate::kPrePaint,
+          WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
+      frame_view->UpdateAllLifecyclePhases(
+          DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
+
+      if (frame_view->GetPaintArtifactCompositor() != nullptr &&
+          frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
+        // If the compositor thinks we need to update -- we need to update
+        // indeed
+        anything_changed = true;
+      }
+
+      const LocalFrameView::ScrollableAreaSet* anim_scrolls =
+          frame_view->AnimatingScrollableAreas();
+      if (anim_scrolls != nullptr && anim_scrolls->size() > 0) {
+        // If there is an animating scrollbar, we need to update
+        anything_changed = true;
+      }
+
+      if (anything_changed)
+        std::cout << "anything_changed" << std::endl;
+      return anything_changed;
+    }
+  } else {
+    return false;
   }
 }
 
 void BNViewLayerWindow::Paint(SkCanvas* canvas) {
-  // std::cout << "BNApp::Paint()" << std::endl;
 
-  // GetDocument().GetPage()->GetFocusController().SetActive(
-  //    this->fWindow->IsActive());
-
-  // Handling events
-
-  /*webViewHelper->GetWebWidgetClient()->HandleScrollEvents(
-      webView->MainFrameWidget());
-
-  for (auto& p : collectedInputEvents) {
-    WebInputEvent& theEvent = *p;
-    auto mtp = theEvent.GetType();
-
-    if (mtp == WebInputEvent::Type::kMouseUp) {
-      // Ending drag on mouse up event. That prevents input disabling
-      ((WebFrameWidgetBase*)webView->MainFrameImpl()->FrameWidget())
-          ->DragSourceSystemDragEnded();
-    }
-
-    webView->MainFrameWidget()->HandleInputEvent(
-        WebCoalescedInputEvent(theEvent));
-  }
-  collectedInputEvents.clear();*/
-
-  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
 
   std::shared_ptr<cc::SkiaPaintCanvas> spc =
       std::make_shared<cc::SkiaPaintCanvas>(canvas);
-
-  // PaintRecordBuilder builder(nullptr, nullptr, nullptr,
-  //                           spc->GetPaintPreviewTracker());
-
-  // Updating the state machine
-  /* webView->MainFrameWidget()->UpdateAllLifecyclePhases(
-      WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
 
   LocalFrameView* frame_view =
       webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
@@ -478,16 +449,11 @@ void BNViewLayerWindow::Paint(SkCanvas* canvas) {
       frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
   {
     blink::DisableCompositingQueryAsserts disabler;
+    /* frame_view->UpdateAllLifecyclePhases(
+        DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);*/
+
     auto root_graphics_layer =
         GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
-
-    // if (frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
-    // auto layout_view = GetDocument().GetLayoutView();
-    // auto compositor = layout_view->Compositor();
-    // compositor->UpdateIfNeededRecursive(DocumentLifecycle::LifecycleState::kInPaint);
-
-    frame_view->UpdateAllLifecyclePhases(
-        DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
 
     // just_updated = false;
     ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
@@ -686,44 +652,57 @@ bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
 }
 
 void BNApp::onIdle() {
-
-  if (viewLayerWindow != nullptr) {
-    viewLayerWindow->DoFrame();
-
-    // Checking if the window is closed
-    if (viewLayerWindow->isClosePending()) {
-      // ... and closing it
-      viewLayerWindow = nullptr;
-
-      // The next behaviour differs in dependency to the OS tradition
-      // When the last window is closed, Windows and Linux close the
-      // application while macOS can leave an icon on the Dock...
-      //
-      // But as soon as our application doesn't support a possibility 
-      // to open a window after it was closed, it is useless even on macOS
-//#ifndef __APPLE__
-      Quit();
-//#endif
-
-    }
-  }
-  
   // Processing the pending commands
   base::RunLoop run_loop;
   run_loop.RunUntilIdle();
+
+  //int FPS = 60;
+  //auto frameSpan = std::chrono::milliseconds(1000 / FPS);
+
+  //auto curTime = std::chrono::steady_clock::now();
+  //if (curTime - lastDoFrame >= frameSpan) {
+  //  // We only updating the frames once in 1sec / FPS
+    for (auto& w : viewLayerWindows) {
+      w->DoFrame();
+    }
+  //  lastDoFrame = curTime;
+  //}
+
+
+  for (auto& w : viewLayerWindows) {
+    // Checking if the window is closed
+    if (w->isClosePending()) {
+      // ... and closing it
+      w = nullptr;
+    }
+  }
+  viewLayerWindows.remove_if(
+      [](std::shared_ptr<BNViewLayerWindow> item) { return item == nullptr; });
+
+  if (viewLayerWindows.size() == 0) {
+    // The next behaviour differs in dependency to the OS tradition
+    // When the last window is closed, Windows and Linux close the
+    // application while macOS can leave an icon on the Dock...
+    //
+    // But as soon as our application doesn't support a possibility
+    // to open a window after it was closed, it is useless even on macOS
+//#ifndef __APPLE__
+    Quit();
+//#endif
+  }
 
 }
 
 void BNApp::onUserQuit() {
   bool keep_any_window = false;
-  if (viewLayerWindow != nullptr) {
-    if (viewLayerWindow->onUserCloseKeepWindow()) {
+  for (auto w : viewLayerWindows) {
+    if (w->onUserCloseKeepWindow()) {
       keep_any_window = true;
     }
   }
   
   if (!keep_any_window) {
-    // If no window could be kept, quitting the app
+    // If no window should be kept, quitting the app
     Quit();
   }
 }

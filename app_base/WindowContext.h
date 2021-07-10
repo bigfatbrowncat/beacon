@@ -32,6 +32,8 @@ public:
 
     virtual void swapBuffers() = 0;
 
+    virtual void activate() = 0;
+
     virtual bool isValid() = 0;
 
     virtual void resize(int w, int h) = 0;

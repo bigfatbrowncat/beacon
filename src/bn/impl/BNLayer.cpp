@@ -67,88 +67,91 @@ void BNLayer::UpdatePlatformFontsAndColors() {
   blink::ColorSchemeChanged();
 }
 
-void BNLayer::UpdateBackend(bool forceFallback) {
-  bool fallback = forceFallback;
-
-#ifdef __APPLE__
-  // On Apple the "raster" is the same OpenGl renderer
-  // but switching contexts takes time and makes a black flicker
-  // so avoiding it
-  fallback = true;
-#endif
-
-  if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
-    // Checking if we need a fallback to Raster renderer.
-    // Fallback is effective for small screens and weak videochips
-
-    // Also, OpenGL context slows down the resizing process.
-    // So we are changing the backend to software raster during resizing
-    fallback = true;
-  }
-  
-  auto newBackendType = fallback ? app_base::Window::kRaster_BackendType
-                                 : app_base::Window::kNativeGL_BackendType;
-
-  std::chrono::steady_clock::time_point curTime =
-      std::chrono::steady_clock::now();
-
-  if (forceFallback) {
-    // If we are forcing the fallback, we don't
-    // let the context to upgrade immediately
-    lastBackendInitFailedAttempt = curTime;
-  }
-
-  if (fBackendType != app_base::Window::kRaster_BackendType &&
-      fWindow->getGrContext() == nullptr) {
-    // If we attempted to initialize GL before, but failed,
-    // then falling back to raster
-    newBackendType = app_base::Window::kRaster_BackendType;
-  }
-
-  bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              curTime - lastBackendInitFailedAttempt)
-                              .count() > 1000;
-
-  bool enoughTimePassedSinceSizeChange =
-      std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
-                                                            lastSizeChange)
-          .count() > 1000;
-
-  if (enoughTimePassedSinceSizeChange) {
-    // If long time passed since the last size shange,
-    // we are assuming that the resizing has finished
-    lastSizeChange = curTime;
-    resizing = false;
-  }
-
-  if (fBackendType != newBackendType) {
-    if (newBackendType == app_base::Window::kRaster_BackendType ||
-        enoughTimePassed) {
-      std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
-      fBackendType = newBackendType;
-
-      fWindow->detach();
-
-      // If we are switching to the raster fallback mode
-      // or enough time has passed since the previous context
-      // switching failure, let's try to switch the context
-
-      if (!fWindow->attach(fBackendType)) {
-        // Oops, we've failed...
-        // Let's record the last failure time
-        lastBackendInitFailedAttempt = curTime;
-      }
-      updateTitle();
-    }
-  }
-}
+//void BNLayer::UpdateBackend(bool forceFallback) {
+//  bool fallback = false;//forceFallback;
+//
+//  if (fWindow != nullptr) {
+//
+//#ifdef __APPLE__
+//    // On Apple the "raster" is the same OpenGl renderer
+//    // but switching contexts takes time and makes a black flicker
+//    // so avoiding it
+//    fallback = true;
+//#endif
+//
+//    /* if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
+//      // Checking if we need a fallback to Raster renderer.
+//      // Fallback is effective for small screens and weak videochips
+//        
+//      // Also, OpenGL context slows down the resizing process.
+//      // So we are changing the backend to software raster during resizing
+//      fallback = true;
+//    }*/
+//  
+//    auto newBackendType =  fallback ? app_base::Window::kRaster_BackendType
+//                                    : app_base::Window::kNativeGL_BackendType;
+//
+//    std::chrono::steady_clock::time_point curTime =
+//        std::chrono::steady_clock::now();
+//
+//    if (forceFallback) {
+//      // If we are forcing the fallback, we don't
+//      // let the context to upgrade immediately
+//      lastBackendInitFailedAttempt = curTime;
+//    }
+//
+//    if (fBackendType != app_base::Window::kRaster_BackendType &&
+//      fWindow->getGrContext() == nullptr) {
+//      // If we attempted to initialize GL before, but failed,
+//      // then falling back to raster
+//      newBackendType = app_base::Window::kRaster_BackendType;
+//    }
+//
+//    bool enoughTimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(
+//                                curTime - lastBackendInitFailedAttempt)
+//                                .count() > 1000;
+//
+//    bool enoughTimePassedSinceSizeChange =
+//        std::chrono::duration_cast<std::chrono::milliseconds>(curTime -
+//                                                              lastSizeChange)
+//            .count() > 1000;
+//
+//    if (enoughTimePassedSinceSizeChange) {
+//      // If long time passed since the last size shange,
+//      // we are assuming that the resizing has finished
+//      lastSizeChange = curTime;
+//      resizing = false;
+//    }
+//
+//    if (fBackendType != newBackendType) {
+//      if (newBackendType == app_base::Window::kRaster_BackendType ||
+//          enoughTimePassed) {
+//        std::cout << "BNApp::UpdateBackend: updating backend" << std::endl;
+//        fBackendType = newBackendType;
+//
+//        fWindow->detach();
+//
+//        // If we are switching to the raster fallback mode
+//        // or enough time has passed since the previous context
+//        // switching failure, let's try to switch the context
+//
+//        if (!fWindow->attach(fBackendType)) {
+//          // Oops, we've failed...
+//          // Let's record the last failure time
+//          lastBackendInitFailedAttempt = curTime;
+//        }
+//        updateTitle();
+//      }  
+//    }
+//  }
+//}
 
 void BNLayer::onPaint(SkSurface* surface) {
   auto* canvas = surface->getCanvas();
 
   canvas->save();
 
-  updateTitle();
+  //updateTitle();
 
   // Updating fonts and colors.
   // TODO Don't run this code on every frame. Put it to a system update event
@@ -160,11 +163,16 @@ void BNLayer::onPaint(SkSurface* surface) {
   canvas->restore();
 }
 
+void BNLayer::ShowWindow() {
+  // fWindow->inval();
+  fWindow->show();
+}
+
 void BNLayer::DoFrame() {
-  UpdateBackend(false);
+  //UpdateBackend(false);
   
   // Just re-paint continously
-  int FPS = this->isWindowActive() ? 60 : 30;
+  //int FPS = this->isWindowActive() ? 60 : 30;
 
   // auto now = std::chrono::high_resolution_clock::now();
   // auto span =
@@ -186,9 +194,12 @@ void BNLayer::DoFrame() {
 
   // std::cout << "just_updated: " << just_updated << std::endl;
   if (needsRepaint /* || just_updated*/) {
-    fWindow->inval();
+    std::cout << "needsRepaint" << std::endl;
+    if (fWindow != nullptr) {
+      fWindow->inval();
+    }
   } else {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
     // fWindow->inval();
   }
   // paintTime = now;

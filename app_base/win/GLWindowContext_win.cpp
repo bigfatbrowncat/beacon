@@ -38,6 +38,10 @@ public:
     GLWindowContext_win(HWND, const DisplayParams&);
     ~GLWindowContext_win() override;
 
+    void activate() override;
+
+    void resize(int w, int h) override;
+
 protected:
     void onSwapBuffers() override;
 
@@ -142,6 +146,18 @@ sk_sp<const GrGLInterface> GLWindowContext_win::onInitializeContext() {
     return GrGLMakeNativeInterface();
 }
 
+void GLWindowContext_win::resize(int w, int h) {
+  GLWindowContext::resize(w, h);
+}
+
+
+void GLWindowContext_win::activate() {
+    HDC dc = GetDC((HWND)fHWND);
+    if (!wglMakeCurrent(dc, fHGLRC)) {
+        std::cout << "wglMakeCurrent() returned false" << std::endl;
+    }
+}
+
 
 void GLWindowContext_win::onDestroyContext() {
     wglDeleteContext(fHGLRC);
@@ -151,8 +167,12 @@ void GLWindowContext_win::onDestroyContext() {
 
 void GLWindowContext_win::onSwapBuffers() {
     HDC dc = GetDC((HWND)fHWND);
-    SwapBuffers(dc);
-    ReleaseDC((HWND)fHWND, dc);
+    if (dc != NULL) {
+        SwapBuffers(dc);
+        ReleaseDC((HWND)fHWND, dc);
+    } else {
+        std::cout << "GetDC() returned NULL" << std::endl;
+    }
 }
 
 

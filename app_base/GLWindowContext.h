@@ -28,6 +28,7 @@ public:
 
     void resize(int w, int h) override;
     void swapBuffers() override;
+    void activate() override;
 
     void setDisplayParams(const DisplayParams& params) override;
 

@@ -23,7 +23,7 @@
 #include "BNLayer.h"
 
 #include <chrono>
-
+#include <list>
 
 class SkCanvas;
 
@@ -58,9 +58,9 @@ class BNApp : public app_base::Application {
   std::shared_ptr<beacon::impl::BNBlinkPlatformImpl> getPlatform() {
     return platform;
   }
-  std::shared_ptr<BNViewLayerWindow> getViewLayerWindow() {
+  /* std::shared_ptr<BNViewLayerWindow> getViewLayerWindow() {
     return viewLayerWindow;
-  }
+  }*/
   /* const app_base::PlatformData& getPlatformData() override {
     return *platformData.get();
   } */
@@ -79,7 +79,9 @@ class BNApp : public app_base::Application {
       threadController;
   std::shared_ptr<beacon::impl::BNBlinkPlatformImpl> platform;
 
-  std::shared_ptr<BNViewLayerWindow> viewLayerWindow;
+  std::list<std::shared_ptr<BNViewLayerWindow>> viewLayerWindows;
+  std::chrono::steady_clock::time_point lastDoFrame =
+      std::chrono::steady_clock::now();
 };
 
 class BNViewLayerWindow : public BNLayer {
@@ -126,7 +128,6 @@ class BNViewLayerWindow : public BNLayer {
 
   blink::HeapHashMap<String, blink::Member<blink::Element>>
       linked_destinations_;
-
 };
 
 }  // namespace impl

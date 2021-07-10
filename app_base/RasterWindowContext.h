@@ -16,6 +16,10 @@ class RasterWindowContext : public WindowContext {
 public:
     RasterWindowContext(const DisplayParams& params) : WindowContext(params) {}
 
+    void activate() override {
+        // Raster doesn't need any activation
+    }
+
 protected:
     bool isGpuContext() override { return false; }
 };

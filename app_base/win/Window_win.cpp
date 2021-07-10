@@ -523,4 +523,5 @@ int Window_win::GetFontSize(const LOGFONT& font) {
   return nFontSize;
 }
 
+
 }   // namespace app_base

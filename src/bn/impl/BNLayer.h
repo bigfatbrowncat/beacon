@@ -67,13 +67,13 @@ class BNLayer : private app_base::Window::Layer {
   void onBeginResizing() override {
     // Careful! This method is currently only called on Windows
     resizing = true;
-    UpdateBackend(true);
+    //UpdateBackend(false);
   }
 
   void onEndResizing() override {
     // Careful! This method is currently only called on Windows
     resizing = false;
-    UpdateBackend(true);
+    //UpdateBackend(false);
   }
 
   bool onUserCloseKeepWindow() override { 
@@ -86,11 +86,7 @@ class BNLayer : private app_base::Window::Layer {
   virtual bool UpdateViewIfNeededAndBeginFrame() = 0;
   virtual bool onEvent(const ui::PlatformEvent& platformEvent) = 0;
   
-  void ShowWindow() {
-    fWindow->inval();
-    fWindow->show();
-  }
-  
+  void ShowWindow();
   bool isClosePending() { return fWindow->isClosePending(); }
 
   void DoFrame();
@@ -119,14 +115,15 @@ class BNLayer : private app_base::Window::Layer {
 
   void onPaint(SkSurface* surface) override;
 
+  app_base::Window* fWindow = nullptr;
+
  private:
   int oldWidth, oldHeight;  
 
   void updateTitle();
-  void UpdateBackend(bool forceFallback);
+  //void UpdateBackend(bool forceFallback);
   void UpdatePlatformFontsAndColors();
 
-  app_base::Window* fWindow = nullptr;
   app_base::Window::BackendType fBackendType;
 
   bool resizing = false;
