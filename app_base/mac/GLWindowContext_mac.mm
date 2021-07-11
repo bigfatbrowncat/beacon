@@ -31,6 +31,7 @@ namespace {
     void onDestroyContext() override;
     
     void resize(int w, int h) override;
+    void activate() override;
     
   private:
     NSView*              fMainView;
@@ -155,6 +156,10 @@ namespace {
     INHERITED::resize(w, h);
   }
   
+  void GLWindowContext_mac::activate() {
+    // make context current
+    [fGLContext makeCurrentContext];
+  }
   
 }  // anonymous namespace
 

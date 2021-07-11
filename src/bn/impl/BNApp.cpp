@@ -270,7 +270,7 @@ BNApp::BNApp(int argc,
 
   // Two windows
   viewLayerWindows.push_back(std::make_shared<BNViewLayerWindow>(*this));
-  //viewLayerWindows.push_back(std::make_shared<BNViewLayerWindow>(*this));
+  viewLayerWindows.push_back(std::make_shared<BNViewLayerWindow>(*this));
 }
 
 BNViewLayerWindow::~BNViewLayerWindow() {
