@@ -24,6 +24,8 @@ public:
     bool isValid() override { return fValid; }
 
     void swapBuffers() override;
+  
+    void activate() override { }
 
     void setDisplayParams(const DisplayParams& params) override;
 

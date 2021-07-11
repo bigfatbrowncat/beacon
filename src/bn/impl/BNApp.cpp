@@ -696,7 +696,7 @@ void BNApp::onIdle() {
 void BNApp::onUserQuit() {
   bool keep_any_window = false;
   for (auto w : viewLayerWindows) {
-    if (w->onUserCloseKeepWindow()) {
+    if (w != nullptr && w->onUserCloseKeepWindow()) {
       keep_any_window = true;
     }
   }

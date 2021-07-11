@@ -18,7 +18,7 @@
 #include "src/image/SkImage_Base.h"
 #include "app_base/GLWindowContext.h"
 
-#include <Windows.h>
+//#include <Windows.h>
 
 #include <iostream>
 

@@ -151,7 +151,7 @@ void BNLayer::onPaint(SkSurface* surface) {
 
   canvas->save();
 
-  //updateTitle();
+  updateTitle();
 
   // Updating fonts and colors.
   // TODO Don't run this code on every frame. Put it to a system update event

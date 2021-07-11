@@ -109,6 +109,9 @@ namespace app_base {
   }
   
   void Window_mac::show() {
+    onResize(width(), height());
+    inval();
+    
     [fWindow orderFront:nil];
     
     [NSApp activateIgnoringOtherApps:YES];
@@ -214,6 +217,9 @@ namespace app_base {
 
 - (WindowDelegate*)initWithWindow:(app_base::Window_mac *)initWindow {
   fWindow = initWindow;
+  
+  // Setting the window size initially (
+  //[self windowDidResize:nullptr];
   
   return self;
 }
