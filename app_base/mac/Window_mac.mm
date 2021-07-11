@@ -109,9 +109,8 @@ namespace app_base {
   }
   
   void Window_mac::show() {
-    onResize(width(), height());
-    inval();
-    
+    Window::show();
+
     [fWindow orderFront:nil];
     
     [NSApp activateIgnoringOtherApps:YES];

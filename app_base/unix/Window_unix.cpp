@@ -352,6 +352,8 @@ void Window_unix::setTitle(const char* title) {
 }
 
 void Window_unix::show() {
+    Window::show();
+
     XMapWindow(fDisplay, fWindow);
 }
 

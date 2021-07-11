@@ -74,7 +74,10 @@ public:
     virtual ~Window();
 
     virtual void setTitle(const char*) = 0;
-    virtual void show() = 0;
+    virtual void show() {
+        onResize(width(), height());
+        inval();
+    };
     
     void Close() { closePending = true; }
     bool isClosePending() { return closePending; }

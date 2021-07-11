@@ -11,6 +11,7 @@
 #include "app_base/unix/WindowContextFactory_unix.h"
 
 #include <GL/gl.h>
+#include <iostream>
 
 using app_base::window_context_factory::XlibWindowInfo;
 using app_base::DisplayParams;
@@ -30,6 +31,7 @@ public:
     ~GLWindowContext_xlib() override;
 
     void onSwapBuffers() override;
+    void activate() override;
 
     void onDestroyContext() override;
 
@@ -173,6 +175,14 @@ void GLWindowContext_xlib::onDestroyContext() {
 void GLWindowContext_xlib::onSwapBuffers() {
     if (fDisplay && fGLContext) {
         glXSwapBuffers(fDisplay, fWindow);
+    }
+}
+
+void GLWindowContext_xlib::activate() {
+    if (!glXMakeCurrent(fDisplay, fWindow, fGLContext)) {
+		std::cerr << "Can't activate the context. Recreating" << std::endl;
+        this->destroyContext();
+        this->initializeContext();
     }
 }
 

@@ -363,6 +363,7 @@ void Window_win::setTitle(const char* title) {
 }
 
 void Window_win::show() {
+    Window::show();
     ShowWindow(fHWnd, SW_SHOW);
 }
 
