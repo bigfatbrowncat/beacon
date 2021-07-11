@@ -263,11 +263,10 @@ bool Window_unix::handleEvent(const XEvent& event) {
 
         case ClientMessage:
             if ((Atom)event.xclient.data.l[0] == fWmDeleteMessage &&
-                gWindowMap.count() == 1) {
+                gWindowMap.count() > 0) {
 
                 if (!this->onUserCloseKeepWindow()) {
                   // Setting the close flag for the window
-                  std::cout << "calling close()" << std::endl;
                   this->Close();
                 }
 
