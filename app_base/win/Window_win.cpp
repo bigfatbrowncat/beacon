@@ -365,6 +365,12 @@ void Window_win::setTitle(const char* title) {
 void Window_win::show() {
     Window::show();
     ShowWindow(fHWnd, SW_SHOW);
+
+    // This resize call is necessary as a workaround to a
+    // endlessly continuing sequence of WM_PAINT messages
+    // (the only way t ostop this sequence was to resize the window)
+    SetWindowPos(fHWnd, HWND_NOTOPMOST, 0, 0, width(), height(),
+                 SWP_NOMOVE | SWP_NOZORDER | SWP_SHOWWINDOW);
 }
 
 

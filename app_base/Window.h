@@ -77,7 +77,7 @@ public:
     virtual void show() {
         onResize(width(), height());
         inval();
-    };
+    }
     
     void Close() { closePending = true; }
     bool isClosePending() { return closePending; }
