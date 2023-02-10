@@ -23,6 +23,9 @@ class BNLayer : private app_base::Window::Layer {
 
   void onAttach(app_base::Window* window) override { 
     fWindow = window;
+
+    // TODO That should be repeated sometimes to update but I don't know where...
+    UpdatePlatformFontsAndColors();
   }
 
   bool onMouse(const ui::PlatformEvent& platformEvent,
@@ -98,6 +101,7 @@ class BNLayer : private app_base::Window::Layer {
     fWindow = window;
     window->pushLayer(this);
     window->attach(fBackendType);
+    this->onAttach(window);
   }
   app_base::Window::BackendType getBackendType() {
     return fBackendType;

@@ -362,7 +362,7 @@ bool BNViewLayerWindow::UpdateViewIfNeededAndBeginFrame() {
           !frame_widget->DoingDragAndDrop()) {
         // Any event except mouse moving without an active
         // drag-drop operation is considered a changing operation
-        anything_changed = true;
+        //anything_changed = true;
       }
 
       webView->MainFrameWidget()->HandleInputEvent(
@@ -370,100 +370,99 @@ bool BNViewLayerWindow::UpdateViewIfNeededAndBeginFrame() {
     }
     collectedInputEvents.clear();
 
-    // webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+//    // webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+//
+//    // Updating the state machine
+//
+//    LocalFrameView* frame_view =
+//        webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+//
+//    {
+//      blink::DisableCompositingQueryAsserts disabler;
+//
+//      // auto root_graphics_layer =
+//      //    GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
+//
+//      /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer)
+//       * {});*/
+//
+//      webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+//
+//      /* bool scheduled = wwc->AnimationScheduled();
+//      std::cout << "scheduled = " << scheduled << std::endl;
+//      if (scheduled) {
+//        anything_changed = true;
+//      }*/
+//
+//      auto anims = GetDocument().GetDocumentAnimations().getAnimations();
+//      int playing_anims = 0;
+//      for (WTF::wtf_size_t ii = 0; ii < anims.size(); ii++) {
+//        if (anims[ii]->Playing() && !anims[ii]->Limited())
+//          playing_anims++;
+//      }
+//
+//      if (playing_anims > 0) {
+//        anything_changed = true;
+//      } else {
+//        wwc->ClearAnimationScheduled();
+//      }
+//
+//      /* webView->MainFrameWidget()->UpdateLifecycle(
+//          WebWidget::LifecycleUpdate::kPrePaint,
+//          WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
+//      frame_view->UpdateAllLifecyclePhases(
+//          DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
+//
+//      if (frame_view->GetPaintArtifactCompositor() != nullptr &&
+//          frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
+//        // If the compositor thinks we need to update -- we need to update
+//        // indeed
+//        anything_changed = true;
+//      }
+//
+//      const LocalFrameView::ScrollableAreaSet* anim_scrolls =
+//          frame_view->AnimatingScrollableAreas();
+//      if (anim_scrolls != nullptr && anim_scrolls->size() > 0) {
+//        // If there is an animating scrollbar, we need to update
+//        anything_changed = true;
+//      }
+//
+//      if (anything_changed)
+//        std::cout << "anything_changed" << std::endl;
+//      return anything_changed;
+//  }
 
-    // Updating the state machine
-
-    LocalFrameView* frame_view =
-        webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
-
-    {
-      blink::DisableCompositingQueryAsserts disabler;
-
-      // auto root_graphics_layer =
-      //    GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
-
-      /*ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer)
-       * {});*/
-
-      webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
-
-      /* bool scheduled = wwc->AnimationScheduled();
-      std::cout << "scheduled = " << scheduled << std::endl;
-      if (scheduled) {
-        anything_changed = true;
-      }*/
-
-      auto anims = GetDocument().GetDocumentAnimations().getAnimations();
-      int playing_anims = 0;
-      for (WTF::wtf_size_t ii = 0; ii < anims.size(); ii++) {
-        if (anims[ii]->Playing() && !anims[ii]->Limited())
-          playing_anims++;
-      }
-
-      if (playing_anims > 0) {
-        anything_changed = true;
-      } else {
-        wwc->ClearAnimationScheduled();
-      }
-
-      /* webView->MainFrameWidget()->UpdateLifecycle(
-          WebWidget::LifecycleUpdate::kPrePaint,
-          WebWidget::LifecycleUpdateReason::kBeginMainFrame);*/
-      frame_view->UpdateAllLifecyclePhases(
-          DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);
-
-      if (frame_view->GetPaintArtifactCompositor() != nullptr &&
-          frame_view->GetPaintArtifactCompositor()->NeedsUpdate()) {
-        // If the compositor thinks we need to update -- we need to update
-        // indeed
-        anything_changed = true;
-      }
-
-      const LocalFrameView::ScrollableAreaSet* anim_scrolls =
-          frame_view->AnimatingScrollableAreas();
-      if (anim_scrolls != nullptr && anim_scrolls->size() > 0) {
-        // If there is an animating scrollbar, we need to update
-        anything_changed = true;
-      }
-
-      if (anything_changed)
-        std::cout << "anything_changed" << std::endl;
-      return anything_changed;
+    if (webViewHelper->GetWebWidgetClient()->AnimationScheduled()) {
+      anything_changed = true;
+      webViewHelper->GetWebWidgetClient()->ClearAnimationScheduled();
     }
+
+    auto state = GetDocument().Lifecycle().GetState();
+
+    if (state < DocumentLifecycle::kPaintClean) {
+      anything_changed = true;
+    }
+
+    return anything_changed;
   } else {
     return false;
   }
 }
 
 void BNViewLayerWindow::Paint(SkCanvas* canvas) {
+  blink::DisableCompositingQueryAsserts disabler;   // Still not sure if this one is necessary
 
+  webView->MainFrameWidget()->BeginFrame(base::TimeTicks::Now(), false);
+
+  webView->MainFrameWidget()->UpdateLifecycle(WebWidget::LifecycleUpdate::kAll,
+                                              WebWidget::LifecycleUpdateReason::kBeginMainFrame);
 
   std::shared_ptr<cc::SkiaPaintCanvas> spc =
-      std::make_shared<cc::SkiaPaintCanvas>(canvas);
+          std::make_shared<cc::SkiaPaintCanvas>(canvas);
 
-  LocalFrameView* frame_view =
-      webViewHelper->GetWebView()->MainFrameImpl()->GetFrameView();
+  auto paint_record = webView->MainFrameImpl()->GetFrameView()->GetPaintRecord();
 
-  PropertyTreeState property_tree_state =
-      frame_view->GetLayoutView()->FirstFragment().LocalBorderBoxProperties();
-  {
-    blink::DisableCompositingQueryAsserts disabler;
-    /* frame_view->UpdateAllLifecyclePhases(
-        DocumentLifecycle::LifecycleUpdateReason::kBeginMainFrame);*/
-
-    auto root_graphics_layer =
-        GetDocument().GetLayoutView()->Compositor()->PaintRootGraphicsLayer();
-
-    // just_updated = false;
-    ForAllGraphicsLayers(*root_graphics_layer, [&](GraphicsLayer& layer) {
-      if (layer.PaintsContentOrHitTest()) {
-        auto& artifact = layer.GetPaintController().GetPaintArtifact();
-        artifact.Replay(*spc, property_tree_state, IntPoint(0, 0));
-        // just_updated = true;
-      }
-    });
-  }
+  spc->drawPicture(paint_record);
 }
 
 bool BNViewLayerWindow::onEvent(const ui::PlatformEvent& platformEvent) {
@@ -707,6 +706,6 @@ void BNApp::onUserQuit() {
   }
 }
 
-void BNViewLayerWindow::onAttach(app_base::Window* window) {}
+//void BNViewLayerWindow::onAttach(app_base::Window* window) {}
 
 }  // namespace beacon::impl

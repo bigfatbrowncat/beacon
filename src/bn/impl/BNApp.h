@@ -90,7 +90,7 @@ class BNViewLayerWindow : public BNLayer {
 
   ~BNViewLayerWindow() override;
 
-  void onAttach(app_base::Window* window) override;
+  //void onAttach(app_base::Window* window) override;
 
   void onResize(int width, int height) override;
 

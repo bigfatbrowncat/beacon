@@ -1,0 +1,12 @@
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index 05eeecef91dda..f4076864c49f1 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -333,6 +333,7 @@
+     },
+     {
+       name: "CompositeAfterPaint",
++      status: "stable"
+     },
+     {
+       name: "CompositedSelectionUpdate",

@@ -7,6 +7,8 @@
 
 #include "app_base/Window.h"
 
+#include "third_party/skia/include/core/SkCanvas.h"
+
 #include "BNLayer.h"
 
 #include <chrono>
@@ -82,12 +84,12 @@ void BNLayer::UpdatePlatformFontsAndColors() {
 //    /* if (fWindow->width() * fWindow->height() <= 2560 * 1440 && resizing) {
 //      // Checking if we need a fallback to Raster renderer.
 //      // Fallback is effective for small screens and weak videochips
-//        
+//
 //      // Also, OpenGL context slows down the resizing process.
 //      // So we are changing the backend to software raster during resizing
 //      fallback = true;
 //    }*/
-//  
+//
 //    auto newBackendType =  fallback ? app_base::Window::kRaster_BackendType
 //                                    : app_base::Window::kNativeGL_BackendType;
 //
@@ -141,7 +143,7 @@ void BNLayer::UpdatePlatformFontsAndColors() {
 //          lastBackendInitFailedAttempt = curTime;
 //        }
 //        updateTitle();
-//      }  
+//      }
 //    }
 //  }
 //}
@@ -151,60 +153,34 @@ void BNLayer::onPaint(SkSurface* surface) {
 
   canvas->save();
 
-  updateTitle();
-
-  // Updating fonts and colors.
-  // TODO Don't run this code on every frame. Put it to a system update event
-  // instead
-  UpdatePlatformFontsAndColors();
-
   Paint(canvas);
 
   canvas->restore();
 }
 
 void BNLayer::ShowWindow() {
+  // TODO Make these calls at proper places
+  updateTitle();
+
   // fWindow->inval();
   fWindow->show();
 }
 
 void BNLayer::DoFrame() {
-  //UpdateBackend(false);
-  
-  // Just re-paint continously
-  //int FPS = this->isWindowActive() ? 60 : 30;
 
-  // auto now = std::chrono::high_resolution_clock::now();
-  // auto span =
-  //    std::chrono::duration<double, std::ratio<1>>(now - paintTime).count();
-  // if (span > 1.0 / FPS) {
-  // std::cout << "Span: " << span << std::endl;
+  // Just re-paint continuously
+  //int FPS = this->isWindowActive() ? 60 : 30;
 
   bool needsRepaint = UpdateViewIfNeededAndBeginFrame();
 
-  // WebLocalFrameImpl* main_frame = webView->MainFrameImpl();
-  // WebWidgetClient* client = main_frame->LocalRootFrameWidget()->Client();
-
-  /* auto my_web_widget_client =
-      dynamic_cast<beacon::glue::TestWebWidgetClient*>(client);
-  if (my_web_widget_client->AnimationScheduled()) {
-    needsRepaint = true;
-    my_web_widget_client->ClearAnimationScheduled();
-  }*/
-
-  // std::cout << "just_updated: " << just_updated << std::endl;
   if (needsRepaint /* || just_updated*/) {
-    std::cout << "needsRepaint" << std::endl;
     if (fWindow != nullptr) {
       fWindow->inval();
     }
   } else {
     //std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
-    // fWindow->inval();
   }
-  // paintTime = now;
 
-  //}
 }
 
 }  // namespace beacon::impl
